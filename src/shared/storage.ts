@@ -40,8 +40,8 @@ class LocalStorageAdapter implements StorageAdapter {
 class ChromeStorageAdapter implements StorageAdapter {
   async get(key: string): Promise<string | null> {
     try {
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        const result = await chrome.storage.local.get([key]);
+      if (typeof window !== 'undefined' && (window as any).chrome?.storage) {
+        const result = await (window as any).chrome.storage.local.get([key]);
         return result[key] || null;
       }
       return null;
@@ -53,8 +53,8 @@ class ChromeStorageAdapter implements StorageAdapter {
 
   async set(key: string, value: string): Promise<void> {
     try {
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        await chrome.storage.local.set({ [key]: value });
+      if (typeof window !== 'undefined' && (window as any).chrome?.storage) {
+        await (window as any).chrome.storage.local.set({ [key]: value });
       }
     } catch (error) {
       console.error('Chrome storage set error:', error);
@@ -63,8 +63,8 @@ class ChromeStorageAdapter implements StorageAdapter {
 
   async remove(key: string): Promise<void> {
     try {
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        await chrome.storage.local.remove([key]);
+      if (typeof window !== 'undefined' && (window as any).chrome?.storage) {
+        await (window as any).chrome.storage.local.remove([key]);
       }
     } catch (error) {
       console.error('Chrome storage remove error:', error);
@@ -74,7 +74,7 @@ class ChromeStorageAdapter implements StorageAdapter {
 
 // Auto-detect storage adapter
 const createStorageAdapter = (): StorageAdapter => {
-  if (typeof chrome !== 'undefined' && chrome.storage) {
+  if (typeof window !== 'undefined' && (window as any).chrome?.storage) {
     return new ChromeStorageAdapter();
   }
   return new LocalStorageAdapter();

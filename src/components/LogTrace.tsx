@@ -1,16 +1,13 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
-import { ScrollArea } from './ui/scroll-area';
-import { Switch } from './ui/switch';
-import { Badge } from './ui/badge';
-import { Separator } from './ui/separator';
-import { supabase } from '@/integrations/supabase/client';
+
+import React, { useCallback, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
+import { supabase } from '@/integrations/supabase/client';
 import { initializeSupabase } from '@/shared/api';
-import { sanitizeText } from '@/utils/sanitization';
+import Header from './LogTrace/Header';
+import InstructionsCard from './LogTrace/InstructionsCard';
+import MouseOverlay from './LogTrace/MouseOverlay';
+import DebugModal from './LogTrace/DebugModal';
+import Terminal from './LogTrace/Terminal';
 
 // Initialize Supabase for shared API
 initializeSupabase(supabase);
@@ -36,10 +33,8 @@ const LogTrace: React.FC = () => {
     analyzeWithAI,
     clearEvents,
     exportEvents,
+    generateAdvancedPrompt,
   } = useLogTrace();
-
-  const [quickPrompt, setQuickPrompt] = useState('Why did this happen?');
-  const [advancedPrompt, setAdvancedPrompt] = useState('');
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive) return;
@@ -105,36 +100,6 @@ const LogTrace: React.FC = () => {
     }
   }, [isActive, handleKeyDown]);
 
-  const generateAdvancedPrompt = useCallback((): string => {
-    if (!currentElement) return '';
-    
-    const element = currentElement.element;
-    const styles = window.getComputedStyle(element);
-    const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(currentElement.tag) || 
-                         element.onclick !== null || 
-                         styles.cursor === 'pointer';
-
-    return `Debug this element in detail:
-
-Element: <${currentElement.tag}${currentElement.id ? ` id="${sanitizeText(currentElement.id)}"` : ''}${currentElement.classes.length ? ` class="${currentElement.classes.map(c => sanitizeText(c)).join(' ')}"` : ''}>
-Text: "${sanitizeText(currentElement.text)}"
-Position: x:${mousePosition.x}, y:${mousePosition.y}
-Interactive: ${isInteractive ? 'Yes' : 'No'}
-Cursor: ${styles.cursor}
-Display: ${styles.display}
-Visibility: ${styles.visibility}
-Pointer Events: ${styles.pointerEvents}
-
-Consider:
-1. Why might this element not be behaving as expected?
-2. Are there any CSS properties preventing interaction?
-3. Are there any event listeners that might be interfering?
-4. What accessibility concerns might exist?
-5. How could the user experience be improved?
-
-Provide specific, actionable debugging steps and potential solutions.`;
-  }, [currentElement, mousePosition]);
-
   return (
     <div className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden" 
          onMouseMove={handleMouseMove}
@@ -152,276 +117,40 @@ Provide specific, actionable debugging steps and potential solutions.`;
       </div>
 
       <div className="relative z-10 p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-cyan-400 mb-2">LogTrace</h1>
-            <p className="text-green-300">Mouse Cursor & Memory Log Debug Terminal</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Switch 
-                checked={isActive} 
-                onCheckedChange={setIsActive}
-                className="data-[state=checked]:bg-cyan-500"
-              />
-              <span className={isActive ? "text-cyan-400" : "text-gray-500"}>
-                {isActive ? "ACTIVE" : "INACTIVE"}
-              </span>
-            </div>
-            <Button 
-              onClick={() => setShowTerminal(!showTerminal)}
-              variant="outline"
-              className="border-green-500 text-green-400 hover:bg-green-500/10"
-            >
-              Terminal
-            </Button>
-          </div>
-        </div>
-
-        {/* Instructions Card */}
-        <Card className="bg-slate-800/50 border-green-500/30 backdrop-blur-sm">
-          <div className="p-6">
-            <h3 className="text-cyan-400 font-semibold mb-4">How to Use</h3>
-            <div className="grid md:grid-cols-2 gap-4 text-green-300">
-              <div>
-                <h4 className="text-cyan-300 font-medium mb-2">Controls</h4>
-                <ul className="space-y-1 text-sm">
-                  <li>• Toggle activation with the switch above</li>
-                  <li>• Move mouse to inspect elements</li>
-                  <li>• Click elements to log interactions</li>
-                  <li>• Press <kbd className="bg-slate-700 px-1 rounded">Ctrl+D</kbd> to debug</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-cyan-300 font-medium mb-2">Features</h4>
-                <ul className="space-y-1 text-sm">
-                  <li>• Real-time element inspection overlay</li>
-                  <li>• AI-powered debugging assistance</li>
-                  <li>• Persistent event logging</li>
-                  <li>• Export debugging sessions</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </Card>
+        <Header 
+          isActive={isActive}
+          setIsActive={setIsActive}
+          showTerminal={showTerminal}
+          setShowTerminal={setShowTerminal}
+        />
+        <InstructionsCard />
       </div>
 
-      {/* Mouse Overlay */}
-      {isActive && currentElement && (
-        <div
-          id="logtrace-overlay"
-          ref={overlayRef}
-          className="fixed pointer-events-none z-50 transform -translate-y-full -translate-x-1/2"
-          style={{
-            left: mousePosition.x,
-            top: mousePosition.y - 10,
-          }}
-        >
-          <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20">
-            <div className="p-3 text-xs">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400 text-xs">
-                  {currentElement.tag}
-                </Badge>
-                {currentElement.id && (
-                  <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">
-                    #{sanitizeText(currentElement.id)}
-                  </Badge>
-                )}
-              </div>
-              {currentElement.classes.length > 0 && (
-                <div className="text-green-300 mb-1">
-                  .{currentElement.classes.map(c => sanitizeText(c)).join(' .')}
-                </div>
-              )}
-              {currentElement.text && (
-                <div className="text-gray-300 max-w-48 truncate">
-                  "{sanitizeText(currentElement.text)}"
-                </div>
-              )}
-              <div className="text-cyan-300 mt-2 text-xs">
-                Ctrl+D to debug
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
+      <MouseOverlay 
+        isActive={isActive}
+        currentElement={currentElement}
+        mousePosition={mousePosition}
+        overlayRef={overlayRef}
+      />
 
-      {/* Debug Modal */}
-      {showDebugModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card 
-            id="logtrace-modal"
-            ref={modalRef}
-            className="bg-slate-900/95 border-cyan-500/50 w-full max-w-2xl max-h-[80vh] overflow-hidden"
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-cyan-400">Debug Assistant</h3>
-                <Button 
-                  onClick={() => setShowDebugModal(false)}
-                  variant="ghost" 
-                  className="text-gray-400 hover:text-white"
-                >
-                  ✕
-                </Button>
-              </div>
+      <DebugModal 
+        showDebugModal={showDebugModal}
+        setShowDebugModal={setShowDebugModal}
+        currentElement={currentElement}
+        mousePosition={mousePosition}
+        isAnalyzing={isAnalyzing}
+        analyzeWithAI={analyzeWithAI}
+        generateAdvancedPrompt={generateAdvancedPrompt}
+        modalRef={modalRef}
+      />
 
-              {currentElement && (
-                <div className="mb-6 p-4 bg-slate-800/50 rounded-lg border border-green-500/30">
-                  <h4 className="text-green-400 font-semibold mb-2">Element Context</h4>
-                  <div className="text-sm text-green-300">
-                    <div><strong>Tag:</strong> {currentElement.tag}</div>
-                    {currentElement.id && <div><strong>ID:</strong> {sanitizeText(currentElement.id)}</div>}
-                    {currentElement.classes.length > 0 && (
-                      <div><strong>Classes:</strong> {currentElement.classes.map(c => sanitizeText(c)).join(', ')}</div>
-                    )}
-                    <div><strong>Position:</strong> x:{mousePosition.x}, y:{mousePosition.y}</div>
-                    {currentElement.text && (
-                      <div><strong>Text:</strong> "{sanitizeText(currentElement.text)}"</div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-cyan-400 font-semibold mb-2">Quick Debug</label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={quickPrompt}
-                      onChange={(e) => setQuickPrompt(e.target.value)}
-                      className="bg-slate-800 border-green-500/30 text-green-400"
-                      placeholder="Quick debugging question..."
-                      maxLength={500}
-                    />
-                    <Button 
-                      onClick={async () => {
-                        try {
-                          await analyzeWithAI(quickPrompt);
-                        } catch (error) {
-                          alert(error instanceof Error ? error.message : 'Error getting AI response');
-                        }
-                      }}
-                      disabled={isAnalyzing || !quickPrompt.trim()}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {isAnalyzing ? 'Analyzing...' : 'Debug'}
-                    </Button>
-                  </div>
-                </div>
-
-                <Separator className="bg-green-500/30" />
-
-                <div>
-                  <label className="block text-cyan-400 font-semibold mb-2">Advanced Debug</label>
-                  <Textarea
-                    value={advancedPrompt || generateAdvancedPrompt()}
-                    onChange={(e) => setAdvancedPrompt(e.target.value)}
-                    className="bg-slate-800 border-green-500/30 text-green-400 min-h-32"
-                    placeholder="Detailed debugging prompt..."
-                    maxLength={2000}
-                  />
-                  <Button 
-                    onClick={async () => {
-                      try {
-                        await analyzeWithAI(advancedPrompt || generateAdvancedPrompt());
-                      } catch (error) {
-                        alert(error instanceof Error ? error.message : 'Error getting AI response');
-                      }
-                    }}
-                    disabled={isAnalyzing}
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white mt-2"
-                  >
-                    {isAnalyzing ? 'Analyzing...' : 'Advanced Debug'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Terminal */}
-      {showTerminal && (
-        <div className="fixed bottom-0 left-0 right-0 h-96 bg-slate-900/95 border-t border-green-500/50 backdrop-blur-md z-40">
-          <div className="flex items-center justify-between p-4 border-b border-green-500/30">
-            <h3 className="text-cyan-400 font-bold">Memory Terminal</h3>
-            <div className="flex gap-2">
-              <Button 
-                onClick={exportEvents}
-                variant="outline" 
-                size="sm"
-                className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
-              >
-                Export
-              </Button>
-              <Button 
-                onClick={clearEvents}
-                variant="outline" 
-                size="sm"
-                className="border-red-500/50 text-red-400 hover:bg-red-500/10"
-              >
-                Clear
-              </Button>
-              <Button 
-                onClick={() => setShowTerminal(false)}
-                variant="ghost" 
-                size="sm"
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </Button>
-            </div>
-          </div>
-          
-          <ScrollArea className="h-80 p-4">
-            <div className="space-y-2">
-              {events.length === 0 ? (
-                <div className="text-gray-500 text-center py-8">
-                  No events logged yet. Enable LogTrace and start interacting with the page.
-                </div>
-              ) : (
-                events.map((event) => (
-                  <div key={event.id} className="text-xs border-l-2 border-green-500/30 pl-3 py-2">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge 
-                        variant="secondary" 
-                        className={`text-xs ${
-                          event.type === 'move' ? 'bg-blue-500/20 text-blue-400' :
-                          event.type === 'click' ? 'bg-yellow-500/20 text-yellow-400' :
-                          event.type === 'debug' ? 'bg-purple-500/20 text-purple-400' :
-                          'bg-green-500/20 text-green-400'
-                        }`}
-                      >
-                        {event.type.toUpperCase()}
-                      </Badge>
-                      <span className="text-gray-400">
-                        {new Date(event.timestamp).toLocaleTimeString()}
-                      </span>
-                      {event.element && (
-                        <span className="text-cyan-300">
-                          {event.element.tag}{event.element.id && `#${event.element.id}`}
-                        </span>
-                      )}
-                    </div>
-                    {event.prompt && (
-                      <div className="text-green-300 mt-1">{sanitizeText(event.prompt)}</div>
-                    )}
-                    {event.response && (
-                      <div className="text-green-200 mt-2 p-2 bg-slate-800/50 rounded text-sm">
-                        <strong>AI Response:</strong><br />
-                        <div>{sanitizeText(event.response)}</div>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-      )}
+      <Terminal 
+        showTerminal={showTerminal}
+        setShowTerminal={setShowTerminal}
+        events={events}
+        exportEvents={exportEvents}
+        clearEvents={clearEvents}
+      />
     </div>
   );
 };
