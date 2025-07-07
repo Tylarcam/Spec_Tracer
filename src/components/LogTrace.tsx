@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -92,7 +93,7 @@ const LogTrace: React.FC = () => {
     };
   }, []);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive) return;
     
     const target = e.target as HTMLElement;
@@ -114,7 +115,7 @@ const LogTrace: React.FC = () => {
     }
   }, [isActive, extractElementInfo, addEvent]);
 
-  const handleClick = useCallback((e: MouseEvent) => {
+  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive) return;
     
     const target = e.target as HTMLElement;
@@ -525,12 +526,12 @@ Provide specific, actionable debugging steps and potential solutions.`;
                       )}
                     </div>
                     {event.prompt && (
-                      <div className="text-green-300 mt-1" dangerouslySetInnerHTML={{ __html: sanitizeText(event.prompt) }} />
+                      <div className="text-green-300 mt-1">{sanitizeText(event.prompt)}</div>
                     )}
                     {event.response && (
                       <div className="text-green-200 mt-2 p-2 bg-slate-800/50 rounded text-sm">
                         <strong>AI Response:</strong><br />
-                        <div dangerouslySetInnerHTML={{ __html: sanitizeText(event.response) }} />
+                        <div>{sanitizeText(event.response)}</div>
                       </div>
                     )}
                   </div>
