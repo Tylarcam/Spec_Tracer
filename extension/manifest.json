@@ -1,12 +1,13 @@
 
 {
   "manifest_version": 3,
-  "name": "Trace Sight Debug View",
+  "name": "LogTrace Debug Extension",
   "version": "1.0.0",
-  "description": "Debug and trace logs with a React-based UI.",
+  "description": "Unified React debugging and trace logs with AI-powered assistance.",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
     "https://*/*",
@@ -17,14 +18,15 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Trace Sight Debug View"
+    "default_title": "LogTrace Debug Extension"
   },
   "content_scripts": [
     {
       "matches": ["https://*/*", "http://localhost/*"],
       "js": ["contentScript.js"],
       "css": ["contentScript.css"],
-      "run_at": "document_end"
+      "run_at": "document_end",
+      "all_frames": false
     }
   ],
   "icons": {
@@ -42,6 +44,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-ancestors 'none';"
   }
 }

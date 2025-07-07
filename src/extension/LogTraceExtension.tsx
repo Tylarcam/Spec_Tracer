@@ -1,21 +1,21 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
-import { ScrollArea } from './ui/scroll-area';
-import { Switch } from './ui/switch';
-import { Badge } from './ui/badge';
-import { Separator } from './ui/separator';
-import { supabase } from '@/integrations/supabase/client';
+
+/**
+ * LogTrace component optimized for Chrome extension
+ */
+
+import React, { useCallback, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
-import { initializeSupabase } from '@/shared/api';
 import { sanitizeText } from '@/utils/sanitization';
 
-// Initialize Supabase for shared API
-initializeSupabase(supabase);
-
-const LogTrace: React.FC = () => {
+const LogTraceExtension: React.FC = () => {
   const {
     isActive,
     setIsActive,
@@ -38,10 +38,10 @@ const LogTrace: React.FC = () => {
     exportEvents,
   } = useLogTrace();
 
-  const [quickPrompt, setQuickPrompt] = useState('Why did this happen?');
-  const [advancedPrompt, setAdvancedPrompt] = useState('');
+  const [quickPrompt, setQuickPrompt] = React.useState('Why did this happen?');
+  const [advancedPrompt, setAdvancedPrompt] = React.useState('');
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isActive) return;
     
     const target = e.target as HTMLElement;
@@ -63,7 +63,7 @@ const LogTrace: React.FC = () => {
     }
   }, [isActive, extractElementInfo, addEvent, setMousePosition, setCurrentElement]);
 
-  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  const handleClick = useCallback((e: MouseEvent) => {
     if (!isActive) return;
     
     const target = e.target as HTMLElement;
@@ -98,12 +98,20 @@ const LogTrace: React.FC = () => {
     }
   }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal]);
 
+  // Set up event listeners for extension context
   useEffect(() => {
     if (isActive) {
+      document.addEventListener('mousemove', handleMouseMove, true);
+      document.addEventListener('click', handleClick, true);
       document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove, true);
+        document.removeEventListener('click', handleClick, true);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
     }
-  }, [isActive, handleKeyDown]);
+  }, [isActive, handleMouseMove, handleClick, handleKeyDown]);
 
   const generateAdvancedPrompt = useCallback((): string => {
     if (!currentElement) return '';
@@ -136,73 +144,29 @@ Provide specific, actionable debugging steps and potential solutions.`;
   }, [currentElement, mousePosition]);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden" 
-         onMouseMove={handleMouseMove}
-         onClick={handleClick}>
-      
-      {/* Background grid pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `
-            linear-gradient(rgba(34, 197, 94, 0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(34, 197, 94, 0.1) 1px, transparent 1px)
-          `,
-          backgroundSize: '20px 20px'
-        }} />
-      </div>
-
-      <div className="relative z-10 p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-cyan-400 mb-2">LogTrace</h1>
-            <p className="text-green-300">Mouse Cursor & Memory Log Debug Terminal</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+    <div className="fixed inset-0 pointer-events-none z-[2147483647] font-mono">
+      {/* Floating Control Panel */}
+      <div className="fixed top-4 right-4 pointer-events-auto z-[2147483648]">
+        <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl">
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
               <Switch 
                 checked={isActive} 
                 onCheckedChange={setIsActive}
                 className="data-[state=checked]:bg-cyan-500"
               />
-              <span className={isActive ? "text-cyan-400" : "text-gray-500"}>
+              <span className={`text-sm ${isActive ? "text-cyan-400" : "text-gray-500"}`}>
                 {isActive ? "ACTIVE" : "INACTIVE"}
               </span>
             </div>
             <Button 
               onClick={() => setShowTerminal(!showTerminal)}
               variant="outline"
-              className="border-green-500 text-green-400 hover:bg-green-500/10"
+              size="sm"
+              className="border-green-500 text-green-400 hover:bg-green-500/10 w-full"
             >
               Terminal
             </Button>
-          </div>
-        </div>
-
-        {/* Instructions Card */}
-        <Card className="bg-slate-800/50 border-green-500/30 backdrop-blur-sm">
-          <div className="p-6">
-            <h3 className="text-cyan-400 font-semibold mb-4">How to Use</h3>
-            <div className="grid md:grid-cols-2 gap-4 text-green-300">
-              <div>
-                <h4 className="text-cyan-300 font-medium mb-2">Controls</h4>
-                <ul className="space-y-1 text-sm">
-                  <li>• Toggle activation with the switch above</li>
-                  <li>• Move mouse to inspect elements</li>
-                  <li>• Click elements to log interactions</li>
-                  <li>• Press <kbd className="bg-slate-700 px-1 rounded">Ctrl+D</kbd> to debug</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-cyan-300 font-medium mb-2">Features</h4>
-                <ul className="space-y-1 text-sm">
-                  <li>• Real-time element inspection overlay</li>
-                  <li>• AI-powered debugging assistance</li>
-                  <li>• Persistent event logging</li>
-                  <li>• Export debugging sessions</li>
-                </ul>
-              </div>
-            </div>
           </div>
         </Card>
       </div>
@@ -212,7 +176,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
         <div
           id="logtrace-overlay"
           ref={overlayRef}
-          className="fixed pointer-events-none z-50 transform -translate-y-full -translate-x-1/2"
+          className="fixed pointer-events-none z-[2147483647] transform -translate-y-full -translate-x-1/2"
           style={{
             left: mousePosition.x,
             top: mousePosition.y - 10,
@@ -250,7 +214,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
 
       {/* Debug Modal */}
       {showDebugModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2147483649] flex items-center justify-center p-4 pointer-events-auto">
           <Card 
             id="logtrace-modal"
             ref={modalRef}
@@ -301,7 +265,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
                         try {
                           await analyzeWithAI(quickPrompt);
                         } catch (error) {
-                          alert(error instanceof Error ? error.message : 'Error getting AI response');
+                          alert('AI debugging is not available in extension mode');
                         }
                       }}
                       disabled={isAnalyzing || !quickPrompt.trim()}
@@ -328,7 +292,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
                       try {
                         await analyzeWithAI(advancedPrompt || generateAdvancedPrompt());
                       } catch (error) {
-                        alert(error instanceof Error ? error.message : 'Error getting AI response');
+                        alert('AI debugging is not available in extension mode');
                       }
                     }}
                     disabled={isAnalyzing}
@@ -345,7 +309,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
 
       {/* Terminal */}
       {showTerminal && (
-        <div className="fixed bottom-0 left-0 right-0 h-96 bg-slate-900/95 border-t border-green-500/50 backdrop-blur-md z-40">
+        <div className="fixed bottom-0 left-0 right-0 h-96 bg-slate-900/95 border-t border-green-500/50 backdrop-blur-md z-[2147483648] pointer-events-auto">
           <div className="flex items-center justify-between p-4 border-b border-green-500/30">
             <h3 className="text-cyan-400 font-bold">Memory Terminal</h3>
             <div className="flex gap-2">
@@ -426,4 +390,4 @@ Provide specific, actionable debugging steps and potential solutions.`;
   );
 };
 
-export default LogTrace;
+export default LogTraceExtension;

@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import LogTrace from '../components/LogTrace';
+import LogTraceExtension from './LogTraceExtension';
 import '../index.css'; // Import Tailwind/global styles
 
 // Create a container for the extension UI
@@ -12,7 +13,8 @@ container.style.left = '0';
 container.style.width = '100vw';
 container.style.height = '100vh';
 container.style.zIndex = '2147483647';
+container.style.pointerEvents = 'none';
 document.body.appendChild(container);
 
 const root = createRoot(container);
-root.render(<LogTrace />); 
+root.render(<LogTraceExtension />);
