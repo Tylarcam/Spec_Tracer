@@ -1,3 +1,4 @@
+
 {
   "manifest_version": 3,
   "name": "Trace Sight Debug View",
@@ -8,7 +9,8 @@
     "activeTab"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "https://*/*",
+    "http://localhost/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -19,9 +21,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["https://*/*", "http://localhost/*"],
       "js": ["contentScript.js"],
-      "css": ["contentScript.css"]
+      "css": ["contentScript.css"],
+      "run_at": "document_end"
     }
   ],
   "icons": {
@@ -33,12 +36,12 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "contentScript.css",
-        "favicon.ico",
-        "placeholder.svg"
+        "contentScript.css"
       ],
       "matches": ["<all_urls>"]
     }
-  ]
-} 
-
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

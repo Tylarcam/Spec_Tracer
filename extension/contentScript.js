@@ -1,15 +1,67 @@
-// Content script for Claude Debug Helper
+// Content script for Claude Debug Helper - SECURITY HARDENED VERSION
 let isDebugMode = false;
 let debugModal = null;
 let selectedElement = null;
 let originalOutline = '';
 
+// Security utilities
+const sanitizeHtml = (input) => {
+  if (typeof input !== 'string') return '';
+  const div = document.createElement('div');
+  div.textContent = input;
+  return div.innerHTML;
+};
+
+const sanitizeText = (input, maxLength = 500) => {
+  if (typeof input !== 'string') return '';
+  return sanitizeHtml(input.slice(0, maxLength));
+};
+
+const validateInput = (input, maxLength = 2000) => {
+  if (typeof input !== 'string') return false;
+  if (input.length === 0 || input.length > maxLength) return false;
+  
+  // Check for potentially malicious patterns
+  const dangerousPatterns = [
+    /<script/i,
+    /javascript:/i,
+    /vbscript:/i,
+    /on\w+\s*=/i,
+    /<iframe/i,
+    /<object/i,
+    /<embed/i,
+  ];
+  
+  return !dangerousPatterns.some(pattern => pattern.test(input));
+};
+
+// Rate limiting
+class RateLimiter {
+  constructor(maxRequests = 5, windowMs = 60000) {
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+    this.requests = [];
+  }
+
+  isAllowed() {
+    const now = Date.now();
+    this.requests = this.requests.filter(time => now - time < this.windowMs);
+    
+    if (this.requests.length >= this.maxRequests) {
+      return false;
+    }
+    
+    this.requests.push(now);
+    return true;
+  }
+}
+
+const rateLimiter = new RateLimiter();
+
 // Initialize debug mode
 function initializeDebugMode() {
-  // Add debug button to page
   createDebugButton();
   
-  // Listen for messages from background script
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'toggleDebugMode') {
       toggleDebugMode();
@@ -17,7 +69,6 @@ function initializeDebugMode() {
     }
   });
 
-  // Listen for ESC key to stop debug mode
   document.addEventListener('keydown', (e) => {
     if (isDebugMode && e.key === 'Escape') {
       toggleDebugMode();
@@ -25,11 +76,14 @@ function initializeDebugMode() {
   });
 }
 
-// Create floating debug button
+// Create floating debug button with enhanced security
 function createDebugButton() {
   const button = document.createElement('div');
   button.id = 'claude-debug-btn';
-  button.innerHTML = '🐛';
+  
+  // Use textContent instead of innerHTML for security
+  button.textContent = '🐛';
+  
   button.style.cssText = `
     position: fixed;
     top: 20px;
@@ -67,12 +121,12 @@ function toggleDebugMode() {
   
   if (isDebugMode) {
     button.style.background = '#ef4444';
-    button.innerHTML = '🔍';
+    button.textContent = '🔍';
     addElementListeners();
     showDebugOverlay();
   } else {
     button.style.background = '#4f46e5';
-    button.innerHTML = '🐛';
+    button.textContent = '🐛';
     removeElementListeners();
     hideDebugOverlay();
   }
@@ -150,7 +204,7 @@ function hideDebugOverlay() {
   if (overlay) overlay.remove();
 }
 
-// Show debug modal
+// Show debug modal with enhanced security
 function showDebugModal(element) {
   if (debugModal) {
     debugModal.remove();
@@ -158,43 +212,99 @@ function showDebugModal(element) {
   
   debugModal = document.createElement('div');
   debugModal.id = 'claude-debug-modal';
-  debugModal.innerHTML = `
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Debug Element</h3>
-        <button class="close-btn">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="element-info">
-          <h4>Element Information:</h4>
-          <p><strong>Tag:</strong> ${element.tagName.toLowerCase()}</p>
-          <p><strong>Classes:</strong> ${element.className || 'None'}</p>
-          <p><strong>ID:</strong> ${element.id || 'None'}</p>
-          <p><strong>Text:</strong> ${element.textContent?.substring(0, 100) || 'None'}...</p>
-        </div>
-        
-        <div class="query-section">
-          <h4>What would you like to debug?</h4>
-          <textarea id="debug-query" placeholder="e.g., Why isn't this button working? What's causing the layout issue?"></textarea>
-          <button id="analyze-btn">Analyze with Claude</button>
-        </div>
-        
-        <div id="analysis-result" style="display: none;">
-          <h4>Analysis Result:</h4>
-          <div id="analysis-content"></div>
-        </div>
-      </div>
-    </div>
-  `;
   
+  // Create elements safely without innerHTML
+  const modalContent = document.createElement('div');
+  modalContent.className = 'modal-content';
+  
+  const modalHeader = document.createElement('div');
+  modalHeader.className = 'modal-header';
+  
+  const headerTitle = document.createElement('h3');
+  headerTitle.textContent = 'Debug Element';
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'close-btn';
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', closeDebugModal);
+  
+  modalHeader.appendChild(headerTitle);
+  modalHeader.appendChild(closeBtn);
+  
+  const modalBody = document.createElement('div');
+  modalBody.className = 'modal-body';
+  
+  const elementInfo = document.createElement('div');
+  elementInfo.className = 'element-info';
+  
+  const infoTitle = document.createElement('h4');
+  infoTitle.textContent = 'Element Information:';
+  elementInfo.appendChild(infoTitle);
+  
+  // Safely add element information
+  const tagInfo = document.createElement('p');
+  tagInfo.innerHTML = `<strong>Tag:</strong> ${sanitizeText(element.tagName.toLowerCase())}`;
+  
+  const classInfo = document.createElement('p');
+  classInfo.innerHTML = `<strong>Classes:</strong> ${sanitizeText(element.className || 'None')}`;
+  
+  const idInfo = document.createElement('p');
+  idInfo.innerHTML = `<strong>ID:</strong> ${sanitizeText(element.id || 'None')}`;
+  
+  const textInfo = document.createElement('p');
+  const elementText = element.textContent?.substring(0, 100) || 'None';
+  textInfo.innerHTML = `<strong>Text:</strong> ${sanitizeText(elementText)}...`;
+  
+  elementInfo.appendChild(tagInfo);
+  elementInfo.appendChild(classInfo);
+  elementInfo.appendChild(idInfo);
+  elementInfo.appendChild(textInfo);
+  
+  const querySection = document.createElement('div');
+  querySection.className = 'query-section';
+  
+  const queryTitle = document.createElement('h4');
+  queryTitle.textContent = 'What would you like to debug?';
+  
+  const textarea = document.createElement('textarea');
+  textarea.id = 'debug-query';
+  textarea.placeholder = 'e.g., Why isn\'t this button working? What\'s causing the layout issue?';
+  textarea.maxLength = 2000;
+  
+  const analyzeBtn = document.createElement('button');
+  analyzeBtn.id = 'analyze-btn';
+  analyzeBtn.textContent = 'Analyze with Claude';
+  analyzeBtn.addEventListener('click', analyzeElement);
+  
+  querySection.appendChild(queryTitle);
+  querySection.appendChild(textarea);
+  querySection.appendChild(analyzeBtn);
+  
+  const resultDiv = document.createElement('div');
+  resultDiv.id = 'analysis-result';
+  resultDiv.style.display = 'none';
+  
+  const resultTitle = document.createElement('h4');
+  resultTitle.textContent = 'Analysis Result:';
+  
+  const contentDiv = document.createElement('div');
+  contentDiv.id = 'analysis-content';
+  
+  resultDiv.appendChild(resultTitle);
+  resultDiv.appendChild(contentDiv);
+  
+  modalBody.appendChild(elementInfo);
+  modalBody.appendChild(querySection);
+  modalBody.appendChild(resultDiv);
+  
+  modalContent.appendChild(modalHeader);
+  modalContent.appendChild(modalBody);
+  
+  debugModal.appendChild(modalContent);
   document.body.appendChild(debugModal);
   
-  // Add event listeners
-  debugModal.querySelector('.close-btn').addEventListener('click', closeDebugModal);
-  debugModal.querySelector('#analyze-btn').addEventListener('click', analyzeElement);
-  
   // Focus on textarea
-  debugModal.querySelector('#debug-query').focus();
+  textarea.focus();
 }
 
 // Close debug modal
@@ -205,10 +315,25 @@ function closeDebugModal() {
   }
 }
 
-// Analyze element with Claude
+// Analyze element with enhanced security
 async function analyzeElement() {
-  const query = document.getElementById('debug-query').value;
-  if (!query.trim()) return;
+  const queryTextarea = document.getElementById('debug-query');
+  const query = queryTextarea.value;
+  
+  if (!query.trim()) {
+    alert('Please enter a debugging question.');
+    return;
+  }
+  
+  if (!validateInput(query, 2000)) {
+    alert('Invalid input. Please check your query and try again.');
+    return;
+  }
+  
+  if (!rateLimiter.isAllowed()) {
+    alert('Too many requests. Please wait before trying again.');
+    return;
+  }
   
   const analyzeBtn = document.getElementById('analyze-btn');
   const resultDiv = document.getElementById('analysis-result');
@@ -218,26 +343,35 @@ async function analyzeElement() {
   analyzeBtn.disabled = true;
   
   try {
-    // Get element context
     const elementContext = getElementContext(selectedElement);
     
-    // Send to background script for API call
     const response = await chrome.runtime.sendMessage({
       action: 'analyzeElement',
-      query: query,
+      query: sanitizeText(query, 2000),
       context: elementContext
     });
     
     if (response.success) {
-      contentDiv.innerHTML = formatAnalysisResult(response.data);
+      // Safely display the result
+      contentDiv.textContent = ''; // Clear previous content
+      const formattedResult = formatAnalysisResult(response.data);
+      contentDiv.appendChild(formattedResult);
       resultDiv.style.display = 'block';
     } else {
-      contentDiv.innerHTML = `<p class="error">Error: ${response.error}</p>`;
+      const errorElement = document.createElement('p');
+      errorElement.className = 'error';
+      errorElement.textContent = `Error: ${sanitizeText(response.error)}`;
+      contentDiv.textContent = '';
+      contentDiv.appendChild(errorElement);
       resultDiv.style.display = 'block';
     }
     
   } catch (error) {
-    contentDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+    const errorElement = document.createElement('p');
+    errorElement.className = 'error';
+    errorElement.textContent = `Error: ${sanitizeText(error.message)}`;
+    contentDiv.textContent = '';
+    contentDiv.appendChild(errorElement);
     resultDiv.style.display = 'block';
   }
   
@@ -245,72 +379,120 @@ async function analyzeElement() {
   analyzeBtn.disabled = false;
 }
 
-// Get element context for analysis
+// Get element context with sanitization
 function getElementContext(element) {
   const rect = element.getBoundingClientRect();
   const styles = window.getComputedStyle(element);
   
   return {
-    tag: element.tagName.toLowerCase(),
-    id: element.id,
-    classes: element.className,
-    text: element.textContent?.substring(0, 200),
-    html: element.outerHTML.substring(0, 500),
+    tag: sanitizeText(element.tagName.toLowerCase()),
+    id: sanitizeText(element.id),
+    classes: sanitizeText(element.className),
+    text: sanitizeText(element.textContent?.substring(0, 200) || ''),
+    html: sanitizeText(element.outerHTML.substring(0, 500)),
     position: {
-      x: rect.x,
-      y: rect.y,
-      width: rect.width,
-      height: rect.height
+      x: Math.round(rect.x),
+      y: Math.round(rect.y),
+      width: Math.round(rect.width),
+      height: Math.round(rect.height)
     },
     styles: {
-      display: styles.display,
-      position: styles.position,
-      visibility: styles.visibility,
-      opacity: styles.opacity,
-      zIndex: styles.zIndex,
-      backgroundColor: styles.backgroundColor,
-      color: styles.color
+      display: sanitizeText(styles.display),
+      position: sanitizeText(styles.position),
+      visibility: sanitizeText(styles.visibility),
+      opacity: sanitizeText(styles.opacity),
+      zIndex: sanitizeText(styles.zIndex),
+      backgroundColor: sanitizeText(styles.backgroundColor),
+      color: sanitizeText(styles.color)
     },
     parent: element.parentElement ? {
-      tag: element.parentElement.tagName.toLowerCase(),
-      classes: element.parentElement.className
+      tag: sanitizeText(element.parentElement.tagName.toLowerCase()),
+      classes: sanitizeText(element.parentElement.className)
     } : null,
-    url: window.location.href,
-    pageTitle: document.title
+    url: sanitizeText(window.location.href),
+    pageTitle: sanitizeText(document.title)
   };
 }
 
-// Format analysis result
+// Format analysis result with DOM manipulation instead of innerHTML
 function formatAnalysisResult(data) {
-  return `
-    <div class="analysis-sections">
-      <div class="section">
-        <h5>🔍 Analysis</h5>
-        <p>${data.analysis}</p>
-      </div>
-      
-      <div class="section">
-        <h5>🎯 Potential Issues</h5>
-        <ul>
-          ${data.issues.map(issue => `<li>${issue}</li>`).join('')}
-        </ul>
-      </div>
-      
-      <div class="section">
-        <h5>💡 Recommendations</h5>
-        <ul>
-          ${data.recommendations.map(rec => `<li>${rec}</li>`).join('')}
-        </ul>
-      </div>
-      
-      ${data.codeSnippet ? `
-        <div class="section">
-          <h5>📝 Code Snippet</h5>
-          <pre><code>${data.codeSnippet}</code></pre>
-        </div>
-      ` : ''}
-    </div>
-  `;
+  const container = document.createElement('div');
+  container.className = 'analysis-sections';
+  
+  // Analysis section
+  const analysisSection = document.createElement('div');
+  analysisSection.className = 'section';
+  
+  const analysisTitle = document.createElement('h5');
+  analysisTitle.textContent = '🔍 Analysis';
+  
+  const analysisText = document.createElement('p');
+  analysisText.textContent = sanitizeText(data.analysis);
+  
+  analysisSection.appendChild(analysisTitle);
+  analysisSection.appendChild(analysisText);
+  
+  // Issues section
+  const issuesSection = document.createElement('div');
+  issuesSection.className = 'section';
+  
+  const issuesTitle = document.createElement('h5');
+  issuesTitle.textContent = '🎯 Potential Issues';
+  
+  const issuesList = document.createElement('ul');
+  if (Array.isArray(data.issues)) {
+    data.issues.forEach(issue => {
+      const listItem = document.createElement('li');
+      listItem.textContent = sanitizeText(issue);
+      issuesList.appendChild(listItem);
+    });
+  }
+  
+  issuesSection.appendChild(issuesTitle);
+  issuesSection.appendChild(issuesList);
+  
+  // Recommendations section
+  const recsSection = document.createElement('div');
+  recsSection.className = 'section';
+  
+  const recsTitle = document.createElement('h5');
+  recsTitle.textContent = '💡 Recommendations';
+  
+  const recsList = document.createElement('ul');
+  if (Array.isArray(data.recommendations)) {
+    data.recommendations.forEach(rec => {
+      const listItem = document.createElement('li');
+      listItem.textContent = sanitizeText(rec);
+      recsList.appendChild(listItem);
+    });
+  }
+  
+  recsSection.appendChild(recsTitle);
+  recsSection.appendChild(recsList);
+  
+  // Code snippet section (if available)
+  if (data.codeSnippet) {
+    const codeSection = document.createElement('div');
+    codeSection.className = 'section';
+    
+    const codeTitle = document.createElement('h5');
+    codeTitle.textContent = '📝 Code Snippet';
+    
+    const codeElement = document.createElement('pre');
+    const codeContent = document.createElement('code');
+    codeContent.textContent = sanitizeText(data.codeSnippet);
+    codeElement.appendChild(codeContent);
+    
+    codeSection.appendChild(codeTitle);
+    codeSection.appendChild(codeElement);
+    container.appendChild(codeSection);
+  }
+  
+  container.appendChild(analysisSection);
+  container.appendChild(issuesSection);
+  container.appendChild(recsSection);
+  
+  return container;
 }
 
 // Initialize when page loads
