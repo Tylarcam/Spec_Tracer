@@ -38,7 +38,7 @@ const LogTrace: React.FC = () => {
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive) return;
-    
+
     const target = e.target as HTMLElement;
     if (target && !target.closest('#logtrace-overlay') && !target.closest('#logtrace-modal')) {
       setMousePosition({ x: e.clientX, y: e.clientY });
@@ -101,7 +101,7 @@ const LogTrace: React.FC = () => {
   }, [isActive, handleKeyDown]);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden" 
+    <div className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
          onMouseMove={handleMouseMove}
          onClick={handleClick}>
       

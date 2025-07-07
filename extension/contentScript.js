@@ -273,7 +273,7 @@ function showDebugModal(element) {
   
   const analyzeBtn = document.createElement('button');
   analyzeBtn.id = 'analyze-btn';
-  analyzeBtn.textContent = 'Analyze with Claude';
+  analyzeBtn.textContent = 'Analyze with OpenAI';
   analyzeBtn.addEventListener('click', analyzeElement);
   
   querySection.appendChild(queryTitle);
@@ -344,28 +344,32 @@ async function analyzeElement() {
   
   try {
     const elementContext = getElementContext(selectedElement);
-    
-    const response = await chrome.runtime.sendMessage({
-      action: 'analyzeElement',
-      query: sanitizeText(query, 2000),
-      context: elementContext
+    // Use OpenAI GPT-4o Mini API directly
+    const apiKey = localStorage.getItem('logtrace-api-key') || '';
+    if (!apiKey) throw new Error('Missing OpenAI API key. Configure it in settings.');
+    const prompt = `Debug this element in detail:\n\nElement: <${elementContext.tag}${elementContext.id ? ` id=\"${elementContext.id}\"` : ''}${elementContext.classes ? ` class=\"${elementContext.classes}\"` : ''}>\nText: \"${elementContext.text}\"\nPosition: x:${elementContext.position.x}, y:${elementContext.position.y}\n\nConsider:\n1. Why might this element not be behaving as expected?\n2. Are there any CSS properties preventing interaction?\n3. Are there any event listeners that might be interfering?\n4. What accessibility concerns might exist?\n5. How could the user experience be improved?\n\nProvide specific, actionable debugging steps and potential solutions.`;
+    const userPrompt = `${prompt}\n\nUser question: ${query}`;
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are an expert web developer and debugger. Provide clear, actionable debugging advice.' },
+          { role: 'user', content: userPrompt },
+        ],
+        max_tokens: 1000,
+        temperature: 0.7,
+      }),
     });
-    
-    if (response.success) {
-      // Safely display the result
-      contentDiv.textContent = ''; // Clear previous content
-      const formattedResult = formatAnalysisResult(response.data);
-      contentDiv.appendChild(formattedResult);
-      resultDiv.style.display = 'block';
-    } else {
-      const errorElement = document.createElement('p');
-      errorElement.className = 'error';
-      errorElement.textContent = `Error: ${sanitizeText(response.error)}`;
-      contentDiv.textContent = '';
-      contentDiv.appendChild(errorElement);
-      resultDiv.style.display = 'block';
-    }
-    
+    if (!response.ok) throw new Error(`API request failed: ${response.statusText}`);
+    const data = await response.json();
+    const llmResponse = data.choices[0].message.content;
+    contentDiv.textContent = llmResponse;
+    resultDiv.style.display = 'block';
   } catch (error) {
     const errorElement = document.createElement('p');
     errorElement.className = 'error';
@@ -375,7 +379,7 @@ async function analyzeElement() {
     resultDiv.style.display = 'block';
   }
   
-  analyzeBtn.textContent = 'Analyze with Claude';
+  analyzeBtn.textContent = 'Analyze with OpenAI';
   analyzeBtn.disabled = false;
 }
 
