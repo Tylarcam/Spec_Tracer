@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Trace Sight Debug View",
+  "version": "1.0.0",
+  "description": "Debug and trace logs with a React-based UI.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Trace Sight Debug View"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["logtrace-content.js"],
+      "css": ["switch.css"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["storage", "scripting", "tabs"]
+} 

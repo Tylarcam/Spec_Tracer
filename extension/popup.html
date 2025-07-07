@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: #1e293b;
+    }
+    
+    .header p {
+      margin: 5px 0 0 0;
+      font-size: 0.9rem;
+      color: #64748b;
+    }
+    
+    .config-section {
+      margin-bottom: 20px;
+    }
+    
+    .config-section h3 {
+      margin: 0 0 10px 0;
+      font-size: 1rem;
+      color: #1e293b;
+    }
+    
+    .input-group {
+      margin-bottom: 15px;
+    }
+    
+    .input-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.9rem;
+      color: #374151;
+      font-weight: 500;
+    }
+    
+    .input-group input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+    }
+    
+    .input-group input:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 10px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn:hover {
+      background: #4338ca;
+    }
+    
+    .btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      text-align: center;
+      display: none;
+    }
+    
+    .status.success {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    
+    .status.error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    
+    .instructions {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8fafc;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .instructions h4 {
+      margin: 0 0 10px 0;
+      font-size: 0.9rem;
+      color: #1e293b;
+    }
+    
+    .instructions ol {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 0.8rem;
+      color: #475569;
+      line-height: 1.5;
+    }
+    
+    .instructions li {
+      margin-bottom: 5px;
+    }
+    
+    .api-help {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+    
+    .api-help a {
+      color: #4f46e5;
+      text-decoration: none;
+    }
+    
+    .api-help a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🐛 LogTracer Debug Helper</h1>
+    <p>AI-powered web debugging tool</p>
+  </div>
+  
+  <div class="config-section">
+    <h3>Configuration</h3>
+    <div class="input-group">
+      <label for="apiKey">OpenAI API Key:</label>
+      <input type="password" id="apiKey" placeholder="Enter your OpenAI API key">
+    </div>
+    <button id="saveBtn" class="btn">Save Configuration</button>
+    <div id="status" class="status"></div>
+  </div>
+  
+  <div class="instructions">
+    <h4>How to use:</h4>
+    <ol>
+      <li>Enter your OpenAI API key above</li>
+      <li>Click the debug button (🐛) on any webpage</li>
+      <li>Click on any element to analyze it</li>
+      <li>Ask your debugging question</li>
+      <li>Get AI-powered insights and solutions</li>
+    </ol>
+  </div>
+  
+  <div class="api-help">
+    <p>Need an API key? <a href="https://platform.openai.com/account/api-keys" target="_blank">Get one here</a></p>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
