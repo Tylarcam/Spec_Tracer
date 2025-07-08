@@ -10,20 +10,6 @@ export const sanitizeText = (input: string, maxLength: number = 500): string => 
   return div.innerHTML;
 };
 
-export const sanitizeElementData = (element: {
-  tag: string;
-  id: string;
-  classes: string[];
-  text: string;
-}) => {
-  return {
-    tag: sanitizeText(element.tag),
-    id: sanitizeText(element.id),
-    classes: element.classes.map(c => sanitizeText(c)),
-    text: sanitizeText(element.text),
-  };
-};
-
 export const validatePrompt = (prompt: string): boolean => {
   if (typeof prompt !== 'string') return false;
   if (prompt.length === 0 || prompt.length > 2000) return false;

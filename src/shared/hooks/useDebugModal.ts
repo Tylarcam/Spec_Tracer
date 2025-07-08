@@ -6,7 +6,7 @@
 import { useState, useCallback } from 'react';
 import { ElementInfo } from '../types';
 import { callAIDebugFunction } from '../api';
-import { sanitizeText, sanitizeElementData } from '@/utils/sanitization';
+import { sanitizeText } from '@/utils/sanitization';
 
 export const useDebugModal = (
   currentElement: ElementInfo | null,
@@ -27,12 +27,12 @@ export const useDebugModal = (
         position: mousePosition,
         prompt: sanitizeText(prompt),
         response: sanitizeText(response),
-        element: currentElement ? sanitizeElementData({
-          tag: currentElement.tag,
-          id: currentElement.id,
-          classes: currentElement.classes,
-          text: currentElement.text,
-        }) : undefined,
+        element: currentElement ? {
+          tag: sanitizeText(currentElement.tag),
+          id: sanitizeText(currentElement.id),
+          classes: currentElement.classes.map(c => sanitizeText(c)),
+          text: sanitizeText(currentElement.text),
+        } : undefined,
       });
       
       setShowDebugModal(false);
