@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { LogEvent, ElementInfo } from '../types';
+import { LogEvent } from '../types';
 import { storage, STORAGE_KEYS } from '../storage';
 import { sanitizeElementData } from '@/utils/sanitization';
 
