@@ -3,7 +3,7 @@
  * Shared API utilities for LogTrace
  */
 
-import { sanitizeText, sanitizeElementData, validatePrompt, debugRateLimiter } from '@/utils/sanitization';
+import { sanitizeText, validatePrompt, debugRateLimiter } from '@/utils/sanitization';
 import { ElementInfo } from './types';
 
 // Supabase client - only available in main app context
@@ -31,12 +31,12 @@ export const callAIDebugFunction = async (
     const { data, error } = await supabaseClient.functions.invoke('ai-debug', {
       body: {
         prompt: sanitizeText(prompt, 2000),
-        element: currentElement ? sanitizeElementData({
-          tag: currentElement.tag,
-          id: currentElement.id,
-          classes: currentElement.classes,
-          text: currentElement.text,
-        }) : null,
+        element: currentElement ? {
+          tag: sanitizeText(currentElement.tag),
+          id: sanitizeText(currentElement.id),
+          classes: currentElement.classes.map(c => sanitizeText(c)),
+          text: sanitizeText(currentElement.text),
+        } : null,
         position: mousePosition,
       },
     });

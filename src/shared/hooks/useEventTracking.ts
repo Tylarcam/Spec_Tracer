@@ -6,7 +6,6 @@
 import { useState, useCallback } from 'react';
 import { LogEvent } from '../types';
 import { storage, STORAGE_KEYS } from '../storage';
-import { sanitizeElementData } from '@/utils/sanitization';
 
 export const useEventTracking = (maxEvents: number, autoSave: boolean) => {
   const [events, setEvents] = useState<LogEvent[]>([]);
