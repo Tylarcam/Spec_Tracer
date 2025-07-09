@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '../ui/button';
-import { Switch } from '../ui/switch';
+import { Card } from '../ui/card';
 
 interface HeaderProps {
   isActive: boolean;
@@ -17,31 +17,33 @@ const Header: React.FC<HeaderProps> = ({
   setShowTerminal,
 }) => {
   return (
-    <div className="flex items-center justify-between mb-8">
-      <div>
+    <Card className="bg-slate-800/50 border-green-500/30 mb-6">
+      <div className="p-6">
         <h1 className="text-4xl font-bold text-cyan-400 mb-2">LogTrace</h1>
-        <p className="text-green-300">Mouse Cursor & Memory Log Debug Terminal</p>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Switch 
-            checked={isActive} 
-            onCheckedChange={setIsActive}
-            className="data-[state=checked]:bg-cyan-500"
-          />
-          <span className={isActive ? "text-cyan-400" : "text-gray-500"}>
-            {isActive ? "ACTIVE" : "INACTIVE"}
-          </span>
+        <p className="text-green-300 mb-4">Interactive Element Debugger</p>
+        
+        <div className="flex gap-4">
+          <Button
+            onClick={() => setIsActive(!isActive)}
+            className={`${
+              isActive 
+                ? 'bg-red-600 hover:bg-red-700' 
+                : 'bg-green-600 hover:bg-green-700'
+            } text-white`}
+          >
+            {isActive ? 'Stop Tracing' : 'Start Tracing'}
+          </Button>
+          
+          <Button
+            onClick={() => setShowTerminal(!showTerminal)}
+            variant="outline"
+            className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
+          >
+            {showTerminal ? 'Hide Terminal' : 'Show Terminal'}
+          </Button>
         </div>
-        <Button 
-          onClick={() => setShowTerminal(!showTerminal)}
-          variant="outline"
-          className="border-green-500 text-green-400 hover:bg-green-500/10"
-        >
-          Terminal
-        </Button>
       </div>
-    </div>
+    </Card>
   );
 };
 
