@@ -36,6 +36,7 @@ export const useDebugModal = (
       });
       
       setShowDebugModal(false);
+      return response;
     } catch (error) {
       console.error('Error calling AI debug function:', error);
       throw error;

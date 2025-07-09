@@ -8,13 +8,26 @@ import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
 import InteractivePanel from './LogTrace/InteractivePanel';
 import DebugModal from './LogTrace/DebugModal';
-import Terminal from './LogTrace/Terminal';
+import TabbedTerminal from './LogTrace/TabbedTerminal';
+import PinnedDetails from './LogTrace/PinnedDetails';
 
 // Initialize Supabase for shared API
 initializeSupabase(supabase);
 
 const LogTrace: React.FC = () => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
+  const [pinnedDetails, setPinnedDetails] = useState<Array<{
+    id: string;
+    element: any;
+    position: { x: number; y: number };
+    pinnedAt: { x: number; y: number };
+  }>>([]);
+  const [debugResponses, setDebugResponses] = useState<Array<{
+    id: string;
+    prompt: string;
+    response: string;
+    timestamp: string;
+  }>>([]);
   const interactivePanelRef = React.useRef<HTMLDivElement>(null);
 
   const {
@@ -57,18 +70,9 @@ const LogTrace: React.FC = () => {
         setShowInteractivePanel(false);
       }
       
-      addEvent({
-        type: 'move',
-        position: { x: e.clientX, y: e.clientY },
-        element: {
-          tag: elementInfo.tag,
-          id: elementInfo.id,
-          classes: elementInfo.classes,
-          text: elementInfo.text,
-        },
-      });
+      // Don't log move events anymore - only track position
     }
-  }, [isActive, extractElementInfo, addEvent, setMousePosition, setCurrentElement, showInteractivePanel]);
+  }, [isActive, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive) return;
@@ -95,6 +99,21 @@ const LogTrace: React.FC = () => {
 
   const handleElementClick = useCallback(() => {
     setShowInteractivePanel(true);
+    
+    // Auto-pin details to canvas when modal opens
+    if (currentElement && pinnedDetails.length < 3) {
+      const newPin = {
+        id: Math.random().toString(36).substr(2, 9),
+        element: currentElement,
+        position: mousePosition,
+        pinnedAt: {
+          x: Math.min(mousePosition.x + 20, window.innerWidth - 320),
+          y: Math.min(mousePosition.y + 20, window.innerHeight - 200),
+        },
+      };
+      setPinnedDetails(prev => [...prev, newPin]);
+    }
+    
     addEvent({
       type: 'inspect',
       position: mousePosition,
@@ -105,7 +124,7 @@ const LogTrace: React.FC = () => {
         text: currentElement.text,
       } : undefined,
     });
-  }, [mousePosition, currentElement, addEvent]);
+  }, [mousePosition, currentElement, addEvent, pinnedDetails.length]);
 
   const handleDebugFromPanel = useCallback(() => {
     setShowInteractivePanel(false);
@@ -141,8 +160,39 @@ const LogTrace: React.FC = () => {
     if (e.key === 'Escape') {
       setShowInteractivePanel(false);
       setShowDebugModal(false);
+      setPinnedDetails([]); // Clear all pins on escape
     }
   }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal]);
+
+  const handleRemovePin = useCallback((pinId: string) => {
+    setPinnedDetails(prev => prev.filter(pin => pin.id !== pinId));
+  }, []);
+
+  const handleUpdatePinPosition = useCallback((pinId: string, position: { x: number; y: number }) => {
+    setPinnedDetails(prev => prev.map(pin => 
+      pin.id === pinId ? { ...pin, pinnedAt: position } : pin
+    ));
+  }, []);
+
+  const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
+    try {
+      const response = await analyzeWithAI(prompt);
+      
+      // Store debug response
+      const debugResponse = {
+        id: Math.random().toString(36).substr(2, 9),
+        prompt,
+        response: response || 'No response received',
+        timestamp: new Date().toISOString(),
+      };
+      setDebugResponses(prev => [debugResponse, ...prev]);
+      
+      return response;
+    } catch (error) {
+      console.error('Error in AI analysis:', error);
+      return null;
+    }
+  }, [analyzeWithAI]);
 
   useEffect(() => {
     if (isActive) {
@@ -202,17 +252,24 @@ const LogTrace: React.FC = () => {
         currentElement={currentElement}
         mousePosition={mousePosition}
         isAnalyzing={isAnalyzing}
-        analyzeWithAI={analyzeWithAI}
+        analyzeWithAI={handleAnalyzeWithAI}
         generateAdvancedPrompt={generateAdvancedPrompt}
         modalRef={modalRef}
       />
 
-      <Terminal 
+      <PinnedDetails 
+        pinnedDetails={pinnedDetails}
+        onRemovePin={handleRemovePin}
+        onUpdatePosition={handleUpdatePinPosition}
+      />
+
+      <TabbedTerminal 
         showTerminal={showTerminal}
         setShowTerminal={setShowTerminal}
         events={events}
         exportEvents={exportEvents}
         clearEvents={clearEvents}
+        debugResponses={debugResponses}
       />
     </div>
   );
