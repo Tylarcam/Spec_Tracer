@@ -1,8 +1,15 @@
 import { useState, useCallback } from 'react';
 
+interface ElementInfo {
+  tag: string;
+  id?: string;
+  classes: string[];
+  text?: string;
+}
+
 interface PinnedDetail {
   id: string;
-  element: any;
+  element: ElementInfo;
   position: { x: number; y: number };
   pinnedAt: { x: number; y: number };
 }
@@ -10,7 +17,7 @@ interface PinnedDetail {
 export const usePinnedDetails = () => {
   const [pinnedDetails, setPinnedDetails] = useState<PinnedDetail[]>([]);
 
-  const addPin = useCallback((element: any, position: { x: number; y: number }) => {
+  const addPin = useCallback((element: ElementInfo, position: { x: number; y: number }) => {
     if (pinnedDetails.length >= 3) return false;
 
     const newPin: PinnedDetail = {

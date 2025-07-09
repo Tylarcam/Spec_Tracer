@@ -1,6 +1,17 @@
 import { useCallback, useEffect } from 'react';
 import { ElementInfo } from '../types';
 
+interface LogEvent {
+  type: string;
+  position?: { x: number; y: number };
+  element?: {
+    tag: string;
+    id?: string;
+    classes: string[];
+    text?: string;
+  };
+}
+
 interface LogTraceEventHandlersProps {
   isActive: boolean;
   currentElement: ElementInfo | null;
@@ -11,7 +22,7 @@ interface LogTraceEventHandlersProps {
   setShowInteractivePanel: (show: boolean) => void;
   setShowDebugModal: (show: boolean) => void;
   extractElementInfo: (target: HTMLElement) => ElementInfo;
-  addEvent: (event: any) => void;
+  addEvent: (event: LogEvent) => void;
   onElementClick: () => void;
   onDebugFromPanel: () => void;
   onEscape: () => void;
