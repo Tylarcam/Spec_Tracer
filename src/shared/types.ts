@@ -5,7 +5,7 @@
 
 export interface LogEvent {
   id: string;
-  type: 'move' | 'click' | 'debug' | 'llm_response';
+  type: 'move' | 'click' | 'debug' | 'inspect' | 'llm_response';
   timestamp: string;
   position?: { x: number; y: number };
   element?: {
