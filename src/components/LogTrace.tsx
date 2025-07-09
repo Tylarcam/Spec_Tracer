@@ -1,11 +1,12 @@
 
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { supabase } from '@/integrations/supabase/client';
 import { initializeSupabase } from '@/shared/api';
 import Header from './LogTrace/Header';
 import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
+import InteractivePanel from './LogTrace/InteractivePanel';
 import DebugModal from './LogTrace/DebugModal';
 import Terminal from './LogTrace/Terminal';
 
@@ -13,6 +14,9 @@ import Terminal from './LogTrace/Terminal';
 initializeSupabase(supabase);
 
 const LogTrace: React.FC = () => {
+  const [showInteractivePanel, setShowInteractivePanel] = useState(false);
+  const interactivePanelRef = React.useRef<HTMLDivElement>(null);
+
   const {
     isActive,
     setIsActive,
@@ -40,10 +44,18 @@ const LogTrace: React.FC = () => {
     if (!isActive) return;
 
     const target = e.target as HTMLElement;
-    if (target && !target.closest('#logtrace-overlay') && !target.closest('#logtrace-modal')) {
+    if (target && 
+        !target.closest('#logtrace-overlay') && 
+        !target.closest('#logtrace-modal') &&
+        !target.closest('[data-interactive-panel]')) {
       setMousePosition({ x: e.clientX, y: e.clientY });
       const elementInfo = extractElementInfo(target);
       setCurrentElement(elementInfo);
+      
+      // Hide interactive panel when moving to a new element
+      if (showInteractivePanel) {
+        setShowInteractivePanel(false);
+      }
       
       addEvent({
         type: 'move',
@@ -56,13 +68,18 @@ const LogTrace: React.FC = () => {
         },
       });
     }
-  }, [isActive, extractElementInfo, addEvent, setMousePosition, setCurrentElement]);
+  }, [isActive, extractElementInfo, addEvent, setMousePosition, setCurrentElement, showInteractivePanel]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive) return;
     
     const target = e.target as HTMLElement;
-    if (target && !target.closest('#logtrace-overlay') && !target.closest('#logtrace-modal')) {
+    if (target && 
+        !target.closest('#logtrace-overlay') && 
+        !target.closest('#logtrace-modal') &&
+        !target.closest('[data-interactive-panel]')) {
+      e.preventDefault();
+      
       addEvent({
         type: 'click',
         position: { x: e.clientX, y: e.clientY },
@@ -76,9 +93,39 @@ const LogTrace: React.FC = () => {
     }
   }, [isActive, currentElement, addEvent]);
 
+  const handleElementClick = useCallback(() => {
+    setShowInteractivePanel(true);
+    addEvent({
+      type: 'inspect',
+      position: mousePosition,
+      element: currentElement ? {
+        tag: currentElement.tag,
+        id: currentElement.id,
+        classes: currentElement.classes,
+        text: currentElement.text,
+      } : undefined,
+    });
+  }, [mousePosition, currentElement, addEvent]);
+
+  const handleDebugFromPanel = useCallback(() => {
+    setShowInteractivePanel(false);
+    setShowDebugModal(true);
+    addEvent({
+      type: 'debug',
+      position: mousePosition,
+      element: currentElement ? {
+        tag: currentElement.tag,
+        id: currentElement.id,
+        classes: currentElement.classes,
+        text: currentElement.text,
+      } : undefined,
+    });
+  }, [mousePosition, currentElement, addEvent, setShowDebugModal]);
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (isActive && e.ctrlKey && e.key === 'd') {
       e.preventDefault();
+      setShowInteractivePanel(false);
       setShowDebugModal(true);
       addEvent({
         type: 'debug',
@@ -90,6 +137,10 @@ const LogTrace: React.FC = () => {
           text: currentElement.text,
         } : undefined,
       });
+    }
+    if (e.key === 'Escape') {
+      setShowInteractivePanel(false);
+      setShowDebugModal(false);
     }
   }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal]);
 
@@ -131,7 +182,19 @@ const LogTrace: React.FC = () => {
         currentElement={currentElement}
         mousePosition={mousePosition}
         overlayRef={overlayRef}
+        onElementClick={handleElementClick}
       />
+
+      <div data-interactive-panel>
+        <InteractivePanel
+          isVisible={showInteractivePanel}
+          currentElement={currentElement}
+          mousePosition={mousePosition}
+          onDebug={handleDebugFromPanel}
+          onClose={() => setShowInteractivePanel(false)}
+          panelRef={interactivePanelRef}
+        />
+      </div>
 
       <DebugModal 
         showDebugModal={showDebugModal}
