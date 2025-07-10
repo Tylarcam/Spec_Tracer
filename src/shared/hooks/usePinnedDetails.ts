@@ -1,18 +1,6 @@
+
 import { useState, useCallback } from 'react';
-
-interface ElementInfo {
-  tag: string;
-  id?: string;
-  classes: string[];
-  text?: string;
-}
-
-interface PinnedDetail {
-  id: string;
-  element: ElementInfo;
-  position: { x: number; y: number };
-  pinnedAt: { x: number; y: number };
-}
+import { ElementInfo, PinnedDetail } from '../types';
 
 export const usePinnedDetails = () => {
   const [pinnedDetails, setPinnedDetails] = useState<PinnedDetail[]>([]);

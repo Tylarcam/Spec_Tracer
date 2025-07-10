@@ -39,3 +39,10 @@ export interface DebugContext {
   events: LogEvent[];
   settings: LogTraceSettings;
 }
+
+export interface PinnedDetail {
+  id: string;
+  element: ElementInfo;
+  position: { x: number; y: number };
+  pinnedAt: { x: number; y: number };
+}

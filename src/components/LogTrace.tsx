@@ -18,6 +18,9 @@ initializeSupabase(supabase);
 
 const LogTrace: React.FC = () => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
+  const [isHoverPaused, setIsHoverPaused] = useState(false);
+  const [pausedPosition, setPausedPosition] = useState({ x: 0, y: 0 });
+  const [pausedElement, setPausedElement] = useState<any>(null);
   const interactivePanelRef = React.useRef<HTMLDivElement>(null);
 
   const {
@@ -94,6 +97,7 @@ const LogTrace: React.FC = () => {
   const handleEscape = () => {
     setShowInteractivePanel(false);
     setShowDebugModal(false);
+    setIsHoverPaused(false);
     clearAllPins(); // Clear all pins on escape
   };
 
@@ -110,7 +114,7 @@ const LogTrace: React.FC = () => {
   };
 
   const handleMouseMove = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isActive) return;
+    if (!isActive || isHoverPaused) return;
 
     const target = e.target as HTMLElement;
     if (target && 
@@ -126,7 +130,7 @@ const LogTrace: React.FC = () => {
         setShowInteractivePanel(false);
       }
     }
-  }, [isActive, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel]);
+  }, [isActive, isHoverPaused, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel]);
 
   const handleClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive) return;
@@ -168,6 +172,18 @@ const LogTrace: React.FC = () => {
           } : undefined,
         });
       }
+      if (isActive && e.key === 'd' && !e.ctrlKey) {
+        e.preventDefault();
+        if (!isHoverPaused) {
+          // Pause hover at current position
+          setPausedPosition(mousePosition);
+          setPausedElement(currentElement);
+          setIsHoverPaused(true);
+        } else {
+          // Resume hover
+          setIsHoverPaused(false);
+        }
+      }
       if (e.key === 'Escape') {
         handleEscape();
       }
@@ -177,7 +193,7 @@ const LogTrace: React.FC = () => {
       document.addEventListener('keydown', handleKeyDown);
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal]);
+  }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal, isHoverPaused]);
 
   return (
     <div className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
@@ -207,8 +223,8 @@ const LogTrace: React.FC = () => {
 
       <MouseOverlay 
         isActive={isActive}
-        currentElement={currentElement}
-        mousePosition={mousePosition}
+        currentElement={isHoverPaused ? pausedElement : currentElement}
+        mousePosition={isHoverPaused ? pausedPosition : mousePosition}
         overlayRef={overlayRef}
         onElementClick={handleElementClick}
       />

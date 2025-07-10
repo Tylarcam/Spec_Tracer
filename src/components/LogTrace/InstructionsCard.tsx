@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card } from '../ui/card';
-import { Eye, Code, MousePointer2, Terminal } from 'lucide-react';
+import { Eye, Code, MousePointer2, Terminal, Pause } from 'lucide-react';
 
 const InstructionsCard: React.FC = () => {
   return (
@@ -11,13 +11,22 @@ const InstructionsCard: React.FC = () => {
           <Eye className="w-4 h-4" />
           How to Use LogTrace
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-green-300 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-green-300 text-sm">
           <div className="flex items-start gap-2">
             <MousePointer2 className="w-4 h-4 mt-0.5 text-cyan-400" />
             <div>
               <div className="font-medium">Interactive Modes</div>
               <div className="text-xs text-gray-400">
                 Start tracing → Hover elements → Click overlay for details
+              </div>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <Pause className="w-4 h-4 mt-0.5 text-orange-400" />
+            <div>
+              <div className="font-medium">Hover Pause</div>
+              <div className="text-xs text-gray-400">
+                Press <kbd className="bg-slate-700 px-1 py-0.5 rounded text-xs">D</kbd> to pause/resume hover details at current position
               </div>
             </div>
           </div>
@@ -44,7 +53,7 @@ const InstructionsCard: React.FC = () => {
             <div>
               <div className="font-medium">Quick Exit</div>
               <div className="text-xs text-gray-400">
-                Press Escape to close panels and modals
+                Press Escape to close panels, modals, and resume hover
               </div>
             </div>
           </div>
