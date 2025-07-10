@@ -7,7 +7,7 @@
   justify-content: center;
 } 
 
-/* Debug Modal Styles */
+/* Enhanced Debug Modal Styles - Matching Main App Design */
 #claude-debug-modal {
   position: fixed;
   top: 0;
@@ -15,230 +15,487 @@
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 10001;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  z-index: 50;
+  padding: 1rem;
+  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
 }
 
 #claude-debug-modal .modal-content {
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 600px;
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(34, 197, 94, 0.5) !important;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 42rem; /* max-w-2xl */
   max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  animation: modalSlideIn 0.3s ease-out;
+  overflow: hidden;
+  color: hsl(210, 40%, 98%) !important; /* text-foreground in dark mode */
 }
 
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-50px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* Floating Button Pulse Animation */
-@keyframes logTracePulse {
-  0% {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-  50% {
-    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4), 0 0 20px rgba(6, 182, 212, 0.3);
-  }
-  100% {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-}
-
-/* Active button styling */
-#log-trace-toggle-button.log-trace-active {
-  animation: logTracePulse 2s infinite;
+#claude-debug-modal .modal-body {
+  padding: 1.5rem; /* p-6 */
 }
 
 #claude-debug-modal .modal-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e5e7eb;
+  justify-content: space-between;
+  margin-bottom: 1.5rem; /* mb-6 */
 }
 
 #claude-debug-modal .modal-header h3 {
   margin: 0;
-  font-size: 1.5rem;
-  color: #111827;
+  color: #06b6d4 !important; /* text-cyan-400 */
+  font-size: 1.5rem; /* text-2xl */
+  font-weight: 700; /* font-bold */
+  line-height: 1;
 }
 
 #claude-debug-modal .close-btn {
-  background: none;
+  background: transparent;
   border: none;
-  font-size: 24px;
+  color: #9ca3af; /* text-gray-400 */
+  font-size: 1rem;
   cursor: pointer;
-  color: #6b7280;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.15s ease-in-out;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s;
+  gap: 0.5rem;
+  white-space: nowrap;
+  font-weight: 500;
+  text-decoration: none;
 }
 
 #claude-debug-modal .close-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: rgba(55, 65, 81, 0.5); /* hover:bg-accent */
+  color: #ffffff; /* hover:text-white */
 }
 
-#claude-debug-modal .modal-body {
-  padding: 20px;
+#claude-debug-modal .close-btn:disabled {
+  pointer-events: none;
+  opacity: 0.5;
 }
 
-#claude-debug-modal .element-info {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 20px;
+/* Element Context Section */
+#claude-debug-modal .element-context {
+  background: rgba(30, 41, 59, 0.5) !important; /* bg-slate-800/50 */
+  border: 1px solid rgba(34, 197, 94, 0.3) !important; /* border-green-500/30 */
+  border-radius: 0.5rem; /* rounded-lg */
+  padding: 1rem; /* p-4 */
+  margin-bottom: 1.5rem; /* mb-6 */
 }
 
-#claude-debug-modal .element-info h4 {
-  margin: 0 0 12px 0;
-  font-size: 1.1rem;
-  color: #1e293b;
-}
-
-#claude-debug-modal .element-info p {
-  margin: 8px 0;
-  font-size: 0.9rem;
-  color: #475569;
-}
-
-#claude-debug-modal .element-info strong {
-  color: #1e293b;
-}
-
-#claude-debug-modal .query-section h4 {
-  margin: 0 0 12px 0;
-  font-size: 1.1rem;
-  color: #1e293b;
-}
-
-#claude-debug-modal #debug-query {
-  width: 100%;
-  height: 100px;
-  padding: 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 14px;
-  resize: vertical;
-  margin-bottom: 12px;
-  box-sizing: border-box;
-}
-
-#claude-debug-modal #debug-query:focus {
-  outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-}
-
-#claude-debug-modal #analyze-btn {
-  background: #4f46e5;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-#claude-debug-modal #analyze-btn:hover:not(:disabled) {
-  background: #4338ca;
-  transform: translateY(-1px);
-}
-
-#claude-debug-modal #analyze-btn:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-  transform: none;
-}
-
-#claude-debug-modal #analysis-result {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
-}
-
-#claude-debug-modal #analysis-result h4 {
-  margin: 0 0 16px 0;
-  font-size: 1.1rem;
-  color: #1e293b;
-}
-
-#claude-debug-modal .analysis-sections .section {
-  margin-bottom: 20px;
-}
-
-#claude-debug-modal .analysis-sections h5 {
-  margin: 0 0 8px 0;
+#claude-debug-modal .element-context h4 {
+  margin: 0 0 0.5rem 0; /* mb-2 */
+  color: #22c55e !important; /* text-green-400 */
+  font-weight: 600; /* font-semibold */
   font-size: 1rem;
-  color: #1e293b;
+}
+
+#claude-debug-modal .context-info {
+  font-size: 0.875rem; /* text-sm */
+  color: #86efac !important; /* text-green-300 */
+}
+
+#claude-debug-modal .context-info div {
+  margin-bottom: 0.25rem;
+}
+
+#claude-debug-modal .context-info strong {
+  font-weight: bold;
+}
+
+/* Section Spacing */
+#claude-debug-modal .space-y-6 > * + * {
+  margin-top: 1.5rem;
+}
+
+/* Quick Debug Section */
+#claude-debug-modal .quick-debug-section label {
+  display: block;
+  color: #06b6d4 !important; /* text-cyan-400 */
+  font-weight: 600; /* font-semibold */
+  margin-bottom: 0.5rem; /* mb-2 */
+  font-size: 1rem;
+}
+
+#claude-debug-modal .quick-debug-controls {
   display: flex;
+  gap: 0.5rem; /* gap-2 */
+}
+
+#claude-debug-modal #quick-debug-input {
+  flex: 1;
+  height: 2.5rem; /* h-10 */
+  width: 100%;
+  border-radius: 0.375rem; /* rounded-md */
+  border: 1px solid rgba(34, 197, 94, 0.3) !important; /* border-green-500/30 */
+  background: #1e293b !important; /* bg-slate-800 */
+  padding: 0.5rem 0.75rem; /* px-3 py-2 */
+  font-size: 0.875rem; /* text-sm */
+  color: #22c55e !important; /* text-green-400 */
+  font-family: inherit;
+  outline: none;
+  transition: all 0.15s ease-in-out;
+}
+
+#claude-debug-modal #quick-debug-input::placeholder {
+  color: rgba(156, 163, 175, 0.8); /* placeholder:text-muted-foreground */
+}
+
+#claude-debug-modal #quick-debug-input:focus {
+  outline: none;
+  border-color: rgba(34, 197, 94, 0.7);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+/* Debug Separator */
+#claude-debug-modal .debug-separator {
+  height: 1px;
+  background: rgba(34, 197, 94, 0.3) !important; /* bg-green-500/30 */
+  border: none;
+  margin: 1.5rem 0;
+}
+
+/* Advanced Debug Section */
+#claude-debug-modal .advanced-debug-section label {
+  display: block;
+  color: #06b6d4 !important; /* text-cyan-400 */
+  font-weight: 600; /* font-semibold */
+  margin-bottom: 0.5rem; /* mb-2 */
+  font-size: 1rem;
+}
+
+#claude-debug-modal #advanced-debug-input {
+  width: 100%;
+  min-height: 8rem; /* min-h-32 */
+  border-radius: 0.375rem; /* rounded-md */
+  border: 1px solid rgba(34, 197, 94, 0.3) !important; /* border-green-500/30 */
+  background: #1e293b !important; /* bg-slate-800 */
+  padding: 0.5rem 0.75rem; /* px-3 py-2 */
+  font-size: 0.875rem; /* text-sm */
+  color: #22c55e !important; /* text-green-400 */
+  font-family: inherit;
+  outline: none;
+  transition: all 0.15s ease-in-out;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+#claude-debug-modal #advanced-debug-input::placeholder {
+  color: rgba(156, 163, 175, 0.8); /* placeholder:text-muted-foreground */
+}
+
+#claude-debug-modal #advanced-debug-input:focus {
+  outline: none;
+  border-color: rgba(34, 197, 94, 0.7);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+/* Debug Buttons */
+#claude-debug-modal .debug-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  border-radius: 0.375rem; /* rounded-md */
+  font-size: 0.875rem; /* text-sm */
+  font-weight: 500; /* font-medium */
+  transition: all 0.15s ease-in-out;
+  height: 2.5rem; /* h-10 */
+  padding: 0.5rem 1rem; /* px-4 py-2 */
+  border: none;
+  cursor: pointer;
+  outline: none;
+  text-decoration: none;
 }
 
-#claude-debug-modal .analysis-sections p {
-  margin: 0 0 12px 0;
+#claude-debug-modal .debug-btn:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.5);
+}
+
+#claude-debug-modal .debug-btn:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+#claude-debug-modal .debug-btn.primary {
+  background: #16a34a !important; /* bg-green-600 */
+  color: #ffffff !important; /* text-white */
+}
+
+#claude-debug-modal .debug-btn.primary:hover:not(:disabled) {
+  background: #15803d !important; /* hover:bg-green-700 */
+}
+
+#claude-debug-modal .debug-btn.secondary {
+  background: #0891b2 !important; /* bg-cyan-600 */
+  color: #ffffff !important; /* text-white */
+  margin-top: 0.5rem; /* mt-2 */
+}
+
+#claude-debug-modal .debug-btn.secondary:hover:not(:disabled) {
+  background: #0e7490 !important; /* hover:bg-cyan-700 */
+}
+
+#claude-debug-modal .debug-btn.loading {
+  animation: pulse 1.5s infinite;
+}
+
+/* Analysis Results */
+#claude-debug-modal #analysis-result {
+  margin-top: 1.5rem;
+  display: none;
+}
+
+#claude-debug-modal .analysis-loading {
+  text-align: center;
+  padding: 1.25rem;
+  color: #22c55e !important;
+}
+
+#claude-debug-modal .loading-spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid #374151;
+  border-top: 2px solid #22c55e;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 0.625rem;
+}
+
+#claude-debug-modal .loading-text {
+  font-size: 0.9rem;
+}
+
+#claude-debug-modal .analysis-header {
+  border-bottom: 1px solid #22c55e;
+  padding-bottom: 0.625rem;
+  margin-bottom: 1.25rem;
+}
+
+#claude-debug-modal .analysis-header h4 {
+  margin: 0 0 0.3125rem 0;
+  color: #22c55e !important;
+  font-size: 1.125rem;
+  font-weight: bold;
+}
+
+#claude-debug-modal .analysis-meta {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+#claude-debug-modal .analysis-content {
+  max-height: 25rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+/* Custom scrollbar for analysis content */
+#claude-debug-modal .analysis-content::-webkit-scrollbar {
+  width: 0.75rem;
+}
+
+#claude-debug-modal .analysis-content::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 0.375rem;
+}
+
+#claude-debug-modal .analysis-content::-webkit-scrollbar-thumb {
+  background: #22c55e;
+  border-radius: 0.375rem;
+  border: 2px solid rgba(15, 23, 42, 0.5);
+}
+
+#claude-debug-modal .analysis-content::-webkit-scrollbar-thumb:hover {
+  background: #16a34a;
+}
+
+/* Analysis Sections */
+#claude-debug-modal .analysis-section {
+  margin-bottom: 1.25rem;
+  padding: 0.9375rem;
+  background: rgba(34, 197, 94, 0.05);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 0.375rem;
+}
+
+#claude-debug-modal .analysis-section h5 {
+  margin: 0 0 0.625rem 0;
+  color: #22c55e !important;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+#claude-debug-modal .analysis-section.summary {
+  border-color: rgba(6, 182, 212, 0.3);
+  background: rgba(6, 182, 212, 0.05);
+}
+
+#claude-debug-modal .analysis-section.summary h5 {
+  color: #06b6d4 !important;
+}
+
+#claude-debug-modal .analysis-section.issues {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+#claude-debug-modal .analysis-section.issues h5 {
+  color: #ef4444 !important;
+}
+
+#claude-debug-modal .analysis-section.recommendations {
+  border-color: rgba(168, 85, 247, 0.3);
+  background: rgba(168, 85, 247, 0.05);
+}
+
+#claude-debug-modal .analysis-section.recommendations h5 {
+  color: #a855f7 !important;
+}
+
+#claude-debug-modal .analysis-text {
   line-height: 1.6;
-  color: #475569;
+  color: #cbd5e1 !important;
 }
 
-#claude-debug-modal .analysis-sections ul {
+#claude-debug-modal .issue-list,
+#claude-debug-modal .recommendation-list,
+#claude-debug-modal .steps-list {
   margin: 0;
-  padding-left: 20px;
-  color: #475569;
+  padding-left: 1.25rem;
 }
 
-#claude-debug-modal .analysis-sections li {
-  margin-bottom: 4px;
+#claude-debug-modal .issue-list li,
+#claude-debug-modal .recommendation-list li,
+#claude-debug-modal .steps-list li {
+  margin-bottom: 0.5rem;
+  color: #cbd5e1 !important;
   line-height: 1.5;
 }
 
-#claude-debug-modal .analysis-sections pre {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 12px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 13px;
+/* Code Snippets */
+#claude-debug-modal .code-snippets {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+#claude-debug-modal .code-block {
+  margin-bottom: 0.9375rem;
+}
+
+#claude-debug-modal .code-header {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e !important;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: bold;
+  border-radius: 0.25rem 0.25rem 0 0;
+  border-bottom: 1px solid #22c55e;
+}
+
+#claude-debug-modal .code-block pre {
+  background: rgba(15, 23, 42, 0.8) !important;
+  border: 1px solid #22c55e;
+  border-top: none;
+  border-radius: 0 0 0.25rem 0.25rem;
+  padding: 0.75rem;
+  margin: 0;
   overflow-x: auto;
-  margin: 8px 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
-#claude-debug-modal .analysis-sections code {
-  background: #f1f5f9;
-  padding: 2px 4px;
-  border-radius: 3px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 13px;
+#claude-debug-modal .code-block code {
+  color: #e2e8f0 !important;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace !important;
 }
 
-#claude-debug-modal .error {
-  color: #dc2626;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  padding: 12px;
-  margin: 8px 0;
+/* Analysis Actions */
+#claude-debug-modal .analysis-actions {
+  display: flex;
+  gap: 0.625rem;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+  padding-top: 0.9375rem;
+  border-top: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+#claude-debug-modal .action-btn {
+  background: transparent;
+  border: 1px solid #22c55e;
+  color: #22c55e !important;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+#claude-debug-modal .action-btn:hover {
+  background: rgba(34, 197, 94, 0.1);
+  box-shadow: 0 0 0.625rem rgba(34, 197, 94, 0.3);
+}
+
+#claude-debug-modal .action-btn.dismiss {
+  border-color: #6b7280;
+  color: #6b7280 !important;
+}
+
+#claude-debug-modal .action-btn.dismiss:hover {
+  background: rgba(107, 114, 128, 0.1);
+  box-shadow: 0 0 0.625rem rgba(107, 114, 128, 0.3);
+}
+
+/* Error Display */
+#claude-debug-modal .analysis-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  border-radius: 0.375rem;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+#claude-debug-modal .analysis-error h4 {
+  margin: 0 0 0.625rem 0;
+  color: #ef4444 !important;
+}
+
+#claude-debug-modal .analysis-error p {
+  color: #cbd5e1 !important;
+  margin-bottom: 0.9375rem;
+}
+
+#claude-debug-modal .error-actions button {
+  background: #ef4444;
+  color: #000 !important;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Animations */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 } 

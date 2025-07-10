@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card } from '../ui/card';
-import { Eye, Code, MousePointer2, Terminal, Pause } from 'lucide-react';
+import { Eye, Code, MousePointer2, Terminal, Pause, Play, Square, Keyboard } from 'lucide-react';
 
 const InstructionsCard: React.FC = () => {
   return (
@@ -22,11 +22,30 @@ const InstructionsCard: React.FC = () => {
             </div>
           </div>
           <div className="flex items-start gap-2">
+            <Play className="w-4 h-4 mt-0.5 text-green-400" />
+            <div>
+              <div className="font-medium">Start/Stop</div>
+              <div className="text-xs text-gray-400">
+                <kbd className="bg-slate-700 px-1 py-0.5 rounded text-xs">S</kbd> start tracing | 
+                <kbd className="bg-slate-700 px-1 py-0.5 rounded text-xs ml-1">E</kbd> end tracing
+              </div>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <Terminal className="w-4 h-4 mt-0.5 text-yellow-400" />
+            <div>
+              <div className="font-medium">Terminal</div>
+              <div className="text-xs text-gray-400">
+                <kbd className="bg-slate-700 px-1 py-0.5 rounded text-xs">T</kbd> toggle terminal window
+              </div>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
             <Pause className="w-4 h-4 mt-0.5 text-orange-400" />
             <div>
               <div className="font-medium">Hover Pause</div>
               <div className="text-xs text-gray-400">
-                Press <kbd className="bg-slate-700 px-1 py-0.5 rounded text-xs">D</kbd> to pause/resume hover details at current position
+                <kbd className="bg-slate-700 px-1 py-0.5 rounded text-xs">D</kbd> pause/resume hover details at current position
               </div>
             </div>
           </div>
@@ -40,11 +59,11 @@ const InstructionsCard: React.FC = () => {
             </div>
           </div>
           <div className="flex items-start gap-2">
-            <Terminal className="w-4 h-4 mt-0.5 text-yellow-400" />
+            <Keyboard className="w-4 h-4 mt-0.5 text-blue-400" />
             <div>
-              <div className="font-medium">Event Tracking</div>
+              <div className="font-medium">Debug Assistant</div>
               <div className="text-xs text-gray-400">
-                View terminal for all interactions and AI responses
+                <kbd className="bg-slate-700 px-1 py-0.5 rounded text-xs">Ctrl+Enter</kbd> submit debug prompts in modal
               </div>
             </div>
           </div>
@@ -56,6 +75,12 @@ const InstructionsCard: React.FC = () => {
                 Press Escape to close panels, modals, and resume hover
               </div>
             </div>
+          </div>
+        </div>
+        
+        <div className="mt-4 pt-3 border-t border-slate-700/50">
+          <div className="text-xs text-gray-500">
+            💡 <strong>Tip:</strong> All keyboard shortcuts are disabled when typing in input fields to prevent conflicts.
           </div>
         </div>
       </div>

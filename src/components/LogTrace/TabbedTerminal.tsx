@@ -13,6 +13,7 @@ interface TabbedTerminalProps {
   exportEvents: () => void;
   clearEvents: () => void;
   debugResponses: Array<{ id: string; prompt: string; response: string; timestamp: string }>;
+  clearDebugResponses?: () => void;
 }
 
 const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
@@ -22,8 +23,10 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   exportEvents,
   clearEvents,
   debugResponses,
+  clearDebugResponses,
 }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('events');
 
   if (!showTerminal) return null;
 
@@ -71,14 +74,6 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                 Export
               </Button>
               <Button
-                onClick={clearEvents}
-                variant="outline"
-                size="sm"
-                className="border-red-500/50 text-red-400 hover:bg-red-500/10"
-              >
-                Clear
-              </Button>
-              <Button
                 onClick={() => setShowTerminal(false)}
                 variant="ghost"
                 size="sm"
@@ -89,7 +84,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
             </div>
           </div>
 
-          <Tabs defaultValue="events" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-slate-800/50">
               <TabsTrigger value="events" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">
                 Events ({clickEvents.length})
@@ -100,6 +95,17 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
             </TabsList>
 
             <TabsContent value="events" className="mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-400">Interaction Events</span>
+                <Button
+                  onClick={clearEvents}
+                  variant="outline"
+                  size="sm"
+                  className="border-red-500/50 text-red-400 hover:bg-red-500/10 h-7 px-2 text-xs"
+                >
+                  Clear Events
+                </Button>
+              </div>
               <ScrollArea className="h-64 bg-slate-800/50 rounded p-2">
                 <div className="font-mono text-sm space-y-1">
                   {clickEvents.length === 0 ? (
@@ -143,6 +149,19 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
             </TabsContent>
 
             <TabsContent value="debug" className="mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-400">AI Debug Conversations</span>
+                {clearDebugResponses && (
+                  <Button
+                    onClick={clearDebugResponses}
+                    variant="outline"
+                    size="sm"
+                    className="border-red-500/50 text-red-400 hover:bg-red-500/10 h-7 px-2 text-xs"
+                  >
+                    Clear AI Debug
+                  </Button>
+                )}
+              </div>
               <ScrollArea className="h-64 bg-slate-800/50 rounded p-2">
                 <div className="font-mono text-sm space-y-3">
                   {debugResponses.length === 0 ? (

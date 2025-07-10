@@ -57,6 +57,7 @@ const LogTrace: React.FC = () => {
   const {
     debugResponses,
     addDebugResponse,
+    clearDebugResponses,
   } = useDebugResponses();
 
   const handleElementClick = () => {
@@ -161,6 +162,8 @@ const LogTrace: React.FC = () => {
       if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
         return; // Prevent shortcut if an input or textarea is focused
       }
+      
+      // Ctrl+D: Quick debug
       if (isActive && e.ctrlKey && e.key === 'd') {
         e.preventDefault();
         setShowInteractivePanel(false);
@@ -176,6 +179,8 @@ const LogTrace: React.FC = () => {
           } : undefined,
         });
       }
+      
+      // D: Pause/Resume hover
       if (isActive && e.key === 'd' && !e.ctrlKey) {
         e.preventDefault();
         if (!isHoverPaused) {
@@ -188,16 +193,39 @@ const LogTrace: React.FC = () => {
           setIsHoverPaused(false);
         }
       }
+      
+      // S: Start (activate LogTrace)
+      if (e.key === 's' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        if (!isActive) {
+          setIsActive(true);
+        }
+      }
+      
+      // E: End (deactivate LogTrace)
+      if (e.key === 'e' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        if (isActive) {
+          setIsActive(false);
+          handleEscape(); // Also close any open panels
+        }
+      }
+      
+      // T: Toggle terminal
+      if (e.key === 't' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        setShowTerminal(!showTerminal);
+      }
+      
+      // Escape: Close panels
       if (e.key === 'Escape') {
         handleEscape();
       }
     };
 
-    if (isActive) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal, isHoverPaused]);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal, isHoverPaused, showTerminal, setShowTerminal, setIsActive]);
 
   return (
     <div className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
@@ -268,6 +296,7 @@ const LogTrace: React.FC = () => {
         exportEvents={exportEvents}
         clearEvents={clearEvents}
         debugResponses={debugResponses}
+        clearDebugResponses={clearDebugResponses}
       />
     </div>
   );

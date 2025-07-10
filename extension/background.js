@@ -46,7 +46,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Handle element analysis with AI
 async function handleAnalyzeElement(request, sendResponse) {
   try {
-    const result = await analyzeElementWithAI(request.query, request.context);
+    const result = await analyzeElementWithAI(request.query, request.context, request.debugMode);
     sendResponse({ success: true, data: result });
   } catch (error) {
     console.error('Error analyzing element:', error);
@@ -180,8 +180,8 @@ async function handleToggleLogTrace(tabId, activate, apiKey, sendResponse) {
   }
 }
 
-// AI-powered element analysis
-async function analyzeElementWithAI(query, context) {
+// Enhanced AI-powered element analysis with Debug Assistant capabilities
+async function analyzeElementWithAI(query, context, debugMode = false) {
   // Get API key from storage
   const result = await chrome.storage.sync.get(['apiKey']);
   const apiKey = result.apiKey;
@@ -190,17 +190,66 @@ async function analyzeElementWithAI(query, context) {
     throw new Error('OpenAI API key not configured. Please set it in the extension popup.');
   }
   
-  // Prepare the analysis prompt
-  const prompt = `
+  // Enhanced prompt for Debug Assistant mode
+  const prompt = debugMode ? `
+You are an expert web development debugging assistant. Analyze the following element and provide a comprehensive debugging response.
+
+Element Context:
+- Tag: ${context.tag || 'Unknown'}
+- ID: ${context.id || 'None'}
+- Classes: ${context.classes || 'None'}
+- Computed Styles: ${JSON.stringify(context.styles || {})}
+- Parent Element: ${JSON.stringify(context.parent || {})}
+- Page URL: ${context.url || 'Unknown'}
+- Page Title: ${context.pageTitle || 'Unknown'}
+- Viewport: ${JSON.stringify(context.viewport || {})}
+
+User Query: ${query}
+
+Please provide a comprehensive debugging analysis in JSON format:
+{
+  "summary": "Brief summary of the element and its current state",
+  "analysis": "Detailed analysis of the element, its behavior, and potential issues",
+  "issues": [
+    "Specific Issue 1",
+    "Specific Issue 2",
+    "Specific Issue 3"
+  ],
+  "recommendations": [
+    "Actionable Recommendation 1",
+    "Actionable Recommendation 2", 
+    "Actionable Recommendation 3"
+  ],
+  "codeSnippets": {
+    "css": "/* CSS fixes or improvements */",
+    "javascript": "// JavaScript solutions",
+    "html": "<!-- HTML structure improvements -->"
+  },
+  "debugging_steps": [
+    "Step 1: Check this first",
+    "Step 2: Then verify this",
+    "Step 3: Finally test this"
+  ]
+}
+
+Focus on:
+- CSS layout and styling issues
+- JavaScript functionality problems
+- Accessibility concerns
+- Performance implications
+- Cross-browser compatibility
+- Mobile responsiveness
+- SEO considerations
+- User experience problems
+
+Provide specific, actionable advice that a developer can immediately implement.
+` : `
 You are a web development debugging expert. A user is asking about an HTML element on a webpage.
 
 Element Context:
 - Tag: ${context.tag || 'Unknown'}
 - ID: ${context.id || 'None'}
 - Classes: ${context.classes || 'None'}
-- Text Content: ${context.text || 'None'}
-- HTML: ${context.html || 'Not available'}
-- Position: ${JSON.stringify(context.position || {})}
 - Computed Styles: ${JSON.stringify(context.styles || {})}
 - Parent Element: ${JSON.stringify(context.parent || {})}
 - Page URL: ${context.url || 'Unknown'}

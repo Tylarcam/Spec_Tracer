@@ -282,10 +282,10 @@ function handleClick(e) {
   
   // Prevent default if clicking on non-LogTrace elements
   if (!isLogTraceElement(e.target)) {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const element = e.target;
+  e.preventDefault();
+  e.stopPropagation();
+  
+  const element = e.target;
     highlightElement(element);
     currentElement = element;
     updateInfoPanel(element);
@@ -303,8 +303,6 @@ function handleClick(e) {
 
 // Handle keyboard shortcuts
 function handleKeyDown(e) {
-  if (!isLogTraceActive) return;
-  
   // Check if user is typing in an input field
   const activeElement = document.activeElement;
   if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
@@ -313,6 +311,7 @@ function handleKeyDown(e) {
   
   switch (e.key) {
     case 'd':
+      if (!isLogTraceActive) return;
       if (e.ctrlKey) {
         // Ctrl+D: Quick debug
         e.preventDefault();
@@ -326,9 +325,39 @@ function handleKeyDown(e) {
       }
       break;
       
+    case 's':
+      // S: Start (activate LogTrace)
+      if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        if (!isLogTraceActive) {
+          activateLogTrace();
+        }
+      }
+      break;
+      
+    case 'e':
+      // E: End (deactivate LogTrace)
+      if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        if (isLogTraceActive) {
+          deactivateLogTrace();
+        }
+      }
+      break;
+      
+    case 't':
+      // T: Toggle terminal (placeholder - Chrome extension doesn't have terminal)
+      if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        showNotification('Terminal toggle - Feature available in main app');
+      }
+      break;
+      
     case 'Escape':
-      e.preventDefault();
-      deactivateLogTrace();
+      if (isLogTraceActive) {
+        e.preventDefault();
+        deactivateLogTrace();
+      }
       break;
   }
 }
@@ -394,7 +423,7 @@ function activateLogTrace() {
   }
   
   // Show status indicator
-  showNotification('LogTrace activated! Use D to pause hover, Ctrl+D to debug, Esc to exit');
+  showNotification('LogTrace activated! S=start, E=end, D=pause hover, Ctrl+D=debug, T=terminal info, Esc=exit');
 }
 
 // Deactivate LogTrace
@@ -525,36 +554,51 @@ function updateInfoPanel(element) {
   `;
 }
 
-// Open debug modal
+// Open debug modal with enhanced Debug Assistant
 function openDebugModal(element) {
   // Remove existing modal
   const existingModal = document.getElementById('claude-debug-modal');
   if (existingModal) {
     existingModal.remove();
   }
-  
-  // Create modal
+
+  // Create modal with enhanced Debug Assistant
   const modal = document.createElement('div');
   modal.id = 'claude-debug-modal';
   modal.innerHTML = `
     <div class="modal-content">
       <div class="modal-header">
-        <h3>🔍 Element Debug Analysis</h3>
+        <h3>🤖 Debug Assistant</h3>
         <button class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="element-info">
-          <h4>Element Information</h4>
-          <p><strong>Tag:</strong> ${element.tagName.toLowerCase()}</p>
-          ${element.id ? `<p><strong>ID:</strong> #${element.id}</p>` : ''}
-          ${element.className ? `<p><strong>Classes:</strong> .${element.className.split(' ').join('.')}</p>` : ''}
-          <p><strong>Text:</strong> ${element.textContent ? element.textContent.substring(0, 100) + '...' : 'None'}</p>
+        <div class="element-context">
+          <h4>Element Context</h4>
+          <div class="context-info">
+            <div><strong>Tag:</strong> ${element.tagName.toLowerCase()}</div>
+            ${element.id ? `<div><strong>ID:</strong> #${element.id}</div>` : ''}
+            ${element.className ? `<div><strong>Classes:</strong> .${element.className.split(' ').join('.')}</div>` : ''}
+            <div><strong>Position:</strong> x:${Math.round(mousePosition.x)}, y:${Math.round(mousePosition.y)}</div>
+            ${element.textContent ? `<div><strong>Text:</strong> "${element.textContent.substring(0, 100)}${element.textContent.length > 100 ? '...' : ''}"</div>` : ''}
+          </div>
         </div>
         
-        <div class="query-section">
-          <h4>What would you like to debug?</h4>
-          <textarea id="debug-query" placeholder="E.g., 'Why is this element not clickable?', 'How can I center this element?', 'What's wrong with the styling?'"></textarea>
-          <button id="analyze-btn">Analyze with AI</button>
+        <div class="debug-separator"></div>
+        
+        <div class="quick-debug-section">
+          <h4>Quick Debug</h4>
+          <div class="quick-debug-controls">
+            <input type="text" id="quick-debug-input" placeholder="Why did this happen?" value="Why did this happen?" maxlength="500">
+            <button id="quick-debug-btn" class="debug-btn primary">Debug</button>
+          </div>
+        </div>
+        
+        <div class="debug-separator"></div>
+        
+        <div class="advanced-debug-section">
+          <h4>Advanced Debug</h4>
+          <textarea id="advanced-debug-input" placeholder="Detailed debugging prompt..." maxlength="2000"></textarea>
+          <button id="advanced-debug-btn" class="debug-btn secondary">Advanced Debug</button>
         </div>
         
         <div id="analysis-result"></div>
@@ -564,69 +608,152 @@ function openDebugModal(element) {
   
   document.body.appendChild(modal);
   
+  // Set up advanced prompt
+  const advancedTextarea = modal.querySelector('#advanced-debug-input');
+  advancedTextarea.value = generateAdvancedPrompt(element);
+  
   // Add event listeners
   modal.querySelector('.close-btn').addEventListener('click', () => {
     modal.remove();
   });
   
-  modal.querySelector('#analyze-btn').addEventListener('click', () => {
-    analyzeElement(element);
+  modal.querySelector('#quick-debug-btn').addEventListener('click', () => {
+    const prompt = modal.querySelector('#quick-debug-input').value;
+    if (prompt.trim()) {
+      analyzeElementWithAI(element, prompt);
+    }
   });
   
-  // Focus on textarea
-  modal.querySelector('#debug-query').focus();
+  modal.querySelector('#advanced-debug-btn').addEventListener('click', () => {
+    const prompt = modal.querySelector('#advanced-debug-input').value;
+    if (prompt.trim()) {
+      analyzeElementWithAI(element, prompt);
+    }
+  });
+  
+  // Focus on quick debug input
+  modal.querySelector('#quick-debug-input').focus();
+  
+  // Add keyboard shortcuts
+  modal.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      modal.remove();
+    } else if (e.key === 'Enter' && e.ctrlKey) {
+      const activeElement = document.activeElement;
+      if (activeElement.id === 'quick-debug-input') {
+        modal.querySelector('#quick-debug-btn').click();
+      } else if (activeElement.id === 'advanced-debug-input') {
+        modal.querySelector('#advanced-debug-btn').click();
+      }
+    }
+  });
 }
 
-// Analyze element with AI
-async function analyzeElement(element) {
-  const query = document.getElementById('debug-query').value;
-  if (!query.trim()) {
-    showNotification('Please enter a question about the element');
-    return;
-  }
-  
-  const analyzeBtn = document.getElementById('analyze-btn');
+// Generate advanced debugging prompt
+function generateAdvancedPrompt(element) {
+  const styles = window.getComputedStyle(element);
+  const rect = element.getBoundingClientRect();
+  const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(element.tagName.toLowerCase()) || 
+                       element.onclick !== null || 
+                       styles.cursor === 'pointer';
+
+  return `Debug this element in detail:
+
+Element: <${element.tagName.toLowerCase()}${element.id ? ` id="${element.id}"` : ''}${element.className ? ` class="${element.className}"` : ''}>
+Text: "${element.textContent ? element.textContent.substring(0, 200) : 'None'}"
+Position: x:${Math.round(mousePosition.x)}, y:${Math.round(mousePosition.y)}
+Size: ${Math.round(rect.width)}×${Math.round(rect.height)}
+Interactive: ${isInteractive ? 'Yes' : 'No'}
+Cursor: ${styles.cursor}
+Display: ${styles.display}
+Visibility: ${styles.visibility}
+Pointer Events: ${styles.pointerEvents}
+Z-Index: ${styles.zIndex}
+
+Consider:
+1. Why might this element not be behaving as expected?
+2. Are there any CSS properties preventing interaction?
+3. Are there any event listeners that might be interfering?
+4. What accessibility concerns might exist?
+5. How could the user experience be improved?
+
+Provide specific, actionable debugging steps and potential solutions.`;
+}
+
+// Enhanced AI analysis function
+async function analyzeElementWithAI(element, prompt) {
+  const quickBtn = document.getElementById('quick-debug-btn');
+  const advancedBtn = document.getElementById('advanced-debug-btn');
   const resultDiv = document.getElementById('analysis-result');
   
   // Show loading state
-  analyzeBtn.disabled = true;
-  analyzeBtn.textContent = 'Analyzing...';
-  resultDiv.innerHTML = '<div style="text-align: center; padding: 20px;">🤖 Analyzing element...</div>';
+  const isQuickDebug = document.activeElement?.id === 'quick-debug-input' || 
+                      document.querySelector('#quick-debug-input')?.value === prompt;
+  
+  const activeBtn = isQuickDebug ? quickBtn : advancedBtn;
+  const originalText = activeBtn.textContent;
+  
+  activeBtn.disabled = true;
+  activeBtn.textContent = 'Analyzing...';
+  activeBtn.classList.add('loading');
+  
+  // Show loading in results
+  resultDiv.innerHTML = `
+    <div class="analysis-loading">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">🤖 Analyzing element...</div>
+    </div>
+  `;
+  resultDiv.style.display = 'block';
   
   try {
-    // Gather element context
+    // Gather comprehensive element context
     const context = gatherElementContext(element);
     
-    // Send to background script
-    const response = await new Promise((resolve) => {
+    // Send to background script with enhanced context
+    const response = await new Promise((resolve, reject) => {
       chrome.runtime.sendMessage({
         action: 'analyzeElement',
-        query: query,
-        context: context
-      }, resolve);
+        query: prompt,
+        context: context,
+        debugMode: true // Flag for enhanced debugging
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (response.success) {
+          resolve(response.data);
+        } else {
+          reject(new Error(response.error));
+        }
+      });
     });
     
-    if (response.success) {
-      displayAnalysisResult(response.data);
-    } else {
-      throw new Error(response.error);
-    }
+    // Display enhanced results
+    displayEnhancedAnalysisResult(response, prompt);
+    
+    // Log the debug event
+    logEvent('ai_debug', element, { prompt, response: response.summary });
     
   } catch (error) {
     console.error('Analysis failed:', error);
     resultDiv.innerHTML = `
-      <div class="error">
+      <div class="analysis-error">
         <h4>❌ Analysis Failed</h4>
         <p>${error.message}</p>
+        <div class="error-actions">
+          <button onclick="this.parentElement.parentElement.parentElement.style.display='none'">Dismiss</button>
+        </div>
       </div>
     `;
   } finally {
-    analyzeBtn.disabled = false;
-    analyzeBtn.textContent = 'Analyze with AI';
+    // Restore button state
+    activeBtn.disabled = false;
+    activeBtn.textContent = originalText;
+    activeBtn.classList.remove('loading');
   }
 }
 
-// Gather element context
+// Enhanced element context gathering for Debug Assistant
 function gatherElementContext(element) {
   const rect = element.getBoundingClientRect();
   const styles = window.getComputedStyle(element);
@@ -634,40 +761,124 @@ function gatherElementContext(element) {
   return {
     tag: element.tagName.toLowerCase(),
     id: element.id || null,
-    classes: element.className || null,
+    classes: element.className ? element.className.split(' ').filter(c => c) : [],
     text: element.textContent ? element.textContent.substring(0, 200) : null,
     html: element.outerHTML.substring(0, 500),
     position: {
-      x: rect.left,
-      y: rect.top,
-      width: rect.width,
-      height: rect.height
+      x: Math.round(rect.left),
+      y: Math.round(rect.top),
+      width: Math.round(rect.width),
+      height: Math.round(rect.height)
     },
     styles: {
       display: styles.display,
       position: styles.position,
+      visibility: styles.visibility,
+      opacity: styles.opacity,
       zIndex: styles.zIndex,
+      overflow: styles.overflow,
+      cursor: styles.cursor,
+      pointerEvents: styles.pointerEvents,
       backgroundColor: styles.backgroundColor,
       color: styles.color,
       fontSize: styles.fontSize,
       fontFamily: styles.fontFamily,
+      border: styles.border,
       margin: styles.margin,
       padding: styles.padding,
-      border: styles.border,
-      borderRadius: styles.borderRadius
+      width: styles.width,
+      height: styles.height,
+      maxWidth: styles.maxWidth,
+      maxHeight: styles.maxHeight,
+      minWidth: styles.minWidth,
+      minHeight: styles.minHeight,
+      boxSizing: styles.boxSizing,
+      float: styles.float,
+      clear: styles.clear,
+      textAlign: styles.textAlign,
+      verticalAlign: styles.verticalAlign,
+      lineHeight: styles.lineHeight,
+      whiteSpace: styles.whiteSpace,
+      wordWrap: styles.wordWrap,
+      textOverflow: styles.textOverflow,
+      transform: styles.transform,
+      transition: styles.transition,
+      animation: styles.animation,
+      borderRadius: styles.borderRadius,
+      boxShadow: styles.boxShadow,
+      outline: styles.outline,
+      userSelect: styles.userSelect,
+      resize: styles.resize,
+      filter: styles.filter,
+      backdropFilter: styles.backdropFilter,
+      // Layout properties
+      flexDirection: styles.flexDirection,
+      flexWrap: styles.flexWrap,
+      justifyContent: styles.justifyContent,
+      alignItems: styles.alignItems,
+      gridTemplateColumns: styles.gridTemplateColumns,
+      gridTemplateRows: styles.gridTemplateRows,
+      gridArea: styles.gridArea
     },
     parent: element.parentElement ? {
       tag: element.parentElement.tagName.toLowerCase(),
       id: element.parentElement.id || null,
-      classes: element.parentElement.className || null
+      classes: element.parentElement.className ? element.parentElement.className.split(' ').filter(c => c) : [],
+      display: window.getComputedStyle(element.parentElement).display,
+      position: window.getComputedStyle(element.parentElement).position
     } : null,
+    attributes: Array.from(element.attributes).reduce((acc, attr) => {
+      acc[attr.name] = attr.value;
+      return acc;
+    }, {}),
+    eventListeners: getEventListenerInfo(element),
+    accessibility: {
+      hasAriaLabel: element.hasAttribute('aria-label'),
+      hasAriaDescribedBy: element.hasAttribute('aria-describedby'),
+      hasRole: element.hasAttribute('role'),
+      tabIndex: element.tabIndex,
+      isHidden: element.hidden || styles.display === 'none' || styles.visibility === 'hidden'
+    },
+    performance: {
+      hasTransforms: styles.transform !== 'none',
+      hasAnimations: styles.animation !== 'none',
+      hasFilters: styles.filter !== 'none',
+      hasBlur: styles.backdropFilter !== 'none'
+    },
     url: window.location.href,
     pageTitle: document.title,
     viewport: {
       width: window.innerWidth,
-      height: window.innerHeight
+      height: window.innerHeight,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY
     }
   };
+}
+
+// Helper function to get event listener information
+function getEventListenerInfo(element) {
+  const listeners = {};
+  
+  // Check for common event properties
+  const commonEvents = ['onclick', 'onmouseover', 'onmouseout', 'onmousedown', 'onmouseup', 
+                       'onkeydown', 'onkeyup', 'onkeypress', 'onfocus', 'onblur', 'onchange', 
+                       'onsubmit', 'onload', 'onerror', 'onresize', 'onscroll'];
+  
+  commonEvents.forEach(event => {
+    if (element[event]) {
+      listeners[event] = 'attached';
+    }
+  });
+  
+  // Check for data attributes that might indicate event handling
+  Array.from(element.attributes).forEach(attr => {
+    if (attr.name.startsWith('data-') && (attr.name.includes('click') || attr.name.includes('event'))) {
+      listeners[attr.name] = attr.value;
+    }
+  });
+  
+  return listeners;
 }
 
 // Display analysis result
@@ -728,6 +939,90 @@ function displayAnalysisResult(data) {
   `;
 }
 
+// Enhanced result display
+function displayEnhancedAnalysisResult(data, originalPrompt) {
+  const resultDiv = document.getElementById('analysis-result');
+  
+  resultDiv.innerHTML = `
+    <div class="analysis-header">
+      <h4>🤖 Debug Analysis Results</h4>
+      <div class="analysis-meta">
+        <span class="prompt-preview">Query: "${originalPrompt.substring(0, 50)}${originalPrompt.length > 50 ? '...' : ''}"</span>
+      </div>
+    </div>
+    
+    <div class="analysis-content">
+      ${data.summary ? `
+        <div class="analysis-section summary">
+          <h5>📋 Summary</h5>
+          <p>${data.summary}</p>
+        </div>
+      ` : ''}
+      
+      <div class="analysis-section analysis">
+        <h5>🔍 Analysis</h5>
+        <div class="analysis-text">${data.analysis}</div>
+      </div>
+      
+      ${data.issues && data.issues.length > 0 ? `
+        <div class="analysis-section issues">
+          <h5>⚠️ Issues Found</h5>
+          <ul class="issue-list">
+            ${data.issues.map(issue => `<li>${issue}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+      
+      ${data.recommendations && data.recommendations.length > 0 ? `
+        <div class="analysis-section recommendations">
+          <h5>💡 Recommendations</h5>
+          <ul class="recommendation-list">
+            ${data.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+      
+      ${data.codeSnippets && (data.codeSnippets.css || data.codeSnippets.javascript || data.codeSnippets.html) ? `
+        <div class="analysis-section code-snippets">
+          <h5>💻 Code Solutions</h5>
+          ${data.codeSnippets.css ? `
+            <div class="code-block">
+              <div class="code-header">CSS</div>
+              <pre><code>${data.codeSnippets.css}</code></pre>
+            </div>
+          ` : ''}
+          ${data.codeSnippets.javascript ? `
+            <div class="code-block">
+              <div class="code-header">JavaScript</div>
+              <pre><code>${data.codeSnippets.javascript}</code></pre>
+            </div>
+          ` : ''}
+          ${data.codeSnippets.html ? `
+            <div class="code-block">
+              <div class="code-header">HTML</div>
+              <pre><code>${data.codeSnippets.html}</code></pre>
+            </div>
+          ` : ''}
+        </div>
+      ` : ''}
+      
+      ${data.debugging_steps && data.debugging_steps.length > 0 ? `
+        <div class="analysis-section debugging-steps">
+          <h5>🔧 Debugging Steps</h5>
+          <ol class="steps-list">
+            ${data.debugging_steps.map(step => `<li>${step}</li>`).join('')}
+          </ol>
+        </div>
+      ` : ''}
+    </div>
+    
+    <div class="analysis-actions">
+      <button onclick="this.parentElement.parentElement.style.display='none'" class="action-btn dismiss">Dismiss</button>
+      <button onclick="navigator.clipboard.writeText(this.parentElement.parentElement.innerText)" class="action-btn copy">Copy Results</button>
+    </div>
+  `;
+}
+
 // Utility functions
 function isLogTraceElement(element) {
   if (!element) return false;
@@ -762,7 +1057,7 @@ function generateSelector(element) {
   return element.tagName.toLowerCase();
 }
 
-function logEvent(type, element) {
+function logEvent(type, element, details = {}) {
   const event = {
     type,
     timestamp: Date.now(),
@@ -772,7 +1067,8 @@ function logEvent(type, element) {
       classes: element.className || null,
       text: element.textContent ? element.textContent.substring(0, 50) : null
     },
-    position: mousePosition
+    position: mousePosition,
+    ...details
   };
   
   debugEvents.push(event);
