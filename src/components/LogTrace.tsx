@@ -186,7 +186,7 @@ const LogTrace: React.FC = () => {
       }
       
       // D: Pause/Resume hover
-      if (isActive && e.key === 'd' && !e.ctrlKey) {
+      if (isActive && e.key === 'd' && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         if (!isHoverPaused) {
           setPausedPosition(mousePosition);
