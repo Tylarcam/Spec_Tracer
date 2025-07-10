@@ -1,8 +1,8 @@
+
 import React, { useState } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { usePinnedDetails } from '@/shared/hooks/usePinnedDetails';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
-import { useLogTraceEventHandlers } from '@/shared/hooks/useLogTraceEventHandlers';
 import { supabase } from '@/integrations/supabase/client';
 import { initializeSupabase } from '@/shared/api';
 import Header from './LogTrace/Header';
@@ -109,24 +109,75 @@ const LogTrace: React.FC = () => {
     }
   };
 
-  const {
-    handleMouseMove,
-    handleClick,
-  } = useLogTraceEventHandlers({
-    isActive,
-    currentElement,
-    mousePosition,
-    showInteractivePanel,
-    setMousePosition,
-    setCurrentElement,
-    setShowInteractivePanel,
-    setShowDebugModal,
-    extractElementInfo,
-    addEvent,
-    onElementClick: handleElementClick,
-    onDebugFromPanel: handleDebugFromPanel,
-    onEscape: handleEscape,
-  });
+  const handleMouseMove = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isActive) return;
+
+    const target = e.target as HTMLElement;
+    if (target && 
+        !target.closest('#logtrace-overlay') && 
+        !target.closest('#logtrace-modal') &&
+        !target.closest('[data-interactive-panel]')) {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+      const elementInfo = extractElementInfo(target);
+      setCurrentElement(elementInfo);
+      
+      // Hide interactive panel when moving to a new element
+      if (showInteractivePanel) {
+        setShowInteractivePanel(false);
+      }
+    }
+  }, [isActive, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel]);
+
+  const handleClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isActive) return;
+    
+    const target = e.target as HTMLElement;
+    if (target && 
+        !target.closest('#logtrace-overlay') && 
+        !target.closest('#logtrace-modal') &&
+        !target.closest('[data-interactive-panel]')) {
+      e.preventDefault();
+      
+      addEvent({
+        type: 'click',
+        position: { x: e.clientX, y: e.clientY },
+        element: currentElement ? {
+          tag: currentElement.tag,
+          id: currentElement.id,
+          classes: currentElement.classes,
+          text: currentElement.text,
+        } : undefined,
+      });
+    }
+  }, [isActive, currentElement, addEvent]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isActive && e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        setShowInteractivePanel(false);
+        setShowDebugModal(true);
+        addEvent({
+          type: 'debug',
+          position: mousePosition,
+          element: currentElement ? {
+            tag: currentElement.tag,
+            id: currentElement.id,
+            classes: currentElement.classes,
+            text: currentElement.text,
+          } : undefined,
+        });
+      }
+      if (e.key === 'Escape') {
+        handleEscape();
+      }
+    };
+
+    if (isActive) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal]);
 
   return (
     <div className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
