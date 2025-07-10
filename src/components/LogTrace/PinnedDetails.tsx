@@ -1,17 +1,10 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { X, Move } from 'lucide-react';
-import { ElementInfo } from '@/shared/types';
+import { PinnedDetail } from '@/shared/types';
 import { sanitizeText } from '@/utils/sanitization';
-
-interface PinnedDetail {
-  id: string;
-  element: ElementInfo;
-  position: { x: number; y: number };
-  pinnedAt: { x: number; y: number };
-}
 
 interface PinnedDetailsProps {
   pinnedDetails: PinnedDetail[];

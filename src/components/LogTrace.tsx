@@ -61,45 +61,48 @@ const LogTrace: React.FC = () => {
   } = useDebugResponses();
 
   const handleElementClick = () => {
+    if (!currentElement) return;
+    
     setShowInteractivePanel(true);
     
     // Auto-pin details to canvas when modal opens
-    if (currentElement) {
-      addPin(currentElement, mousePosition);
-    }
+    addPin(currentElement, mousePosition);
     
     addEvent({
       type: 'inspect',
       position: mousePosition,
-      element: currentElement ? {
+      element: {
         tag: currentElement.tag,
         id: currentElement.id,
         classes: currentElement.classes,
         text: currentElement.text,
-      } : undefined,
+      },
     });
   };
 
   const handleDebugFromPanel = () => {
     setShowInteractivePanel(false);
     setShowDebugModal(true);
-    addEvent({
-      type: 'debug',
-      position: mousePosition,
-      element: currentElement ? {
-        tag: currentElement.tag,
-        id: currentElement.id,
-        classes: currentElement.classes,
-        text: currentElement.text,
-      } : undefined,
-    });
+    
+    if (currentElement) {
+      addEvent({
+        type: 'debug',
+        position: mousePosition,
+        element: {
+          tag: currentElement.tag,
+          id: currentElement.id,
+          classes: currentElement.classes,
+          text: currentElement.text,
+        },
+      });
+    }
   };
 
   const handleEscape = () => {
     setShowInteractivePanel(false);
     setShowDebugModal(false);
     setIsHoverPaused(false);
-    clearAllPins(); // Clear all pins on escape
+    clearAllPins();
   };
 
   const handleAnalyzeWithAI = async (prompt: string) => {
@@ -108,8 +111,8 @@ const LogTrace: React.FC = () => {
       addDebugResponse(prompt, response || 'No response received');
       return response;
     } catch (error) {
-      console.error('Error in AI analysis:', error);
-      addDebugResponse(prompt, 'Error occurred during analysis');
+      const errorMessage = error instanceof Error ? error.message : 'Error occurred during analysis';
+      addDebugResponse(prompt, errorMessage);
       return null;
     }
   };
@@ -126,7 +129,6 @@ const LogTrace: React.FC = () => {
       const elementInfo = extractElementInfo(target);
       setCurrentElement(elementInfo);
       
-      // Hide interactive panel when moving to a new element
       if (showInteractivePanel) {
         setShowInteractivePanel(false);
       }
@@ -160,7 +162,7 @@ const LogTrace: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeElement = document.activeElement;
       if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-        return; // Prevent shortcut if an input or textarea is focused
+        return;
       }
       
       // Ctrl+D: Quick debug
@@ -168,28 +170,29 @@ const LogTrace: React.FC = () => {
         e.preventDefault();
         setShowInteractivePanel(false);
         setShowDebugModal(true);
-        addEvent({
-          type: 'debug',
-          position: mousePosition,
-          element: currentElement ? {
-            tag: currentElement.tag,
-            id: currentElement.id,
-            classes: currentElement.classes,
-            text: currentElement.text,
-          } : undefined,
-        });
+        
+        if (currentElement) {
+          addEvent({
+            type: 'debug',
+            position: mousePosition,
+            element: {
+              tag: currentElement.tag,
+              id: currentElement.id,
+              classes: currentElement.classes,
+              text: currentElement.text,
+            },
+          });
+        }
       }
       
       // D: Pause/Resume hover
       if (isActive && e.key === 'd' && !e.ctrlKey) {
         e.preventDefault();
         if (!isHoverPaused) {
-          // Pause hover at current position
           setPausedPosition(mousePosition);
           setPausedElement(currentElement);
           setIsHoverPaused(true);
         } else {
-          // Resume hover
           setIsHoverPaused(false);
         }
       }
@@ -207,7 +210,7 @@ const LogTrace: React.FC = () => {
         e.preventDefault();
         if (isActive) {
           setIsActive(false);
-          handleEscape(); // Also close any open panels
+          handleEscape();
         }
       }
       
@@ -225,7 +228,17 @@ const LogTrace: React.FC = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal, isHoverPaused, showTerminal, setShowTerminal, setIsActive]);
+  }, [
+    isActive, 
+    mousePosition, 
+    currentElement, 
+    addEvent, 
+    setShowDebugModal, 
+    isHoverPaused, 
+    showTerminal, 
+    setShowTerminal, 
+    setIsActive
+  ]);
 
   return (
     <div className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"

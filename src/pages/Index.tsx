@@ -2,13 +2,17 @@
 import LogTrace from "@/components/LogTrace";
 
 const Index = () => {
-  console.log('Index component rendering');
-  
   try {
     return <LogTrace />;
   } catch (error) {
-    console.error('Error rendering LogTrace:', error);
-    return <div>Error loading LogTrace: {error instanceof Error ? error.message : 'Unknown error'}</div>;
+    return (
+      <div className="min-h-screen bg-slate-900 text-red-400 font-mono flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl mb-4">Application Error</h1>
+          <p>Unable to load LogTrace. Please refresh the page.</p>
+        </div>
+      </div>
+    );
   }
 };
 
