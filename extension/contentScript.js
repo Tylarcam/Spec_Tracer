@@ -1,507 +1,859 @@
-// Content script for Claude Debug Helper - SECURITY HARDENED VERSION
-let isDebugMode = false;
-let debugModal = null;
-let selectedElement = null;
-let originalOutline = '';
+// Trace Sight Debug View - Content Script
+console.log('Trace Sight Content Script loaded');
 
-// Security utilities
-const sanitizeHtml = (input) => {
-  if (typeof input !== 'string') return '';
-  const div = document.createElement('div');
-  div.textContent = input;
-  return div.innerHTML;
-};
+// State management
+let isLogTraceActive = false;
+let logTraceInstance = null;
+let apiKey = null;
+let currentElement = null;
+let isHoverPaused = false;
+let mousePosition = { x: 0, y: 0 };
+let debugEvents = [];
 
-const sanitizeText = (input, maxLength = 500) => {
-  if (typeof input !== 'string') return '';
-  return sanitizeHtml(input.slice(0, maxLength));
-};
-
-const validateInput = (input, maxLength = 2000) => {
-  if (typeof input !== 'string') return false;
-  if (input.length === 0 || input.length > maxLength) return false;
+// Initialize content script
+function initializeContentScript() {
+  console.log('Initializing Trace Sight Content Script');
   
-  // Check for potentially malicious patterns
-  const dangerousPatterns = [
-    /<script/i,
-    /javascript:/i,
-    /vbscript:/i,
-    /on\w+\s*=/i,
-    /<iframe/i,
-    /<object/i,
-    /<embed/i,
-  ];
-  
-  return !dangerousPatterns.some(pattern => pattern.test(input));
-};
-
-// Rate limiting
-class RateLimiter {
-  constructor(maxRequests = 5, windowMs = 60000) {
-    this.maxRequests = maxRequests;
-    this.windowMs = windowMs;
-    this.requests = [];
+  // Check if already initialized
+  if (document.getElementById('log-trace-overlay')) {
+    console.log('LogTrace already initialized');
+    return;
   }
-
-  isAllowed() {
-    const now = Date.now();
-    this.requests = this.requests.filter(time => now - time < this.windowMs);
-    
-    if (this.requests.length >= this.maxRequests) {
-      return false;
-    }
-    
-    this.requests.push(now);
-    return true;
-  }
+  
+  // Create the main overlay container
+  createLogTraceOverlay();
+  
+  // Set up event listeners
+  setupEventListeners();
+  
+  // Get initial settings
+  getExtensionSettings();
 }
 
-const rateLimiter = new RateLimiter();
-
-// Initialize debug mode
-function initializeDebugMode() {
-  createDebugButton();
-  
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'toggleDebugMode') {
-      toggleDebugMode();
-      sendResponse({status: 'toggled'});
-    }
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (isDebugMode && e.key === 'Escape') {
-      toggleDebugMode();
-    }
-  });
-}
-
-// Create floating debug button with enhanced security
-function createDebugButton() {
-  const button = document.createElement('div');
-  button.id = 'claude-debug-btn';
-  
-  // Use textContent instead of innerHTML for security
-  button.textContent = '🐛';
-  
-  button.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 50px;
-    height: 50px;
-    background: #4f46e5;
-    color: white;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    z-index: 10000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    transition: all 0.3s ease;
-  `;
-  
-  button.addEventListener('click', toggleDebugMode);
-  button.addEventListener('mouseenter', () => {
-    button.style.transform = 'scale(1.1)';
-  });
-  button.addEventListener('mouseleave', () => {
-    button.style.transform = 'scale(1)';
-  });
-  
-  document.body.appendChild(button);
-}
-
-// Toggle debug mode
-function toggleDebugMode() {
-  isDebugMode = !isDebugMode;
-  const button = document.getElementById('claude-debug-btn');
-  
-  if (isDebugMode) {
-    button.style.background = '#ef4444';
-    button.textContent = '🔍';
-    addElementListeners();
-    showDebugOverlay();
-  } else {
-    button.style.background = '#4f46e5';
-    button.textContent = '🐛';
-    removeElementListeners();
-    hideDebugOverlay();
-  }
-}
-
-// Add click listeners to all elements
-function addElementListeners() {
-  document.addEventListener('click', handleElementClick, true);
-  document.addEventListener('mouseover', handleElementHover, true);
-  document.addEventListener('mouseout', handleElementOut, true);
-}
-
-// Remove element listeners
-function removeElementListeners() {
-  document.removeEventListener('click', handleElementClick, true);
-  document.removeEventListener('mouseover', handleElementHover, true);
-  document.removeEventListener('mouseout', handleElementOut, true);
-}
-
-// Handle element hover
-function handleElementHover(e) {
-  if (!isDebugMode) return;
-  
-  const element = e.target;
-  if (element.id === 'claude-debug-btn' || element.closest('#claude-debug-modal')) return;
-  
-  originalOutline = element.style.outline;
-  element.style.outline = '2px solid #4f46e5';
-}
-
-// Handle element out
-function handleElementOut(e) {
-  if (!isDebugMode) return;
-  
-  const element = e.target;
-  if (element.id === 'claude-debug-btn' || element.closest('#claude-debug-modal')) return;
-  
-  element.style.outline = originalOutline;
-}
-
-// Handle element click
-function handleElementClick(e) {
-  if (!isDebugMode) return;
-  
-  e.preventDefault();
-  e.stopPropagation();
-  
-  const element = e.target;
-  if (element.id === 'claude-debug-btn' || element.closest('#claude-debug-modal')) return;
-  
-  selectedElement = element;
-  showDebugModal(element);
-}
-
-// Show debug overlay
-function showDebugOverlay() {
+// Create the main LogTrace overlay
+function createLogTraceOverlay() {
   const overlay = document.createElement('div');
-  overlay.id = 'claude-debug-overlay';
+  overlay.id = 'log-trace-overlay';
   overlay.style.cssText = `
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.1);
-    z-index: 9999;
     pointer-events: none;
+    z-index: 9999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   `;
+  
   document.body.appendChild(overlay);
+  
+  // Create floating toggle button
+  const floatingButton = document.createElement('div');
+  floatingButton.id = 'log-trace-toggle-button';
+  floatingButton.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background: #475569;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 10003;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    user-select: none;
+  `;
+  
+  floatingButton.innerHTML = `
+    <div class="button-icon" style="
+      font-size: 24px;
+      color: #e2e8f0;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    ">🐛</div>
+  `;
+  
+  // Create tooltip
+  const tooltip = document.createElement('div');
+  tooltip.id = 'log-trace-tooltip';
+  tooltip.style.cssText = `
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    background: rgba(15, 23, 42, 0.95);
+    color: #e2e8f0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 10004;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+    border: 1px solid #334155;
+  `;
+  tooltip.textContent = 'LogTrace Inactive';
+  
+  document.body.appendChild(floatingButton);
+  document.body.appendChild(tooltip);
+  
+  // Add event listeners for floating button
+  floatingButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleLogTraceFromButton();
+  });
+  
+  floatingButton.addEventListener('mouseenter', () => {
+    tooltip.style.opacity = '1';
+    tooltip.style.transform = 'translateY(0)';
+    floatingButton.style.transform = 'scale(1.1)';
+  });
+  
+  floatingButton.addEventListener('mouseleave', () => {
+    tooltip.style.opacity = '0';
+    tooltip.style.transform = 'translateY(10px)';
+    floatingButton.style.transform = 'scale(1)';
+  });
+  
+  // Create mouse position indicator
+  const mouseIndicator = document.createElement('div');
+  mouseIndicator.id = 'mouse-indicator';
+  mouseIndicator.style.cssText = `
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #22c55e;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10000;
+    display: none;
+    transform: translate(-50%, -50%);
+  `;
+  document.body.appendChild(mouseIndicator);
+  
+  // Create element highlighter
+  const highlighter = document.createElement('div');
+  highlighter.id = 'element-highlighter';
+  highlighter.style.cssText = `
+    position: fixed;
+    border: 2px solid #06b6d4;
+    background: rgba(6, 182, 212, 0.1);
+    pointer-events: none;
+    z-index: 9998;
+    display: none;
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+  `;
+  document.body.appendChild(highlighter);
+  
+  // Create info panel
+  createInfoPanel();
 }
 
-// Hide debug overlay
-function hideDebugOverlay() {
-  const overlay = document.getElementById('claude-debug-overlay');
-  if (overlay) overlay.remove();
+// Create information panel
+function createInfoPanel() {
+  const panel = document.createElement('div');
+  panel.id = 'log-trace-info-panel';
+  panel.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    max-height: 400px;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 16px;
+    color: #e2e8f0;
+    font-size: 14px;
+    z-index: 10001;
+    display: none;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  `;
+  
+  panel.innerHTML = `
+    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 style="margin: 0; color: #06b6d4; font-size: 16px;">🔍 Element Inspector</h3>
+      <button id="close-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 18px;">&times;</button>
+    </div>
+    <div id="element-info" style="margin-bottom: 12px;"></div>
+    <div class="actions" style="display: flex; gap: 8px; margin-top: 12px;">
+      <button id="debug-element" style="
+        flex: 1;
+        background: #22c55e;
+        color: #0f172a;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 12px;
+      ">Debug</button>
+      <button id="copy-selector" style="
+        flex: 1;
+        background: #475569;
+        color: #e2e8f0;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 12px;
+      ">Copy Selector</button>
+    </div>
+  `;
+  
+  document.body.appendChild(panel);
+  
+  // Add event listeners for panel
+  document.getElementById('close-panel').addEventListener('click', () => {
+    panel.style.display = 'none';
+  });
+  
+  document.getElementById('debug-element').addEventListener('click', () => {
+    if (currentElement) {
+      openDebugModal(currentElement);
+    }
+  });
+  
+  document.getElementById('copy-selector').addEventListener('click', () => {
+    if (currentElement) {
+      const selector = generateSelector(currentElement);
+      navigator.clipboard.writeText(selector);
+      showNotification('Selector copied to clipboard!');
+    }
+  });
 }
 
-// Show debug modal with enhanced security
-function showDebugModal(element) {
-  if (debugModal) {
-    debugModal.remove();
+// Set up event listeners
+function setupEventListeners() {
+  // Mouse tracking
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseover', handleMouseOver);
+  document.addEventListener('click', handleClick);
+  
+  // Keyboard shortcuts
+  document.addEventListener('keydown', handleKeyDown);
+  
+  // Listen for messages from extension
+  chrome.runtime.onMessage.addListener(handleExtensionMessage);
+}
+
+// Handle mouse movement
+function handleMouseMove(e) {
+  if (!isLogTraceActive) return;
+  
+  mousePosition = { x: e.clientX, y: e.clientY };
+  
+  const mouseIndicator = document.getElementById('mouse-indicator');
+  if (mouseIndicator) {
+    mouseIndicator.style.left = e.clientX + 'px';
+    mouseIndicator.style.top = e.clientY + 'px';
+    mouseIndicator.style.display = 'block';
+  }
+}
+
+// Handle mouse over
+function handleMouseOver(e) {
+  if (!isLogTraceActive || isHoverPaused) return;
+  
+  const element = e.target;
+  if (element && !isLogTraceElement(element)) {
+    highlightElement(element);
+    currentElement = element;
+    updateInfoPanel(element);
+  }
+}
+
+// Handle click
+function handleClick(e) {
+  if (!isLogTraceActive) return;
+  
+  // Prevent default if clicking on non-LogTrace elements
+  if (!isLogTraceElement(e.target)) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const element = e.target;
+    highlightElement(element);
+    currentElement = element;
+    updateInfoPanel(element);
+    
+    // Show info panel
+    const panel = document.getElementById('log-trace-info-panel');
+    if (panel) {
+      panel.style.display = 'block';
+    }
+    
+    // Log the event
+    logEvent('click', element);
+  }
+}
+
+// Handle keyboard shortcuts
+function handleKeyDown(e) {
+  if (!isLogTraceActive) return;
+  
+  // Check if user is typing in an input field
+  const activeElement = document.activeElement;
+  if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+    return; // Don't intercept shortcuts when typing
   }
   
-  debugModal = document.createElement('div');
-  debugModal.id = 'claude-debug-modal';
+  switch (e.key) {
+    case 'd':
+      if (e.ctrlKey) {
+        // Ctrl+D: Quick debug
+        e.preventDefault();
+        if (currentElement) {
+          openDebugModal(currentElement);
+        }
+      } else {
+        // D: Pause/Resume hover
+        e.preventDefault();
+        toggleHoverPause();
+      }
+      break;
+      
+    case 'Escape':
+      e.preventDefault();
+      deactivateLogTrace();
+      break;
+  }
+}
+
+// Handle messages from extension
+function handleExtensionMessage(request, sender, sendResponse) {
+  console.log('Content script received message:', request);
   
-  // Create elements safely without innerHTML
-  const modalContent = document.createElement('div');
-  modalContent.className = 'modal-content';
+  switch (request.action) {
+    case 'activate':
+      apiKey = request.apiKey;
+      // Ensure overlay is created if not already
+      if (!document.getElementById('log-trace-overlay')) {
+        createLogTraceOverlay();
+      }
+      activateLogTrace();
+      sendResponse({ success: true });
+      break;
+      
+    case 'deactivate':
+      deactivateLogTrace();
+      sendResponse({ success: true });
+      break;
+      
+    case 'checkStatus':
+      sendResponse({ active: isLogTraceActive });
+      break;
+      
+    default:
+      sendResponse({ error: 'Unknown action' });
+  }
+}
+
+// Activate LogTrace
+function activateLogTrace() {
+  isLogTraceActive = true;
+  console.log('LogTrace activated');
   
-  const modalHeader = document.createElement('div');
-  modalHeader.className = 'modal-header';
+  // Show overlay elements
+  const overlay = document.getElementById('log-trace-overlay');
+  if (overlay) {
+    overlay.style.display = 'block';
+  }
   
-  const headerTitle = document.createElement('h3');
-  headerTitle.textContent = 'Debug Element';
+  // Update floating button status
+  const floatingButton = document.getElementById('log-trace-toggle-button');
+  if (floatingButton) {
+    floatingButton.style.backgroundColor = '#06b6d4';
+    floatingButton.classList.add('log-trace-active');
+    const icon = floatingButton.querySelector('.button-icon');
+    if (icon) {
+      icon.style.color = '#0f172a';
+      icon.textContent = '🔍';
+      icon.style.fontSize = '24px';
+      icon.style.fontWeight = 'normal';
+    }
+    const tooltip = document.getElementById('log-trace-tooltip');
+    if (tooltip) {
+      tooltip.textContent = 'LogTrace Active';
+      tooltip.style.color = '#06b6d4';
+      tooltip.style.borderColor = '#06b6d4';
+    }
+  }
   
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'close-btn';
-  closeBtn.textContent = '×';
-  closeBtn.addEventListener('click', closeDebugModal);
+  // Show status indicator
+  showNotification('LogTrace activated! Use D to pause hover, Ctrl+D to debug, Esc to exit');
+}
+
+// Deactivate LogTrace
+function deactivateLogTrace() {
+  isLogTraceActive = false;
+  console.log('LogTrace deactivated');
   
-  modalHeader.appendChild(headerTitle);
-  modalHeader.appendChild(closeBtn);
+  // Hide overlay elements
+  const overlay = document.getElementById('log-trace-overlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
   
-  const modalBody = document.createElement('div');
-  modalBody.className = 'modal-body';
+  const mouseIndicator = document.getElementById('mouse-indicator');
+  if (mouseIndicator) {
+    mouseIndicator.style.display = 'none';
+  }
   
-  const elementInfo = document.createElement('div');
-  elementInfo.className = 'element-info';
+  const highlighter = document.getElementById('element-highlighter');
+  if (highlighter) {
+    highlighter.style.display = 'none';
+  }
   
-  const infoTitle = document.createElement('h4');
-  infoTitle.textContent = 'Element Information:';
-  elementInfo.appendChild(infoTitle);
+  const panel = document.getElementById('log-trace-info-panel');
+  if (panel) {
+    panel.style.display = 'none';
+  }
   
-  // Safely add element information
-  const tagInfo = document.createElement('p');
-  tagInfo.innerHTML = `<strong>Tag:</strong> ${sanitizeText(element.tagName.toLowerCase())}`;
+  // Update floating button status
+  const floatingButton = document.getElementById('log-trace-toggle-button');
+  if (floatingButton) {
+    floatingButton.style.backgroundColor = '#475569';
+    floatingButton.classList.remove('log-trace-active');
+    const icon = floatingButton.querySelector('.button-icon');
+    if (icon) {
+      icon.style.color = '#e2e8f0';
+      icon.textContent = '🐛';
+      icon.style.fontSize = '24px';
+      icon.style.fontWeight = 'normal';
+    }
+    const tooltip = document.getElementById('log-trace-tooltip');
+    if (tooltip) {
+      tooltip.textContent = 'LogTrace Inactive';
+      tooltip.style.color = '#e2e8f0';
+      tooltip.style.borderColor = '#334155';
+    }
+  }
   
-  const classInfo = document.createElement('p');
-  classInfo.innerHTML = `<strong>Classes:</strong> ${sanitizeText(element.className || 'None')}`;
+  // Close debug modal if open
+  const modal = document.getElementById('claude-debug-modal');
+  if (modal) {
+    modal.remove();
+  }
   
-  const idInfo = document.createElement('p');
-  idInfo.innerHTML = `<strong>ID:</strong> ${sanitizeText(element.id || 'None')}`;
+  showNotification('LogTrace deactivated');
+}
+
+// Toggle LogTrace from floating button
+function toggleLogTraceFromButton() {
+  if (isLogTraceActive) {
+    deactivateLogTrace();
+  } else {
+    activateLogTrace();
+  }
   
-  const textInfo = document.createElement('p');
-  const elementText = element.textContent?.substring(0, 100) || 'None';
-  textInfo.innerHTML = `<strong>Text:</strong> ${sanitizeText(elementText)}...`;
+  // Add click animation
+  const button = document.getElementById('log-trace-toggle-button');
+  if (button) {
+    button.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      button.style.transform = 'scale(1)';
+    }, 150);
+  }
+}
+
+// Toggle hover pause
+function toggleHoverPause() {
+  isHoverPaused = !isHoverPaused;
+  const status = isHoverPaused ? 'paused' : 'resumed';
+  showNotification(`Hover details ${status}`);
+}
+
+// Highlight element
+function highlightElement(element) {
+  const highlighter = document.getElementById('element-highlighter');
+  if (!highlighter) return;
   
-  elementInfo.appendChild(tagInfo);
-  elementInfo.appendChild(classInfo);
-  elementInfo.appendChild(idInfo);
-  elementInfo.appendChild(textInfo);
+  const rect = element.getBoundingClientRect();
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   
-  const querySection = document.createElement('div');
-  querySection.className = 'query-section';
+  highlighter.style.cssText = `
+    position: fixed;
+    border: 2px solid #06b6d4;
+    background: rgba(6, 182, 212, 0.1);
+    pointer-events: none;
+    z-index: 9998;
+    display: block;
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+    left: ${rect.left}px;
+    top: ${rect.top}px;
+    width: ${rect.width}px;
+    height: ${rect.height}px;
+  `;
+}
+
+// Update info panel
+function updateInfoPanel(element) {
+  const infoDiv = document.getElementById('element-info');
+  if (!infoDiv) return;
   
-  const queryTitle = document.createElement('h4');
-  queryTitle.textContent = 'What would you like to debug?';
+  const rect = element.getBoundingClientRect();
+  const styles = window.getComputedStyle(element);
   
-  const textarea = document.createElement('textarea');
-  textarea.id = 'debug-query';
-  textarea.placeholder = 'e.g., Why isn\'t this button working? What\'s causing the layout issue?';
-  textarea.maxLength = 2000;
+  infoDiv.innerHTML = `
+    <div style="margin-bottom: 8px;">
+      <strong style="color: #06b6d4;">Tag:</strong> ${element.tagName.toLowerCase()}
+    </div>
+    ${element.id ? `<div style="margin-bottom: 8px;"><strong style="color: #06b6d4;">ID:</strong> #${element.id}</div>` : ''}
+    ${element.className ? `<div style="margin-bottom: 8px;"><strong style="color: #06b6d4;">Classes:</strong> .${element.className.split(' ').join('.')}</div>` : ''}
+    <div style="margin-bottom: 8px;">
+      <strong style="color: #06b6d4;">Size:</strong> ${Math.round(rect.width)}×${Math.round(rect.height)}
+    </div>
+    <div style="margin-bottom: 8px;">
+      <strong style="color: #06b6d4;">Position:</strong> (${Math.round(rect.left)}, ${Math.round(rect.top)})
+    </div>
+    ${element.textContent ? `<div style="margin-bottom: 8px;"><strong style="color: #06b6d4;">Text:</strong> ${element.textContent.substring(0, 50)}${element.textContent.length > 50 ? '...' : ''}</div>` : ''}
+  `;
+}
+
+// Open debug modal
+function openDebugModal(element) {
+  // Remove existing modal
+  const existingModal = document.getElementById('claude-debug-modal');
+  if (existingModal) {
+    existingModal.remove();
+  }
   
-  const analyzeBtn = document.createElement('button');
-  analyzeBtn.id = 'analyze-btn';
-  analyzeBtn.textContent = 'Analyze with OpenAI';
-  analyzeBtn.addEventListener('click', analyzeElement);
+  // Create modal
+  const modal = document.createElement('div');
+  modal.id = 'claude-debug-modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔍 Element Debug Analysis</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="element-info">
+          <h4>Element Information</h4>
+          <p><strong>Tag:</strong> ${element.tagName.toLowerCase()}</p>
+          ${element.id ? `<p><strong>ID:</strong> #${element.id}</p>` : ''}
+          ${element.className ? `<p><strong>Classes:</strong> .${element.className.split(' ').join('.')}</p>` : ''}
+          <p><strong>Text:</strong> ${element.textContent ? element.textContent.substring(0, 100) + '...' : 'None'}</p>
+        </div>
+        
+        <div class="query-section">
+          <h4>What would you like to debug?</h4>
+          <textarea id="debug-query" placeholder="E.g., 'Why is this element not clickable?', 'How can I center this element?', 'What's wrong with the styling?'"></textarea>
+          <button id="analyze-btn">Analyze with AI</button>
+        </div>
+        
+        <div id="analysis-result"></div>
+      </div>
+    </div>
+  `;
   
-  querySection.appendChild(queryTitle);
-  querySection.appendChild(textarea);
-  querySection.appendChild(analyzeBtn);
+  document.body.appendChild(modal);
   
-  const resultDiv = document.createElement('div');
-  resultDiv.id = 'analysis-result';
-  resultDiv.style.display = 'none';
+  // Add event listeners
+  modal.querySelector('.close-btn').addEventListener('click', () => {
+    modal.remove();
+  });
   
-  const resultTitle = document.createElement('h4');
-  resultTitle.textContent = 'Analysis Result:';
-  
-  const contentDiv = document.createElement('div');
-  contentDiv.id = 'analysis-content';
-  
-  resultDiv.appendChild(resultTitle);
-  resultDiv.appendChild(contentDiv);
-  
-  modalBody.appendChild(elementInfo);
-  modalBody.appendChild(querySection);
-  modalBody.appendChild(resultDiv);
-  
-  modalContent.appendChild(modalHeader);
-  modalContent.appendChild(modalBody);
-  
-  debugModal.appendChild(modalContent);
-  document.body.appendChild(debugModal);
+  modal.querySelector('#analyze-btn').addEventListener('click', () => {
+    analyzeElement(element);
+  });
   
   // Focus on textarea
-  textarea.focus();
+  modal.querySelector('#debug-query').focus();
 }
 
-// Close debug modal
-function closeDebugModal() {
-  if (debugModal) {
-    debugModal.remove();
-    debugModal = null;
-  }
-}
-
-// Analyze element with enhanced security
-async function analyzeElement() {
-  const queryTextarea = document.getElementById('debug-query');
-  const query = queryTextarea.value;
-  
+// Analyze element with AI
+async function analyzeElement(element) {
+  const query = document.getElementById('debug-query').value;
   if (!query.trim()) {
-    alert('Please enter a debugging question.');
-    return;
-  }
-  
-  if (!validateInput(query, 2000)) {
-    alert('Invalid input. Please check your query and try again.');
-    return;
-  }
-  
-  if (!rateLimiter.isAllowed()) {
-    alert('Too many requests. Please wait before trying again.');
+    showNotification('Please enter a question about the element');
     return;
   }
   
   const analyzeBtn = document.getElementById('analyze-btn');
   const resultDiv = document.getElementById('analysis-result');
-  const contentDiv = document.getElementById('analysis-content');
   
-  analyzeBtn.textContent = 'Analyzing...';
+  // Show loading state
   analyzeBtn.disabled = true;
+  analyzeBtn.textContent = 'Analyzing...';
+  resultDiv.innerHTML = '<div style="text-align: center; padding: 20px;">🤖 Analyzing element...</div>';
   
   try {
-    const elementContext = getElementContext(selectedElement);
-    // Use OpenAI GPT-4o Mini API directly
-    const apiKey = localStorage.getItem('logtrace-api-key') || '';
-    if (!apiKey) throw new Error('Missing OpenAI API key. Configure it in settings.');
-    const prompt = `Debug this element in detail:\n\nElement: <${elementContext.tag}${elementContext.id ? ` id=\"${elementContext.id}\"` : ''}${elementContext.classes ? ` class=\"${elementContext.classes}\"` : ''}>\nText: \"${elementContext.text}\"\nPosition: x:${elementContext.position.x}, y:${elementContext.position.y}\n\nConsider:\n1. Why might this element not be behaving as expected?\n2. Are there any CSS properties preventing interaction?\n3. Are there any event listeners that might be interfering?\n4. What accessibility concerns might exist?\n5. How could the user experience be improved?\n\nProvide specific, actionable debugging steps and potential solutions.`;
-    const userPrompt = `${prompt}\n\nUser question: ${query}`;
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are an expert web developer and debugger. Provide clear, actionable debugging advice.' },
-          { role: 'user', content: userPrompt },
-        ],
-        max_tokens: 1000,
-        temperature: 0.7,
-      }),
+    // Gather element context
+    const context = gatherElementContext(element);
+    
+    // Send to background script
+    const response = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({
+        action: 'analyzeElement',
+        query: query,
+        context: context
+      }, resolve);
     });
-    if (!response.ok) throw new Error(`API request failed: ${response.statusText}`);
-    const data = await response.json();
-    const llmResponse = data.choices[0].message.content;
-    contentDiv.textContent = llmResponse;
-    resultDiv.style.display = 'block';
+    
+    if (response.success) {
+      displayAnalysisResult(response.data);
+    } else {
+      throw new Error(response.error);
+    }
+    
   } catch (error) {
-    const errorElement = document.createElement('p');
-    errorElement.className = 'error';
-    errorElement.textContent = `Error: ${sanitizeText(error.message)}`;
-    contentDiv.textContent = '';
-    contentDiv.appendChild(errorElement);
-    resultDiv.style.display = 'block';
+    console.error('Analysis failed:', error);
+    resultDiv.innerHTML = `
+      <div class="error">
+        <h4>❌ Analysis Failed</h4>
+        <p>${error.message}</p>
+      </div>
+    `;
+  } finally {
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = 'Analyze with AI';
   }
-  
-  analyzeBtn.textContent = 'Analyze with OpenAI';
-  analyzeBtn.disabled = false;
 }
 
-// Get element context with sanitization
-function getElementContext(element) {
+// Gather element context
+function gatherElementContext(element) {
   const rect = element.getBoundingClientRect();
   const styles = window.getComputedStyle(element);
   
   return {
-    tag: sanitizeText(element.tagName.toLowerCase()),
-    id: sanitizeText(element.id),
-    classes: sanitizeText(element.className),
-    text: sanitizeText(element.textContent?.substring(0, 200) || ''),
-    html: sanitizeText(element.outerHTML.substring(0, 500)),
+    tag: element.tagName.toLowerCase(),
+    id: element.id || null,
+    classes: element.className || null,
+    text: element.textContent ? element.textContent.substring(0, 200) : null,
+    html: element.outerHTML.substring(0, 500),
     position: {
-      x: Math.round(rect.x),
-      y: Math.round(rect.y),
-      width: Math.round(rect.width),
-      height: Math.round(rect.height)
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height
     },
     styles: {
-      display: sanitizeText(styles.display),
-      position: sanitizeText(styles.position),
-      visibility: sanitizeText(styles.visibility),
-      opacity: sanitizeText(styles.opacity),
-      zIndex: sanitizeText(styles.zIndex),
-      backgroundColor: sanitizeText(styles.backgroundColor),
-      color: sanitizeText(styles.color)
+      display: styles.display,
+      position: styles.position,
+      zIndex: styles.zIndex,
+      backgroundColor: styles.backgroundColor,
+      color: styles.color,
+      fontSize: styles.fontSize,
+      fontFamily: styles.fontFamily,
+      margin: styles.margin,
+      padding: styles.padding,
+      border: styles.border,
+      borderRadius: styles.borderRadius
     },
     parent: element.parentElement ? {
-      tag: sanitizeText(element.parentElement.tagName.toLowerCase()),
-      classes: sanitizeText(element.parentElement.className)
+      tag: element.parentElement.tagName.toLowerCase(),
+      id: element.parentElement.id || null,
+      classes: element.parentElement.className || null
     } : null,
-    url: sanitizeText(window.location.href),
-    pageTitle: sanitizeText(document.title)
+    url: window.location.href,
+    pageTitle: document.title,
+    viewport: {
+      width: window.innerWidth,
+      height: window.innerHeight
+    }
   };
 }
 
-// Format analysis result with DOM manipulation instead of innerHTML
-function formatAnalysisResult(data) {
-  const container = document.createElement('div');
-  container.className = 'analysis-sections';
+// Display analysis result
+function displayAnalysisResult(data) {
+  const resultDiv = document.getElementById('analysis-result');
   
-  // Analysis section
-  const analysisSection = document.createElement('div');
-  analysisSection.className = 'section';
-  
-  const analysisTitle = document.createElement('h5');
-  analysisTitle.textContent = '🔍 Analysis';
-  
-  const analysisText = document.createElement('p');
-  analysisText.textContent = sanitizeText(data.analysis);
-  
-  analysisSection.appendChild(analysisTitle);
-  analysisSection.appendChild(analysisText);
-  
-  // Issues section
-  const issuesSection = document.createElement('div');
-  issuesSection.className = 'section';
-  
-  const issuesTitle = document.createElement('h5');
-  issuesTitle.textContent = '🎯 Potential Issues';
-  
-  const issuesList = document.createElement('ul');
-  if (Array.isArray(data.issues)) {
-    data.issues.forEach(issue => {
-      const listItem = document.createElement('li');
-      listItem.textContent = sanitizeText(issue);
-      issuesList.appendChild(listItem);
-    });
-  }
-  
-  issuesSection.appendChild(issuesTitle);
-  issuesSection.appendChild(issuesList);
-  
-  // Recommendations section
-  const recsSection = document.createElement('div');
-  recsSection.className = 'section';
-  
-  const recsTitle = document.createElement('h5');
-  recsTitle.textContent = '💡 Recommendations';
-  
-  const recsList = document.createElement('ul');
-  if (Array.isArray(data.recommendations)) {
-    data.recommendations.forEach(rec => {
-      const listItem = document.createElement('li');
-      listItem.textContent = sanitizeText(rec);
-      recsList.appendChild(listItem);
-    });
-  }
-  
-  recsSection.appendChild(recsTitle);
-  recsSection.appendChild(recsList);
-  
-  // Code snippet section (if available)
-  if (data.codeSnippet) {
-    const codeSection = document.createElement('div');
-    codeSection.className = 'section';
-    
-    const codeTitle = document.createElement('h5');
-    codeTitle.textContent = '📝 Code Snippet';
-    
-    const codeElement = document.createElement('pre');
-    const codeContent = document.createElement('code');
-    codeContent.textContent = sanitizeText(data.codeSnippet);
-    codeElement.appendChild(codeContent);
-    
-    codeSection.appendChild(codeTitle);
-    codeSection.appendChild(codeElement);
-    container.appendChild(codeSection);
-  }
-  
-  container.appendChild(analysisSection);
-  container.appendChild(issuesSection);
-  container.appendChild(recsSection);
-  
-  return container;
+  resultDiv.innerHTML = `
+    <h4>🤖 AI Analysis Results</h4>
+    <div class="analysis-sections">
+      ${data.summary ? `
+        <div class="section">
+          <h5>📋 Summary</h5>
+          <p>${data.summary}</p>
+        </div>
+      ` : ''}
+      
+      <div class="section">
+        <h5>🔍 Analysis</h5>
+        <p>${data.analysis}</p>
+      </div>
+      
+      ${data.issues && data.issues.length > 0 ? `
+        <div class="section">
+          <h5>⚠️ Issues Found</h5>
+          <ul>
+            ${data.issues.map(issue => `<li>${issue}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+      
+      ${data.recommendations && data.recommendations.length > 0 ? `
+        <div class="section">
+          <h5>💡 Recommendations</h5>
+          <ul>
+            ${data.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+      
+      ${data.codeSnippets && (data.codeSnippets.css || data.codeSnippets.javascript || data.codeSnippets.html) ? `
+        <div class="section">
+          <h5>💻 Code Snippets</h5>
+          ${data.codeSnippets.css ? `<pre><code>${data.codeSnippets.css}</code></pre>` : ''}
+          ${data.codeSnippets.javascript ? `<pre><code>${data.codeSnippets.javascript}</code></pre>` : ''}
+          ${data.codeSnippets.html ? `<pre><code>${data.codeSnippets.html}</code></pre>` : ''}
+        </div>
+      ` : ''}
+      
+      ${data.debugging_steps && data.debugging_steps.length > 0 ? `
+        <div class="section">
+          <h5>🔧 Debugging Steps</h5>
+          <ol>
+            ${data.debugging_steps.map(step => `<li>${step}</li>`).join('')}
+          </ol>
+        </div>
+      ` : ''}
+    </div>
+  `;
 }
 
-// Initialize when page loads
+// Utility functions
+function isLogTraceElement(element) {
+  if (!element) return false;
+  
+  const logTraceIds = [
+    'log-trace-overlay',
+    'mouse-indicator', 
+    'element-highlighter',
+    'log-trace-info-panel',
+    'claude-debug-modal',
+    'log-trace-toggle-button',
+    'log-trace-tooltip'
+  ];
+  
+  return logTraceIds.includes(element.id) || 
+         element.closest('#log-trace-overlay') ||
+         element.closest('#log-trace-info-panel') ||
+         element.closest('#claude-debug-modal') ||
+         element.closest('#log-trace-toggle-button') ||
+         element.closest('#log-trace-tooltip');
+}
+
+function generateSelector(element) {
+  if (element.id) {
+    return `#${element.id}`;
+  }
+  
+  if (element.className) {
+    return `.${element.className.split(' ').join('.')}`;
+  }
+  
+  return element.tagName.toLowerCase();
+}
+
+function logEvent(type, element) {
+  const event = {
+    type,
+    timestamp: Date.now(),
+    element: {
+      tag: element.tagName.toLowerCase(),
+      id: element.id || null,
+      classes: element.className || null,
+      text: element.textContent ? element.textContent.substring(0, 50) : null
+    },
+    position: mousePosition
+  };
+  
+  debugEvents.push(event);
+  console.log('LogTrace Event:', event);
+}
+
+function showNotification(message) {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.95);
+    color: #22c55e;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 10002;
+    border: 1px solid #22c55e;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: slideDown 0.3s ease-out;
+  `;
+  
+  notification.textContent = message;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.animation = 'slideUp 0.3s ease-out';
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 300);
+  }, 3000);
+}
+
+function getExtensionSettings() {
+  chrome.runtime.sendMessage({ action: 'getSettings' }, (response) => {
+    if (response && response.success) {
+      apiKey = response.settings.apiKey;
+      if (response.settings.isActive) {
+        activateLogTrace();
+      }
+    }
+  });
+}
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideDown {
+    from { transform: translate(-50%, -100%); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+  }
+  
+  @keyframes slideUp {
+    from { transform: translate(-50%, 0); opacity: 1; }
+    to { transform: translate(-50%, -100%); opacity: 0; }
+  }
+  
+  @keyframes logTracePulse {
+    0% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(34, 197, 94, 0.7); }
+    50% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 8px rgba(34, 197, 94, 0.2); }
+    100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(34, 197, 94, 0); }
+  }
+  
+  .log-trace-active {
+    animation: logTracePulse 2s infinite;
+  }
+  
+  .log-trace-button-hover {
+    transform: scale(1.1) !important;
+  }
+`;
+document.head.appendChild(style);
+
+// Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeDebugMode);
+  document.addEventListener('DOMContentLoaded', initializeContentScript);
 } else {
-  initializeDebugMode();
+  initializeContentScript();
 }

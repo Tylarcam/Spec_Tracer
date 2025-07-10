@@ -157,6 +157,10 @@ const LogTrace: React.FC = () => {
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+        return; // Prevent shortcut if an input or textarea is focused
+      }
       if (isActive && e.ctrlKey && e.key === 'd') {
         e.preventDefault();
         setShowInteractivePanel(false);

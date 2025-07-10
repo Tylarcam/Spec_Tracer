@@ -2,182 +2,230 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trace Sight Debug View</title>
   <style>
     body {
-      width: 300px;
-      padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      width: 400px;
+      height: 600px;
       margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #22c55e;
+      overflow: hidden;
+    }
+    
+    #popup-root {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #1e293b;
+      border-top: 3px solid #22c55e;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
     
     .header {
       text-align: center;
-      margin-bottom: 20px;
+      padding: 20px;
+      border-bottom: 1px solid #334155;
     }
     
     .header h1 {
       margin: 0;
-      font-size: 1.3rem;
-      color: #1e293b;
+      font-size: 1.5rem;
+      color: #06b6d4;
     }
     
     .header p {
-      margin: 5px 0 0 0;
+      margin: 8px 0 0 0;
       font-size: 0.9rem;
       color: #64748b;
     }
     
-    .config-section {
+    .controls {
+      padding: 20px;
+    }
+    
+    .switch-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: 20px;
+      padding: 12px;
+      background: #1e293b;
+      border-radius: 8px;
     }
     
-    .config-section h3 {
-      margin: 0 0 10px 0;
-      font-size: 1rem;
-      color: #1e293b;
-    }
-    
-    .input-group {
-      margin-bottom: 15px;
-    }
-    
-    .input-group label {
-      display: block;
-      margin-bottom: 5px;
-      font-size: 0.9rem;
-      color: #374151;
+    .switch-label {
       font-weight: 500;
+      color: #e2e8f0;
     }
     
-    .input-group input {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      box-sizing: border-box;
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
     }
     
-    .input-group input:focus {
-      outline: none;
-      border-color: #4f46e5;
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
     }
     
-    .btn {
-      width: 100%;
-      padding: 10px;
-      background: #4f46e5;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      font-weight: 500;
+    .slider {
+      position: absolute;
       cursor: pointer;
-      transition: all 0.2s;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #475569;
+      transition: .4s;
+      border-radius: 24px;
     }
     
-    .btn:hover {
-      background: #4338ca;
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
     }
     
-    .btn:disabled {
-      background: #9ca3af;
-      cursor: not-allowed;
+    input:checked + .slider {
+      background-color: #22c55e;
     }
     
-    .status {
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      text-align: center;
-      display: none;
-    }
-    
-    .status.success {
-      background: #ecfdf5;
-      color: #065f46;
-      border: 1px solid #a7f3d0;
-    }
-    
-    .status.error {
-      background: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
+    input:checked + .slider:before {
+      transform: translateX(26px);
     }
     
     .instructions {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 16px;
       margin-top: 20px;
-      padding: 15px;
-      background: #f8fafc;
-      border-radius: 6px;
-      border: 1px solid #e2e8f0;
     }
     
-    .instructions h4 {
-      margin: 0 0 10px 0;
-      font-size: 0.9rem;
-      color: #1e293b;
+    .instructions h3 {
+      margin: 0 0 12px 0;
+      font-size: 1rem;
+      color: #06b6d4;
     }
     
     .instructions ol {
       margin: 0;
       padding-left: 20px;
-      font-size: 0.8rem;
-      color: #475569;
+      font-size: 0.85rem;
+      color: #94a3b8;
       line-height: 1.5;
     }
     
     .instructions li {
-      margin-bottom: 5px;
+      margin-bottom: 8px;
     }
     
-    .api-help {
-      margin-top: 10px;
-      font-size: 0.8rem;
-      color: #6b7280;
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
     }
     
-    .api-help a {
-      color: #4f46e5;
-      text-decoration: none;
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
     }
     
-    .api-help a:hover {
-      text-decoration: underline;
+    .status-dot.active {
+      background: #22c55e;
+    }
+    
+    .api-config {
+      margin-top: 20px;
+      padding: 16px;
+      background: #1e293b;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+    
+    .api-config h3 {
+      margin: 0 0 12px 0;
+      font-size: 1rem;
+      color: #06b6d4;
+    }
+    
+    .api-config input {
+      width: 100%;
+      padding: 8px 12px;
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+    }
+    
+    .api-config input:focus {
+      outline: none;
+      border-color: #22c55e;
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.1);
+    }
+    
+    .api-config button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px;
+      background: #22c55e;
+      color: #0f172a;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .api-config button:hover {
+      background: #16a34a;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>🐛 LogTracer Debug Helper</h1>
-    <p>AI-powered web debugging tool</p>
-  </div>
-  
-  <div class="config-section">
-    <h3>Configuration</h3>
-    <div class="input-group">
-      <label for="apiKey">OpenAI API Key:</label>
-      <input type="password" id="apiKey" placeholder="Enter your OpenAI API key">
+  <div id="popup-root">
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <p>Loading LogTrace...</p>
     </div>
-    <button id="saveBtn" class="btn">Save Configuration</button>
-    <div id="status" class="status"></div>
-  </div>
-  
-  <div class="instructions">
-    <h4>How to use:</h4>
-    <ol>
-      <li>Enter your OpenAI API key above</li>
-      <li>Click the debug button (🐛) on any webpage</li>
-      <li>Click on any element to analyze it</li>
-      <li>Ask your debugging question</li>
-      <li>Get AI-powered insights and solutions</li>
-    </ol>
-  </div>
-  
-  <div class="api-help">
-    <p>Need an API key? <a href="https://platform.openai.com/account/api-keys" target="_blank">Get one here</a></p>
   </div>
   
   <script src="popup.js"></script>
