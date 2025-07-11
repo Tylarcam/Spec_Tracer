@@ -3,8 +3,6 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { usePinnedDetails } from '@/shared/hooks/usePinnedDetails';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
-import { supabase } from '@/integrations/supabase/client';
-import { initializeSupabase } from '@/shared/api';
 import Header from './LogTrace/Header';
 import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
@@ -12,13 +10,6 @@ import InteractivePanel from './LogTrace/InteractivePanel';
 import DebugModal from './LogTrace/DebugModal';
 import TabbedTerminal from './LogTrace/TabbedTerminal';
 import PinnedDetails from './LogTrace/PinnedDetails';
-
-// Initialize Supabase for shared API
-try {
-  initializeSupabase(supabase);
-} catch (error) {
-  console.warn('Failed to initialize Supabase:', error);
-}
 
 const LogTrace: React.FC = () => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
@@ -68,8 +59,6 @@ const LogTrace: React.FC = () => {
     if (!currentElement) return;
     
     setShowInteractivePanel(true);
-    
-    // Auto-pin details to canvas when modal opens
     addPin(currentElement, mousePosition);
     
     addEvent({
@@ -169,7 +158,6 @@ const LogTrace: React.FC = () => {
         return;
       }
       
-      // Ctrl+D: Quick debug
       if (isActive && e.ctrlKey && e.key === 'd') {
         e.preventDefault();
         setShowInteractivePanel(false);
@@ -189,7 +177,6 @@ const LogTrace: React.FC = () => {
         }
       }
       
-      // D: Pause/Resume hover
       if (isActive && e.key === 'd' && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         if (!isHoverPaused) {
@@ -201,7 +188,6 @@ const LogTrace: React.FC = () => {
         }
       }
       
-      // S: Start (activate LogTrace)
       if (e.key === 's' && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         if (!isActive) {
@@ -209,7 +195,6 @@ const LogTrace: React.FC = () => {
         }
       }
       
-      // E: End (deactivate LogTrace)
       if (e.key === 'e' && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         if (isActive) {
@@ -218,13 +203,11 @@ const LogTrace: React.FC = () => {
         }
       }
       
-      // T: Toggle terminal
       if (e.key === 't' && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         setShowTerminal(!showTerminal);
       }
       
-      // Escape: Close panels
       if (e.key === 'Escape') {
         handleEscape();
       }
@@ -250,7 +233,6 @@ const LogTrace: React.FC = () => {
          onMouseMove={handleMouseMove}
          onClick={handleClick}>
       
-      {/* Background grid pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
           backgroundImage: `
