@@ -1,19 +1,10 @@
+
 import { useCallback, useEffect } from 'react';
-import { ElementInfo } from '../types';
+import { ElementInfo, LogEvent } from '../types';
 
-interface LogEvent {
-  type: string;
-  position?: { x: number; y: number };
-  element?: {
-    tag: string;
-    id?: string;
-    classes: string[];
-    text?: string;
-  };
-}
-
-interface LogTraceEventHandlersProps {
+interface UseLogTraceEventHandlersProps {
   isActive: boolean;
+  isHoverPaused: boolean;
   currentElement: ElementInfo | null;
   mousePosition: { x: number; y: number };
   showInteractivePanel: boolean;
@@ -22,14 +13,13 @@ interface LogTraceEventHandlersProps {
   setShowInteractivePanel: (show: boolean) => void;
   setShowDebugModal: (show: boolean) => void;
   extractElementInfo: (target: HTMLElement) => ElementInfo;
-  addEvent: (event: LogEvent) => void;
-  onElementClick: () => void;
-  onDebugFromPanel: () => void;
-  onEscape: () => void;
+  addEvent: (event: Omit<LogEvent, 'id' | 'timestamp'>) => void;
+  handleEscape: () => void;
 }
 
 export const useLogTraceEventHandlers = ({
   isActive,
+  isHoverPaused,
   currentElement,
   mousePosition,
   showInteractivePanel,
@@ -39,13 +29,11 @@ export const useLogTraceEventHandlers = ({
   setShowDebugModal,
   extractElementInfo,
   addEvent,
-  onElementClick,
-  onDebugFromPanel,
-  onEscape,
-}: LogTraceEventHandlersProps) => {
+  handleEscape,
+}: UseLogTraceEventHandlersProps) => {
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isActive) return;
+    if (!isActive || isHoverPaused) return;
 
     const target = e.target as HTMLElement;
     if (target && 
@@ -56,14 +44,11 @@ export const useLogTraceEventHandlers = ({
       const elementInfo = extractElementInfo(target);
       setCurrentElement(elementInfo);
       
-      // Hide interactive panel when moving to a new element
       if (showInteractivePanel) {
         setShowInteractivePanel(false);
       }
-      
-      // Don't log move events anymore - only track position
     }
-  }, [isActive, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel, setShowInteractivePanel]);
+  }, [isActive, isHoverPaused, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel, setShowInteractivePanel]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive) return;
@@ -91,39 +76,40 @@ export const useLogTraceEventHandlers = ({
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     const activeElement = document.activeElement;
     if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-      return; // Prevent shortcut if an input or textarea is focused
+      return;
     }
+    
     if (isActive && e.ctrlKey && e.key === 'd') {
       e.preventDefault();
       setShowInteractivePanel(false);
       setShowDebugModal(true);
-      addEvent({
-        type: 'debug',
-        position: mousePosition,
-        element: currentElement ? {
-          tag: currentElement.tag,
-          id: currentElement.id,
-          classes: currentElement.classes,
-          text: currentElement.text,
-        } : undefined,
-      });
+      
+      if (currentElement) {
+        addEvent({
+          type: 'debug',
+          position: mousePosition,
+          element: {
+            tag: currentElement.tag,
+            id: currentElement.id,
+            classes: currentElement.classes,
+            text: currentElement.text,
+          },
+        });
+      }
     }
+    
     if (e.key === 'Escape') {
-      onEscape();
+      handleEscape();
     }
-  }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal, setShowInteractivePanel, onEscape]);
+  }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal, setShowInteractivePanel, handleEscape]);
 
   useEffect(() => {
-    if (isActive) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [isActive, handleKeyDown]);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   return {
     handleMouseMove,
     handleClick,
-    handleElementClick: onElementClick,
-    handleDebugFromPanel: onDebugFromPanel,
   };
 };

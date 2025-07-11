@@ -1,8 +1,4 @@
 
-/**
- * Shared API utilities for LogTrace
- */
-
 import { sanitizeText, validatePrompt, debugRateLimiter } from '@/utils/sanitization';
 import { ElementInfo } from './types';
 
@@ -26,8 +22,12 @@ export const callAIDebugFunction = async (
     throw new Error('Too many requests. Please wait before trying again.');
   }
 
-  // If we have Supabase client, use it
-  if (supabaseClient) {
+  // For now, return a mock response since Supabase integration needs proper setup
+  if (!supabaseClient) {
+    throw new Error('AI debugging requires API configuration. Please set up your OpenAI API key in the settings.');
+  }
+
+  try {
     const { data, error } = await supabaseClient.functions.invoke('ai-debug', {
       body: {
         prompt: sanitizeText(prompt, 2000),
@@ -51,8 +51,8 @@ export const callAIDebugFunction = async (
     }
 
     return data.response;
-  } else {
-    // Fallback for extension context - direct API call
-    throw new Error('AI debugging requires Supabase connection');
+  } catch (error) {
+    console.error('AI Debug API Error:', error);
+    throw new Error('AI debugging service is currently unavailable. Please try again later.');
   }
 };
