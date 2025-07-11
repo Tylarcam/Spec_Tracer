@@ -7,6 +7,7 @@ import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
 import { ElementInfo } from '@/shared/types';
 import { sanitizeText } from '@/utils/sanitization';
+import { useToast } from '@/hooks/use-toast';
 
 interface DebugModalProps {
   showDebugModal: boolean;
@@ -31,8 +32,34 @@ const DebugModal: React.FC<DebugModalProps> = ({
 }) => {
   const [quickPrompt, setQuickPrompt] = useState('Why did this happen?');
   const [advancedPrompt, setAdvancedPrompt] = useState('');
+  const { toast } = useToast();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!showDebugModal) return null;
+
+  const handleDebugSubmit = async (prompt: string) => {
+    if (!prompt.trim()) {
+      toast({
+        title: 'Invalid Prompt',
+        description: 'Please enter a valid prompt before debugging.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    try {
+      setErrorMessage(null);
+      await analyzeWithAI(prompt);
+    } catch (error: any) {
+      console.error('Debug analyze error:', error);
+      const msg = error?.message || 'Error getting AI response';
+      setErrorMessage(msg);
+      toast({
+        title: 'Debugging Failed',
+        description: msg,
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -82,13 +109,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                   maxLength={500}
                 />
                 <Button 
-                  onClick={async () => {
-                    try {
-                      await analyzeWithAI(quickPrompt);
-                    } catch (error) {
-                      alert(error instanceof Error ? error.message : 'Error getting AI response');
-                    }
-                  }}
+                  onClick={() => handleDebugSubmit(quickPrompt)}
                   disabled={isAnalyzing || !quickPrompt.trim()}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
@@ -109,13 +130,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                 maxLength={2000}
               />
               <Button 
-                onClick={async () => {
-                  try {
-                    await analyzeWithAI(advancedPrompt || generateAdvancedPrompt());
-                  } catch (error) {
-                    alert(error instanceof Error ? error.message : 'Error getting AI response');
-                  }
-                }}
+                onClick={() => handleDebugSubmit(advancedPrompt || generateAdvancedPrompt())}
                 disabled={isAnalyzing}
                 className="bg-cyan-600 hover:bg-cyan-700 text-white mt-2"
               >
@@ -123,6 +138,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
               </Button>
             </div>
           </div>
+          {errorMessage && (
+            <div className="mt-4 bg-red-800/60 text-red-200 p-3 rounded animate-pulse">
+              {errorMessage}
+            </div>
+          )}
         </div>
       </Card>
     </div>

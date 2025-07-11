@@ -9,6 +9,7 @@ import { storage, STORAGE_KEYS } from '../storage';
 
 export const useEventTracking = (maxEvents: number, autoSave: boolean) => {
   const [events, setEvents] = useState<LogEvent[]>([]);
+  const [storageError, setStorageError] = useState<string | null>(null);
 
   const addEvent = useCallback((event: Omit<LogEvent, 'id' | 'timestamp'>) => {
     const newEvent: LogEvent = {
@@ -24,19 +25,33 @@ export const useEventTracking = (maxEvents: number, autoSave: boolean) => {
   }, [maxEvents]);
 
   const clearEvents = async () => {
-    setEvents([]);
-    await storage.remove(STORAGE_KEYS.EVENTS);
+    try {
+      setEvents([]);
+      await storage.remove(STORAGE_KEYS.EVENTS);
+      setStorageError(null);
+    } catch (error) {
+      console.error('Failed to clear events from storage:', error);
+      setStorageError('Failed to clear saved events. Changes may not persist.');
+      
+      // Still clear local state even if storage fails
+      setEvents([]);
+    }
   };
 
   const exportEvents = () => {
-    const dataStr = JSON.stringify(events, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = `logtrace-${new Date().toISOString().split('T')[0]}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+    try {
+      const dataStr = JSON.stringify(events, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      const exportFileDefaultName = `logtrace-${new Date().toISOString().split('T')[0]}.json`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+    } catch (error) {
+      console.error('Failed to export events:', error);
+      alert('Failed to export events. Please try again or check your browser permissions.');
+    }
   };
 
   return {
@@ -45,5 +60,7 @@ export const useEventTracking = (maxEvents: number, autoSave: boolean) => {
     addEvent,
     clearEvents,
     exportEvents,
+    storageError,
+    clearStorageError: () => setStorageError(null),
   };
 };

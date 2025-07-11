@@ -3,8 +3,10 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, AlertCircle } from 'lucide-react';
 import { LogEvent } from '@/shared/types';
+import { useToast } from '@/hooks/use-toast';
+import { useNotification } from '@/hooks/useNotification';
 
 interface TabbedTerminalProps {
   showTerminal: boolean;
@@ -27,6 +29,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
 }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('events');
+  const { success, error } = useNotification();
 
   if (!showTerminal) return null;
 
@@ -45,15 +48,56 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   };
 
   const copyEventToClipboard = async (event: LogEvent) => {
-    const eventText = `[${formatTime(event.timestamp)}] ${event.type.toUpperCase()} ${
-      event.element ? `${event.element.tag}${event.element.id ? `#${event.element.id}` : ''}${
-        event.element.classes.length > 0 ? `.${event.element.classes.join('.')}` : ''
-      }` : ''
-    } ${event.position ? `@${event.position.x},${event.position.y}` : ''}`;
-    
-    await navigator.clipboard.writeText(eventText);
-    setCopiedId(event.id);
-    setTimeout(() => setCopiedId(null), 1000);
+    try {
+      const eventText = `[${formatTime(event.timestamp)}] ${event.type.toUpperCase()} ${
+        event.element ? `${event.element.tag}${event.element.id ? `#${event.element.id}` : ''}${
+          event.element.classes.length > 0 ? `.${event.element.classes.join('.')}` : ''
+        }` : ''
+      } ${event.position ? `@${event.position.x},${event.position.y}` : ''}`;
+      
+      await navigator.clipboard.writeText(eventText);
+      setCopiedId(event.id);
+      setTimeout(() => setCopiedId(null), 1000);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      
+      // Fallback: try to select text if clipboard API fails
+      try {
+        const textElement = document.createElement('textarea');
+        textElement.value = `[${formatTime(event.timestamp)}] ${event.type.toUpperCase()}`;
+        document.body.appendChild(textElement);
+        textElement.select();
+        document.execCommand('copy');
+        document.body.removeChild(textElement);
+        
+        setCopiedId(event.id);
+        setTimeout(() => setCopiedId(null), 1000);
+      } catch (fallbackError) {
+        console.error('Fallback copy failed:', fallbackError);
+        // Show user-friendly error message
+        if (typeof window !== 'undefined') {
+          alert('Unable to copy to clipboard. Please manually select and copy the text.');
+        }
+      }
+    }
+  };
+
+  const handleExport = () => {
+    try {
+      exportEvents();
+      success({ title: 'Exported', description: 'Events exported successfully' });
+    } catch (err: any) {
+      error({ title: 'Export failed', description: err?.message });
+    }
+  };
+
+  const handleClear = async () => {
+    try {
+      await clearEvents();
+      success({ title: 'Events Cleared' });
+    } catch (err: any) {
+      error({ title: 'Clear failed', description: err?.message });
+    }
   };
 
   const clickEvents = events.filter(e => ['click', 'debug', 'inspect'].includes(e.type));
@@ -66,7 +110,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
             <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
             <div className="flex gap-2">
               <Button
-                onClick={exportEvents}
+                onClick={handleExport}
                 variant="outline"
                 size="sm"
                 className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
@@ -98,7 +142,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-gray-400">Interaction Events</span>
                 <Button
-                  onClick={clearEvents}
+                  onClick={handleClear}
                   variant="outline"
                   size="sm"
                   className="border-red-500/50 text-red-400 hover:bg-red-500/10 h-7 px-2 text-xs"

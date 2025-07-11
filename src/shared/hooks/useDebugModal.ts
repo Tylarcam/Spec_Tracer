@@ -18,10 +18,30 @@ export const useDebugModal = (
 
   const analyzeWithAI = async (prompt: string) => {
     setIsAnalyzing(true);
-    
     try {
-      const response = await callAIDebugFunction(prompt, currentElement, mousePosition);
-      
+      const MAX_RETRIES = 2;
+      let attempt = 0;
+      let response: any = null;
+      let lastError: any = null;
+      while (attempt <= MAX_RETRIES) {
+        try {
+          response = await callAIDebugFunction(prompt, currentElement, mousePosition);
+          lastError = null;
+          break;
+        } catch (error) {
+          lastError = error;
+          console.error(`AI debug attempt ${attempt + 1} failed:`, error);
+          if (attempt < MAX_RETRIES) {
+            // Exponential backoff
+            await new Promise(res => setTimeout(res, Math.pow(2, attempt) * 1000));
+          }
+          attempt++;
+        }
+      }
+      if (lastError) {
+        throw lastError;
+      }
+
       addEvent({
         type: 'llm_response',
         position: mousePosition,
@@ -34,12 +54,8 @@ export const useDebugModal = (
           text: sanitizeText(currentElement.text),
         } : undefined,
       });
-      
       setShowDebugModal(false);
       return response;
-    } catch (error) {
-      console.error('Error calling AI debug function:', error);
-      throw error;
     } finally {
       setIsAnalyzing(false);
     }

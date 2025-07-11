@@ -14,11 +14,19 @@ import { useSettings } from './useSettings';
 export const useLogTrace = () => {
   const [isActive, setIsActive] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
   
   const overlayRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  const { settings, setSettings } = useSettings();
+  const { 
+    settings, 
+    setSettings, 
+    isLoading: settingsLoading, 
+    error: settingsError,
+    clearError: clearSettingsError,
+    retryLoad: retrySettingsLoad
+  } = useSettings();
   
   const {
     events,
@@ -26,6 +34,8 @@ export const useLogTrace = () => {
     addEvent,
     clearEvents,
     exportEvents,
+    storageError,
+    clearStorageError,
   } = useEventTracking(settings.maxEvents, settings.autoSave);
 
   const {
@@ -44,10 +54,11 @@ export const useLogTrace = () => {
     generateAdvancedPrompt,
   } = useDebugModal(currentElement, mousePosition, addEvent);
 
-  // Load events from storage
+  // Load events from storage with error handling
   useEffect(() => {
     const loadEvents = async () => {
       try {
+        setLoadingError(null);
         const savedEvents = await storage.get(STORAGE_KEYS.EVENTS);
         if (savedEvents) {
           const parsed = JSON.parse(savedEvents);
@@ -57,13 +68,19 @@ export const useLogTrace = () => {
         }
       } catch (error) {
         console.error('Error loading saved events:', error);
+        setLoadingError('Failed to load saved events. Starting with empty history.');
+        
+        // Continue with empty events rather than failing completely
+        setEvents([]);
       }
     };
 
-    loadEvents();
-  }, [setEvents]);
+    if (!settingsLoading) {
+      loadEvents();
+    }
+  }, [setEvents, settingsLoading]);
 
-  // Save events to storage
+  // Save events to storage with error handling
   useEffect(() => {
     if (settings.autoSave && events.length > 0) {
       const saveEvents = async () => {
@@ -71,6 +88,7 @@ export const useLogTrace = () => {
           await storage.set(STORAGE_KEYS.EVENTS, JSON.stringify(events));
         } catch (error) {
           console.error('Error saving events:', error);
+          // Error is handled by useEventTracking storageError state
         }
       };
       saveEvents();
@@ -82,6 +100,20 @@ export const useLogTrace = () => {
     position: mousePosition,
     events,
     settings,
+  };
+
+  // Combined error state for easy checking
+  const hasErrors = !!(settingsError || storageError || loadingError);
+  const errors = {
+    settings: settingsError,
+    storage: storageError,
+    loading: loadingError,
+  };
+
+  const clearAllErrors = () => {
+    clearSettingsError();
+    clearStorageError();
+    setLoadingError(null);
   };
 
   return {
@@ -100,6 +132,13 @@ export const useLogTrace = () => {
     settings,
     setSettings,
     isAnalyzing,
+    
+    // Loading & Error states
+    isLoading: settingsLoading,
+    hasErrors,
+    errors,
+    clearAllErrors,
+    retrySettingsLoad,
     
     // Refs
     overlayRef,

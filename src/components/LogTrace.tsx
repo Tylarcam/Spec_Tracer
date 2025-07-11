@@ -3,6 +3,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { usePinnedDetails } from '@/shared/hooks/usePinnedDetails';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
+import { useToast } from '@/hooks/use-toast';
 import Header from './LogTrace/Header';
 import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
@@ -39,6 +40,8 @@ const LogTrace: React.FC = () => {
     clearEvents,
     exportEvents,
     generateAdvancedPrompt,
+    hasErrors,
+    errors,
   } = useLogTrace();
 
   const {
@@ -54,6 +57,35 @@ const LogTrace: React.FC = () => {
     addDebugResponse,
     clearDebugResponses,
   } = useDebugResponses();
+
+  const { toast } = useToast();
+
+  // Watch for errors from useLogTrace and display toast
+  useEffect(() => {
+    if (hasErrors) {
+      if (errors.settings) {
+        toast({
+          title: 'Settings Error',
+          description: errors.settings,
+          variant: 'destructive',
+        });
+      }
+      if (errors.storage) {
+        toast({
+          title: 'Storage Error',
+          description: errors.storage,
+          variant: 'destructive',
+        });
+      }
+      if (errors.loading) {
+        toast({
+          title: 'Load Error',
+          description: errors.loading,
+          variant: 'destructive',
+        });
+      }
+    }
+  }, [hasErrors, errors, toast]);
 
   const handleElementClick = useCallback(() => {
     if (!currentElement) return;
@@ -250,6 +282,17 @@ const LogTrace: React.FC = () => {
           showTerminal={showTerminal}
           setShowTerminal={setShowTerminal}
         />
+
+        {hasErrors && (
+          <div className="my-4 p-3 rounded bg-red-800/60 text-red-200 animate-pulse max-w-xl">
+            <h4 className="font-semibold text-red-300 mb-1">Errors Detected</h4>
+            <ul className="text-sm list-disc list-inside space-y-1">
+              {Object.entries(errors).map(([key, value]) => (
+                value ? <li key={key}>{value}</li> : null
+              ))}
+            </ul>
+          </div>
+        )}
         <InstructionsCard />
       </div>
 
