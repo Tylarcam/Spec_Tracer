@@ -11,48 +11,46 @@ export const useEventTracking = (maxEvents: number, autoSave: boolean) => {
   const [events, setEvents] = useState<LogEvent[]>([]);
   const [storageError, setStorageError] = useState<string | null>(null);
 
-  const addEvent = useCallback((event: Omit<LogEvent, 'id' | 'timestamp'>) => {
-    const newEvent: LogEvent = {
-      ...event,
-      id: Math.random().toString(36).substr(2, 9),
+  const addEvent = useCallback((eventData: Omit<LogEvent, 'id' | 'timestamp'>) => {
+    const event: LogEvent = {
+      ...eventData,
+      id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
     };
-    
+
     setEvents(prev => {
-      const updated = [newEvent, ...prev];
-      return updated.slice(0, maxEvents);
+      const newEvents = [event, ...prev].slice(0, maxEvents);
+      return newEvents;
     });
   }, [maxEvents]);
 
-  const clearEvents = async () => {
-    try {
-      setEvents([]);
-      await storage.remove(STORAGE_KEYS.EVENTS);
-      setStorageError(null);
-    } catch (error) {
-      console.error('Failed to clear events from storage:', error);
-      setStorageError('Failed to clear saved events. Changes may not persist.');
-      
-      // Still clear local state even if storage fails
-      setEvents([]);
+  const clearEvents = useCallback(() => {
+    setEvents([]);
+    if (autoSave) {
+      storage.set(STORAGE_KEYS.EVENTS, JSON.stringify([])).catch(error => {
+        console.error('Error clearing events from storage:', error);
+        setStorageError('Failed to clear events from storage');
+      });
     }
-  };
+  }, [autoSave]);
 
-  const exportEvents = () => {
-    try {
-      const dataStr = JSON.stringify(events, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-      const exportFileDefaultName = `logtrace-${new Date().toISOString().split('T')[0]}.json`;
-      
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
-    } catch (error) {
-      console.error('Failed to export events:', error);
-      alert('Failed to export events. Please try again or check your browser permissions.');
-    }
-  };
+  const exportEvents = useCallback(() => {
+    const dataStr = JSON.stringify(events, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `logtrace-events-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [events]);
+
+  const clearStorageError = useCallback(() => {
+    setStorageError(null);
+  }, []);
 
   return {
     events,
@@ -61,6 +59,6 @@ export const useEventTracking = (maxEvents: number, autoSave: boolean) => {
     clearEvents,
     exportEvents,
     storageError,
-    clearStorageError: () => setStorageError(null),
+    clearStorageError,
   };
 };

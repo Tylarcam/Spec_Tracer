@@ -1,90 +1,48 @@
 
 /**
- * Unified storage utility for LogTrace
- * Works in both browser and extension contexts
+ * Simple storage utilities for LogTrace
  */
 
-interface StorageAdapter {
-  get(key: string): Promise<string | null>;
-  set(key: string, value: string): Promise<void>;
-  remove(key: string): Promise<void>;
-}
+export const STORAGE_KEYS = {
+  EVENTS: 'logtrace-events',
+  SETTINGS: 'logtrace-settings',
+  DEBUG_RESPONSES: 'logtrace-debug-responses',
+} as const;
 
-class LocalStorageAdapter implements StorageAdapter {
+export const storage = {
   async get(key: string): Promise<string | null> {
     try {
       return localStorage.getItem(key);
     } catch (error) {
-      console.error('LocalStorage get error:', error);
+      console.error('Storage get error:', error);
       return null;
     }
-  }
+  },
 
   async set(key: string, value: string): Promise<void> {
     try {
       localStorage.setItem(key, value);
     } catch (error) {
-      console.error('LocalStorage set error:', error);
+      console.error('Storage set error:', error);
+      throw new Error('Failed to save to storage');
     }
-  }
+  },
 
   async remove(key: string): Promise<void> {
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      console.error('LocalStorage remove error:', error);
+      console.error('Storage remove error:', error);
+      throw new Error('Failed to remove from storage');
     }
-  }
-}
+  },
 
-class ChromeStorageAdapter implements StorageAdapter {
-  async get(key: string): Promise<string | null> {
+  async clear(): Promise<void> {
     try {
-      if (typeof window !== 'undefined' && (window as any).chrome?.storage) {
-        const result = await (window as any).chrome.storage.local.get([key]);
-        return result[key] || null;
-      }
-      return null;
+      localStorage.clear();
     } catch (error) {
-      console.error('Chrome storage get error:', error);
-      return null;
+      console.error('Storage clear error:', error);
+      throw new Error('Failed to clear storage');
     }
-  }
-
-  async set(key: string, value: string): Promise<void> {
-    try {
-      if (typeof window !== 'undefined' && (window as any).chrome?.storage) {
-        await (window as any).chrome.storage.local.set({ [key]: value });
-      }
-    } catch (error) {
-      console.error('Chrome storage set error:', error);
-    }
-  }
-
-  async remove(key: string): Promise<void> {
-    try {
-      if (typeof window !== 'undefined' && (window as any).chrome?.storage) {
-        await (window as any).chrome.storage.local.remove([key]);
-      }
-    } catch (error) {
-      console.error('Chrome storage remove error:', error);
-    }
-  }
-}
-
-// Auto-detect storage adapter
-const createStorageAdapter = (): StorageAdapter => {
-  if (typeof window !== 'undefined' && (window as any).chrome?.storage) {
-    return new ChromeStorageAdapter();
-  }
-  return new LocalStorageAdapter();
+  },
 };
-
-export const storage = createStorageAdapter();
-
-// Storage keys
-export const STORAGE_KEYS = {
-  EVENTS: 'logtrace-events',
-  API_KEY: 'logtrace-api-key',
-  SETTINGS: 'logtrace-settings',
-} as const;

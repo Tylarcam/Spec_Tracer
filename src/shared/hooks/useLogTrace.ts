@@ -1,6 +1,6 @@
 
 /**
- * Refactored main LogTrace hook that composes smaller hooks
+ * Main LogTrace hook that composes smaller hooks
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -69,8 +69,6 @@ export const useLogTrace = () => {
       } catch (error) {
         console.error('Error loading saved events:', error);
         setLoadingError('Failed to load saved events. Starting with empty history.');
-        
-        // Continue with empty events rather than failing completely
         setEvents([]);
       }
     };

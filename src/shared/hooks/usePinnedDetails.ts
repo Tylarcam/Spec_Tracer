@@ -1,34 +1,40 @@
 
+/**
+ * Hook for managing pinned details functionality
+ */
+
 import { useState, useCallback } from 'react';
-import { ElementInfo, PinnedDetail } from '../types';
+import { PinnedDetail, ElementInfo } from '../types';
 
 export const usePinnedDetails = () => {
   const [pinnedDetails, setPinnedDetails] = useState<PinnedDetail[]>([]);
 
   const addPin = useCallback((element: ElementInfo, position: { x: number; y: number }) => {
-    if (pinnedDetails.length >= 3) return false;
-
-    const newPin: PinnedDetail = {
-      id: Math.random().toString(36).substr(2, 9),
+    const pin: PinnedDetail = {
+      id: crypto.randomUUID(),
       element,
       position,
       pinnedAt: {
-        x: Math.min(position.x + 20, window.innerWidth - 320),
-        y: Math.min(position.y + 20, window.innerHeight - 200),
+        x: Math.max(0, Math.min(window.innerWidth - 320, position.x)),
+        y: Math.max(0, Math.min(window.innerHeight - 200, position.y)),
       },
     };
-    setPinnedDetails(prev => [...prev, newPin]);
-    return true;
-  }, [pinnedDetails.length]);
 
-  const removePin = useCallback((pinId: string) => {
-    setPinnedDetails(prev => prev.filter(pin => pin.id !== pinId));
+    setPinnedDetails(prev => [...prev, pin]);
   }, []);
 
-  const updatePinPosition = useCallback((pinId: string, position: { x: number; y: number }) => {
-    setPinnedDetails(prev => prev.map(pin => 
-      pin.id === pinId ? { ...pin, pinnedAt: position } : pin
-    ));
+  const removePin = useCallback((id: string) => {
+    setPinnedDetails(prev => prev.filter(pin => pin.id !== id));
+  }, []);
+
+  const updatePinPosition = useCallback((id: string, position: { x: number; y: number }) => {
+    setPinnedDetails(prev => 
+      prev.map(pin => 
+        pin.id === id 
+          ? { ...pin, pinnedAt: position }
+          : pin
+      )
+    );
   }, []);
 
   const clearAllPins = useCallback(() => {

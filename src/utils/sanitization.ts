@@ -1,54 +1,62 @@
 
 /**
- * Security utilities for sanitizing user input and preventing XSS attacks
+ * Utilities for sanitizing user input and preventing XSS
  */
 
-export const sanitizeText = (input: string, maxLength: number = 500): string => {
-  if (typeof input !== 'string') return '';
-  const div = document.createElement('div');
-  div.textContent = input.slice(0, maxLength);
-  return div.innerHTML;
-};
-
-export const validatePrompt = (prompt: string): boolean => {
-  if (typeof prompt !== 'string') return false;
-  if (prompt.length === 0 || prompt.length > 2000) return false;
-  
-  // Check for potentially malicious patterns
-  const dangerousPatterns = [
-    /<script/i,
-    /javascript:/i,
-    /vbscript:/i,
-    /on\w+\s*=/i,
-    /<iframe/i,
-    /<object/i,
-    /<embed/i,
-  ];
-  
-  return !dangerousPatterns.some(pattern => pattern.test(prompt));
-};
-
-// Rate limiting utility
-export class RateLimiter {
-  private requests: Map<string, number[]> = new Map();
-  
-  constructor(private maxRequests: number = 5, private windowMs: number = 60000) {}
+// Rate limiting for debug operations
+class RateLimiter {
+  private requests = new Map<string, number[]>();
+  private maxRequests = 10;
+  private windowMs = 60000; // 1 minute
 
   isAllowed(key: string): boolean {
     const now = Date.now();
-    const requests = this.requests.get(key) || [];
+    const windowStart = now - this.windowMs;
     
-    // Filter out old requests
-    const validRequests = requests.filter(time => now - time < this.windowMs);
+    if (!this.requests.has(key)) {
+      this.requests.set(key, []);
+    }
     
-    if (validRequests.length >= this.maxRequests) {
+    const keyRequests = this.requests.get(key)!;
+    
+    // Remove old requests outside the window
+    while (keyRequests.length > 0 && keyRequests[0] < windowStart) {
+      keyRequests.shift();
+    }
+    
+    if (keyRequests.length >= this.maxRequests) {
       return false;
     }
     
-    validRequests.push(now);
-    this.requests.set(key, validRequests);
+    keyRequests.push(now);
     return true;
   }
 }
 
 export const debugRateLimiter = new RateLimiter();
+
+export const sanitizeText = (text: string, maxLength = 500): string => {
+  if (!text || typeof text !== 'string') return '';
+  
+  return text
+    .replace(/[<>]/g, '') // Remove potential HTML tags
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .trim()
+    .slice(0, maxLength);
+};
+
+export const validatePrompt = (prompt: string): boolean => {
+  if (!prompt || typeof prompt !== 'string') return false;
+  if (prompt.length < 5 || prompt.length > 2000) return false;
+  
+  // Check for suspicious patterns
+  const suspiciousPatterns = [
+    /javascript:/i,
+    /<script/i,
+    /eval\(/i,
+    /function\s*\(/i,
+  ];
+  
+  return !suspiciousPatterns.some(pattern => pattern.test(prompt));
+};

@@ -1,6 +1,11 @@
+
+/**
+ * Hook for managing debug responses from AI
+ */
+
 import { useState, useCallback } from 'react';
 
-interface DebugResponse {
+export interface DebugResponse {
   id: string;
   prompt: string;
   response: string;
@@ -12,12 +17,13 @@ export const useDebugResponses = () => {
 
   const addDebugResponse = useCallback((prompt: string, response: string) => {
     const debugResponse: DebugResponse = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       prompt,
-      response: response || 'No response received',
+      response,
       timestamp: new Date().toISOString(),
     };
-    setDebugResponses(prev => [debugResponse, ...prev]);
+
+    setDebugResponses(prev => [debugResponse, ...prev].slice(0, 50)); // Keep last 50 responses
   }, []);
 
   const clearDebugResponses = useCallback(() => {
