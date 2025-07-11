@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -12,16 +13,18 @@ interface PinnedDetailsProps {
   onUpdatePosition: (id: string, position: { x: number; y: number }) => void;
 }
 
+interface DragState {
+  isDragging: boolean;
+  pinId: string | null;
+  offset: { x: number; y: number };
+}
+
 const PinnedDetails: React.FC<PinnedDetailsProps> = ({
   pinnedDetails,
   onRemovePin,
   onUpdatePosition,
 }) => {
-  const [dragState, setDragState] = useState<{
-    isDragging: boolean;
-    pinId: string | null;
-    offset: { x: number; y: number };
-  }>({
+  const [dragState, setDragState] = useState<DragState>({
     isDragging: false,
     pinId: null,
     offset: { x: 0, y: 0 },
@@ -32,7 +35,7 @@ const PinnedDetails: React.FC<PinnedDetailsProps> = ({
     const pin = pinnedDetails.find(p => p.id === pinId);
     if (!pin) return;
 
-    const rect = e.currentTarget.getBoundingClientRect();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setDragState({
       isDragging: true,
       pinId,
@@ -69,7 +72,7 @@ const PinnedDetails: React.FC<PinnedDetailsProps> = ({
     });
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (dragState.isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
@@ -79,6 +82,10 @@ const PinnedDetails: React.FC<PinnedDetailsProps> = ({
       };
     }
   }, [dragState.isDragging, handleMouseMove, handleMouseUp]);
+
+  if (!pinnedDetails.length) {
+    return null;
+  }
 
   return (
     <>

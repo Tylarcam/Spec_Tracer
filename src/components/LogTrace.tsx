@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { usePinnedDetails } from '@/shared/hooks/usePinnedDetails';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
@@ -14,14 +14,18 @@ import TabbedTerminal from './LogTrace/TabbedTerminal';
 import PinnedDetails from './LogTrace/PinnedDetails';
 
 // Initialize Supabase for shared API
-initializeSupabase(supabase);
+try {
+  initializeSupabase(supabase);
+} catch (error) {
+  console.warn('Failed to initialize Supabase:', error);
+}
 
 const LogTrace: React.FC = () => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
   const [isHoverPaused, setIsHoverPaused] = useState(false);
   const [pausedPosition, setPausedPosition] = useState({ x: 0, y: 0 });
   const [pausedElement, setPausedElement] = useState<any>(null);
-  const interactivePanelRef = React.useRef<HTMLDivElement>(null);
+  const interactivePanelRef = useRef<HTMLDivElement>(null);
 
   const {
     isActive,
@@ -60,7 +64,7 @@ const LogTrace: React.FC = () => {
     clearDebugResponses,
   } = useDebugResponses();
 
-  const handleElementClick = () => {
+  const handleElementClick = useCallback(() => {
     if (!currentElement) return;
     
     setShowInteractivePanel(true);
@@ -78,9 +82,9 @@ const LogTrace: React.FC = () => {
         text: currentElement.text,
       },
     });
-  };
+  }, [currentElement, mousePosition, addPin, addEvent]);
 
-  const handleDebugFromPanel = () => {
+  const handleDebugFromPanel = useCallback(() => {
     setShowInteractivePanel(false);
     setShowDebugModal(true);
     
@@ -96,16 +100,16 @@ const LogTrace: React.FC = () => {
         },
       });
     }
-  };
+  }, [currentElement, mousePosition, addEvent, setShowDebugModal]);
 
-  const handleEscape = () => {
+  const handleEscape = useCallback(() => {
     setShowInteractivePanel(false);
     setShowDebugModal(false);
     setIsHoverPaused(false);
     clearAllPins();
-  };
+  }, [clearAllPins, setShowDebugModal]);
 
-  const handleAnalyzeWithAI = async (prompt: string) => {
+  const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
     try {
       const response = await analyzeWithAI(prompt);
       addDebugResponse(prompt, response || 'No response received');
@@ -115,9 +119,9 @@ const LogTrace: React.FC = () => {
       addDebugResponse(prompt, errorMessage);
       return null;
     }
-  };
+  }, [analyzeWithAI, addDebugResponse]);
 
-  const handleMouseMove = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive || isHoverPaused) return;
 
     const target = e.target as HTMLElement;
@@ -135,7 +139,7 @@ const LogTrace: React.FC = () => {
     }
   }, [isActive, isHoverPaused, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel]);
 
-  const handleClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive) return;
     
     const target = e.target as HTMLElement;
@@ -158,7 +162,7 @@ const LogTrace: React.FC = () => {
     }
   }, [isActive, currentElement, addEvent]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeElement = document.activeElement;
       if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
@@ -237,7 +241,8 @@ const LogTrace: React.FC = () => {
     isHoverPaused, 
     showTerminal, 
     setShowTerminal, 
-    setIsActive
+    setIsActive,
+    handleEscape
   ]);
 
   return (
