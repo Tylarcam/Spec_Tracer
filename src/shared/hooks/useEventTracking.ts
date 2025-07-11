@@ -11,9 +11,21 @@ export const useEventTracking = (maxEvents: number, autoSave: boolean) => {
   const [events, setEvents] = useState<LogEvent[]>([]);
 
   const addEvent = useCallback((event: Omit<LogEvent, 'id' | 'timestamp'>) => {
+    // Generate a secure UUID using crypto.randomUUID() or fallback
+    const generateId = (): string => {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      // Fallback for environments without crypto.randomUUID
+      // More secure than Math.random() and uses substring instead of deprecated substr
+      return 'id_' + Date.now().toString(36) + '_' + 
+        Math.random().toString(36).substring(2, 15) + 
+        Math.random().toString(36).substring(2, 15);
+    };
+
     const newEvent: LogEvent = {
       ...event,
-      id: Math.random().toString(36).substr(2, 9),
+      id: generateId(),
       timestamp: new Date().toISOString(),
     };
     

@@ -76,21 +76,42 @@ Output format: JSON with issues_detected, generated_prompt, suggested_fixes
       });
       if (!response.ok) throw new Error(`API error: ${response.statusText}`);
       const data = await response.json();
-      // Try to parse JSON from the response
+      
+      // Safely parse JSON from the response with comprehensive error handling
       let issues = null;
       let generated = '';
+      
       try {
+        // Validate API response structure
+        if (!data?.choices?.[0]?.message?.content) {
+          throw new Error('Invalid API response structure');
+        }
+        
         const content = data.choices[0].message.content;
         const jsonStart = content.indexOf('{');
         const jsonEnd = content.lastIndexOf('}');
+        
         if (jsonStart !== -1 && jsonEnd !== -1) {
-          issues = JSON.parse(content.slice(jsonStart, jsonEnd + 1));
-          generated = issues.generated_prompt || '';
+          const jsonString = content.slice(jsonStart, jsonEnd + 1);
+          try {
+            issues = JSON.parse(jsonString);
+            // Validate parsed object structure
+            if (typeof issues === 'object' && issues !== null) {
+              generated = issues.generated_prompt || content;
+            } else {
+              generated = content;
+            }
+          } catch (parseError) {
+            console.warn('Failed to parse JSON from AI response:', parseError);
+            generated = content;
+          }
         } else {
           generated = content;
         }
       } catch (err) {
-        generated = data.choices[0].message.content;
+        console.error('Error processing AI response:', err);
+        // Fallback to raw content if available
+        generated = data?.choices?.[0]?.message?.content || 'Error processing response';
       }
       setAnalysisResult(issues);
       setGeneratedPrompt(generated);
