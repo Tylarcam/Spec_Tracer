@@ -1,3 +1,4 @@
+
 import { useToast } from '@/hooks/use-toast';
 
 interface NotifyOptions {
@@ -10,7 +11,7 @@ export const useNotification = () => {
 
   return {
     success: ({ title, description }: NotifyOptions) =>
-      toast({ title, description, variant: 'success' }),
+      toast({ title, description }),
     error: ({ title, description }: NotifyOptions) =>
       toast({ title, description, variant: 'destructive' }),
     info: ({ title, description }: NotifyOptions) =>
