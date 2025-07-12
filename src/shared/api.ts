@@ -1,13 +1,7 @@
 
 import { sanitizeText, validatePrompt, debugRateLimiter } from '@/utils/sanitization';
 import { ElementInfo } from './types';
-
-// Supabase client - only available in main app context
-let supabaseClient: any = null;
-
-export const initializeSupabase = (client: any) => {
-  supabaseClient = client;
-};
+import { supabase } from '@/integrations/supabase/client';
 
 export const callAIDebugFunction = async (
   prompt: string,
@@ -22,13 +16,14 @@ export const callAIDebugFunction = async (
     throw new Error('Too many requests. Please wait before trying again.');
   }
 
-  // For now, return a mock response since Supabase integration needs proper setup
-  if (!supabaseClient) {
-    throw new Error('AI debugging requires API configuration. Please set up your OpenAI API key in the settings.');
+  // Check if user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Authentication required for AI debugging features. Please sign in to continue.');
   }
 
   try {
-    const { data, error } = await supabaseClient.functions.invoke('ai-debug', {
+    const { data, error } = await supabase.functions.invoke('ai-debug', {
       body: {
         prompt: sanitizeText(prompt, 2000),
         element: currentElement ? {
@@ -53,6 +48,9 @@ export const callAIDebugFunction = async (
     return data.response;
   } catch (error) {
     console.error('AI Debug API Error:', error);
+    if (error instanceof Error && error.message.includes('Authentication required')) {
+      throw error;
+    }
     throw new Error('AI debugging service is currently unavailable. Please try again later.');
   }
 };
