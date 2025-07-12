@@ -6,235 +6,102 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Max-Age': '86400',
-};
-
-// Security headers
-const securityHeaders = {
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'X-XSS-Protection': '1; mode=block',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: { ...corsHeaders, ...securityHeaders } });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Verify request method
-    if (req.method !== 'POST') {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Method not allowed' }),
-        { 
-          status: 405, 
-          headers: { 
-            'Content-Type': 'application/json', 
-            ...corsHeaders, 
-            ...securityHeaders 
-          } 
-        }
-      );
-    }
-
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    );
-
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      console.log('Authentication failed:', authError?.message);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Authentication required' }),
-        { 
-          status: 401, 
-          headers: { 
-            'Content-Type': 'application/json', 
-            ...corsHeaders, 
-            ...securityHeaders 
-          } 
-        }
-      );
-    }
-
-    const { prompt, element, position, userId, healthCheck } = await req.json();
-
-    // Handle health check requests
-    if (healthCheck) {
-      return new Response(
-        JSON.stringify({ success: true, status: 'healthy' }),
-        { 
-          headers: { 
-            'Content-Type': 'application/json', 
-            ...corsHeaders, 
-            ...securityHeaders 
-          } 
-        }
-      );
-    }
-
-    // Validate user ID matches authenticated user
-    if (userId !== user.id) {
-      console.log('User ID mismatch:', { provided: userId, authenticated: user.id });
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid user context' }),
-        { 
-          status: 403, 
-          headers: { 
-            'Content-Type': 'application/json', 
-            ...corsHeaders, 
-            ...securityHeaders 
-          } 
-        }
-      );
-    }
-
-    // Enhanced input validation
-    if (!prompt || typeof prompt !== 'string' || prompt.length > 2000) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid prompt' }),
-        { 
-          status: 400, 
-          headers: { 
-            'Content-Type': 'application/json', 
-            ...corsHeaders, 
-            ...securityHeaders 
-          } 
-        }
-      );
-    }
-
-    // Get OpenAI API key from Supabase secrets
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      console.error('OpenAI API key not found in environment');
-      return new Response(
-        JSON.stringify({ success: false, error: 'Service configuration error' }),
-        { 
-          status: 500, 
-          headers: { 
-            'Content-Type': 'application/json', 
-            ...corsHeaders, 
-            ...securityHeaders 
-          } 
-        }
-      );
-    }
-
-    // Build context for AI
-    let context = `You are LogTrace AI, a debugging assistant. User prompt: ${prompt}`;
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     
-    if (element) {
-      context += `\n\nElement context:
-- Tag: ${element.tag}
-- ID: ${element.id || 'none'}
-- Classes: ${element.classes?.join(', ') || 'none'}
-- Text: ${element.text || 'none'}`;
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
     }
 
-    if (position) {
-      context += `\n\nMouse position: x=${position.x}, y=${position.y}`;
+    const { prompt, element, position } = await req.json();
+
+    // Input validation and sanitization
+    if (!prompt || typeof prompt !== 'string' || prompt.length > 2000) {
+      throw new Error('Invalid prompt provided');
     }
 
-    // Call OpenAI API with enhanced error handling
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Sanitize the element data to prevent XSS
+    const sanitizedElement = element ? {
+      tag: String(element.tag || '').slice(0, 50),
+      id: String(element.id || '').slice(0, 100),
+      classes: Array.isArray(element.classes) ? element.classes.slice(0, 10).map(c => String(c).slice(0, 50)) : [],
+      text: String(element.text || '').slice(0, 200)
+    } : null;
+
+    const systemPrompt = `You are an expert web developer and debugger. Provide clear, actionable debugging advice. 
+Focus on common web development issues like CSS problems, JavaScript errors, accessibility issues, layout problems, and functionality bugs.
+Keep responses concise and practical.`;
+
+    const userPrompt = `${prompt}${sanitizedElement ? `\n\nElement Context:
+- Tag: ${sanitizedElement.tag}
+- ID: ${sanitizedElement.id}
+- Classes: ${sanitizedElement.classes.join(', ')}
+- Text: "${sanitizedElement.text}"
+- Position: x:${position?.x || 0}, y:${position?.y || 0}` : ''}`;
+
+    console.log('Making OpenAI API request for debugging assistance');
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [
-          {
-            role: 'system',
-            content: 'You are LogTrace AI, a helpful debugging assistant. Provide concise, actionable debugging advice. Keep responses under 500 characters.'
-          },
-          {
-            role: 'user',
-            content: context
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
-        max_tokens: 150,
+        max_tokens: 1000,
         temperature: 0.7,
-        user: user.id, // Include user ID for OpenAI's safety systems
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      console.error('OpenAI API error:', errorText);
-      return new Response(
-        JSON.stringify({ success: false, error: 'AI service temporarily unavailable' }),
-        { 
-          status: 503, 
-          headers: { 
-            'Content-Type': 'application/json', 
-            ...corsHeaders, 
-            ...securityHeaders 
-          } 
-        }
-      );
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', response.status, errorText);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
-    const aiData = await openaiResponse.json();
-    const aiResponse = aiData.choices?.[0]?.message?.content;
+    const data = await response.json();
+    const aiResponse = data.choices?.[0]?.message?.content;
 
     if (!aiResponse) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'No response from AI service' }),
-        { 
-          status: 500, 
-          headers: { 
-            'Content-Type': 'application/json', 
-            ...corsHeaders, 
-            ...securityHeaders 
-          } 
-        }
-      );
+      throw new Error('No response from AI');
     }
 
-    // Log successful request (without sensitive data)
-    console.log('AI debug request processed successfully', { 
-      userId: user.id, 
-      promptLength: prompt.length,
-      responseLength: aiResponse.length 
-    });
+    console.log('Successfully generated AI debugging response');
 
-    return new Response(
-      JSON.stringify({ success: true, response: aiResponse }),
-      { 
-        headers: { 
-          'Content-Type': 'application/json', 
-          ...corsHeaders, 
-          ...securityHeaders 
-        } 
-      }
-    );
+    return new Response(JSON.stringify({ 
+      response: aiResponse,
+      success: true 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
     console.error('Error in ai-debug function:', error);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error' }),
-      { 
-        status: 500, 
-        headers: { 
-          'Content-Type': 'application/json', 
-          ...corsHeaders, 
-          ...securityHeaders 
-        } 
-      }
-    );
+    
+    // Don't expose internal error details to client
+    const errorMessage = error.message.includes('OpenAI API') 
+      ? 'AI service temporarily unavailable' 
+      : 'An error occurred processing your request';
+
+    return new Response(JSON.stringify({ 
+      error: errorMessage,
+      success: false 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
