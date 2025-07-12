@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# OAuth configuration (contains sensitive data)
+.oauth-config.json
