@@ -9,6 +9,12 @@ let currentElement = null;
 let isHoverPaused = false;
 let mousePosition = { x: 0, y: 0 };
 let debugEvents = [];
+// Stores structured AI debug conversations (for the terminal)
+let debugResponses = [];
+
+// Terminal UI state
+let isTerminalVisible = false;
+let terminalActiveTab = 'events';
 
 // Initialize content script
 function initializeContentScript() {
@@ -180,15 +186,52 @@ function createInfoPanel() {
     display: none;
     overflow-y: auto;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
   `;
   
   panel.innerHTML = `
-    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; cursor: move;">
       <h3 style="margin: 0; color: #06b6d4; font-size: 16px;">🔍 Element Inspector</h3>
-      <button id="close-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 18px;">&times;</button>
+      <div style="display: flex; gap: 8px;">
+        <button id="pin-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px;" title="Pin panel">📌</button>
+        <button id="close-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 18px;" title="Close panel">&times;</button>
+      </div>
     </div>
-    <div id="element-info" style="margin-bottom: 12px;"></div>
-    <div class="actions" style="display: flex; gap: 8px; margin-top: 12px;">
+    
+    <!-- Basic Info Accordion Section -->
+    <div class="accordion-section">
+      <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid #334155;">
+        <h4 style="margin: 0; color: #06b6d4; font-size: 14px;">👁️ Basic Info</h4>
+        <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▼</span>
+      </div>
+      <div class="accordion-content" style="padding: 8px 0; display: block;">
+        <div id="element-info" style="margin-bottom: 12px;"></div>
+      </div>
+    </div>
+    
+    <!-- Computed Styles Accordion Section -->
+    <div class="accordion-section">
+      <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid #334155;">
+        <h4 style="margin: 0; color: #06b6d4; font-size: 14px;">🎨 Computed Styles</h4>
+        <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▲</span>
+      </div>
+      <div class="accordion-content" style="padding: 8px 0; display: none;">
+        <div id="computed-styles" style="margin-bottom: 12px; font-size: 12px;"></div>
+      </div>
+    </div>
+    
+    <!-- Attributes Accordion Section -->
+    <div class="accordion-section">
+      <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid #334155;">
+        <h4 style="margin: 0; color: #06b6d4; font-size: 14px;">🏷️ Attributes</h4>
+        <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▲</span>
+      </div>
+      <div class="accordion-content" style="padding: 8px 0; display: none;">
+        <div id="element-attributes" style="margin-bottom: 12px; font-size: 12px;"></div>
+      </div>
+    </div>
+    
+    <div class="actions" style="display: flex; gap: 8px; margin-top: 16px;">
       <button id="debug-element" style="
         flex: 1;
         background: #22c55e;
@@ -199,7 +242,7 @@ function createInfoPanel() {
         cursor: pointer;
         font-weight: 500;
         font-size: 12px;
-      ">Debug</button>
+      ">Debug with AI</button>
       <button id="copy-selector" style="
         flex: 1;
         background: #475569;
@@ -215,6 +258,62 @@ function createInfoPanel() {
   `;
   
   document.body.appendChild(panel);
+  
+  // Make panel draggable
+  let isPanelPinned = false;
+  let isDragging = false;
+  let offsetX, offsetY;
+  
+  const panelHeader = panel.querySelector('.panel-header');
+  
+  panelHeader.addEventListener('mousedown', (e) => {
+    if (isPanelPinned) return;
+    
+    isDragging = true;
+    offsetX = e.clientX - panel.getBoundingClientRect().left;
+    offsetY = e.clientY - panel.getBoundingClientRect().top;
+    
+    panel.style.cursor = 'grabbing';
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    
+    const x = e.clientX - offsetX;
+    const y = e.clientY - offsetY;
+    
+    panel.style.left = `${x}px`;
+    panel.style.top = `${y}px`;
+    panel.style.right = 'auto';
+  });
+  
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    panel.style.cursor = 'default';
+  });
+  
+  // Pin/unpin functionality
+  const pinButton = document.getElementById('pin-panel');
+  pinButton.addEventListener('click', () => {
+    isPanelPinned = !isPanelPinned;
+    pinButton.style.color = isPanelPinned ? '#22c55e' : '#64748b';
+    pinButton.title = isPanelPinned ? 'Unpin panel' : 'Pin panel';
+  });
+  
+  // Accordion functionality
+  const accordionSections = panel.querySelectorAll('.accordion-section');
+  accordionSections.forEach(section => {
+    const header = section.querySelector('.accordion-header');
+    const content = section.querySelector('.accordion-content');
+    const icon = section.querySelector('.accordion-icon');
+    
+    header.addEventListener('click', () => {
+      const isOpen = content.style.display === 'block';
+      content.style.display = isOpen ? 'none' : 'block';
+      icon.textContent = isOpen ? '▲' : '▼';
+      icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+    });
+  });
   
   // Add event listeners for panel
   document.getElementById('close-panel').addEventListener('click', () => {
@@ -272,7 +371,7 @@ function handleMouseOver(e) {
   if (element && !isLogTraceElement(element)) {
     highlightElement(element);
     currentElement = element;
-    updateInfoPanel(element);
+    // Don't update the info panel on hover, only on click
   }
 }
 
@@ -282,17 +381,38 @@ function handleClick(e) {
   
   // Prevent default if clicking on non-LogTrace elements
   if (!isLogTraceElement(e.target)) {
-  e.preventDefault();
-  e.stopPropagation();
-  
-  const element = e.target;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const element = e.target;
     highlightElement(element);
     currentElement = element;
     updateInfoPanel(element);
     
-    // Show info panel
+    // Show info panel near the clicked element
     const panel = document.getElementById('log-trace-info-panel');
     if (panel) {
+      const rect = element.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const panelWidth = 300; // Default panel width
+      
+      // Position panel to the right of the element if there's enough space,
+      // otherwise position to the left
+      let left = rect.right + 10;
+      if (left + panelWidth > viewportWidth - 20) {
+        left = Math.max(20, rect.left - panelWidth - 10);
+      }
+      
+      // Ensure panel is fully visible vertically
+      let top = rect.top;
+      if (top + 300 > viewportHeight - 20) { // Assuming a reasonable max height
+        top = Math.max(20, viewportHeight - 320);
+      }
+      
+      panel.style.left = `${left}px`;
+      panel.style.top = `${top}px`;
+      panel.style.right = 'auto';
       panel.style.display = 'block';
     }
     
@@ -303,9 +423,17 @@ function handleClick(e) {
 
 // Handle keyboard shortcuts
 function handleKeyDown(e) {
-  // Check if user is typing in an input field
+  // Ignore shortcuts while the user is typing or inside the terminal
   const activeElement = document.activeElement;
-  if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+  if (
+    activeElement &&
+    (
+      activeElement.tagName === 'INPUT' ||
+      activeElement.tagName === 'TEXTAREA' ||
+      activeElement.isContentEditable ||
+      activeElement.closest('#log-trace-terminal')
+    )
+  ) {
     return; // Don't intercept shortcuts when typing
   }
   
@@ -346,10 +474,10 @@ function handleKeyDown(e) {
       break;
       
     case 't':
-      // T: Toggle terminal (placeholder - Chrome extension doesn't have terminal)
+      // T: Toggle LogTrace Terminal
       if (!e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
-        showNotification('Terminal toggle - Feature available in main app');
+        toggleTerminal();
       }
       break;
       
@@ -533,11 +661,15 @@ function highlightElement(element) {
 // Update info panel
 function updateInfoPanel(element) {
   const infoDiv = document.getElementById('element-info');
-  if (!infoDiv) return;
+  const computedStylesDiv = document.getElementById('computed-styles');
+  const attributesDiv = document.getElementById('element-attributes');
+  
+  if (!infoDiv || !computedStylesDiv || !attributesDiv) return;
   
   const rect = element.getBoundingClientRect();
   const styles = window.getComputedStyle(element);
   
+  // Basic Info Section
   infoDiv.innerHTML = `
     <div style="margin-bottom: 8px;">
       <strong style="color: #06b6d4;">Tag:</strong> ${element.tagName.toLowerCase()}
@@ -552,6 +684,43 @@ function updateInfoPanel(element) {
     </div>
     ${element.textContent ? `<div style="margin-bottom: 8px;"><strong style="color: #06b6d4;">Text:</strong> ${element.textContent.substring(0, 50)}${element.textContent.length > 50 ? '...' : ''}</div>` : ''}
   `;
+  
+  // Computed Styles Section
+  const importantStyles = [
+    'display', 'position', 'width', 'height', 'margin', 'padding',
+    'color', 'background-color', 'font-size', 'font-family',
+    'z-index', 'opacity', 'visibility', 'overflow'
+  ];
+  
+  let stylesHTML = '';
+  importantStyles.forEach(prop => {
+    const value = styles.getPropertyValue(prop);
+    if (value) {
+      stylesHTML += `
+        <div style="margin-bottom: 4px; display: flex;">
+          <strong style="color: #06b6d4; min-width: 100px;">${prop}:</strong> 
+          <span style="color: #e2e8f0; word-break: break-all;">${value}</span>
+        </div>
+      `;
+    }
+  });
+  
+  computedStylesDiv.innerHTML = stylesHTML || '<em style="color: #64748b;">No computed styles available</em>';
+  
+  // Attributes Section
+  let attributesHTML = '';
+  for (const attr of element.attributes) {
+    if (attr.name !== 'style') { // Skip style attribute as it's usually too long
+      attributesHTML += `
+        <div style="margin-bottom: 4px; display: flex;">
+          <strong style="color: #06b6d4; min-width: 100px;">${attr.name}:</strong> 
+          <span style="color: #e2e8f0; word-break: break-all;">${attr.value.substring(0, 100)}${attr.value.length > 100 ? '...' : ''}</span>
+        </div>
+      `;
+    }
+  }
+  
+  attributesDiv.innerHTML = attributesHTML || '<em style="color: #64748b;">No attributes available</em>';
 }
 
 // Open debug modal with enhanced Debug Assistant
@@ -682,6 +851,12 @@ Provide specific, actionable debugging steps and potential solutions.`;
 
 // Enhanced AI analysis function
 async function analyzeElementWithAI(element, prompt) {
+  // Check if user is authenticated before proceeding
+  if (!checkUserAuthentication()) {
+    showSignInModal();
+    return;
+  }
+
   const quickBtn = document.getElementById('quick-debug-btn');
   const advancedBtn = document.getElementById('advanced-debug-btn');
   const resultDiv = document.getElementById('analysis-result');
@@ -731,8 +906,15 @@ async function analyzeElementWithAI(element, prompt) {
     // Display enhanced results
     displayEnhancedAnalysisResult(response, prompt);
     
-    // Log the debug event
+    // Log & store the debug conversation
     logEvent('ai_debug', element, { prompt, response: response.summary });
+    debugResponses.push({
+      id: Date.now().toString(),
+      prompt,
+      response: response.summary || response.analysis || 'Analysis completed',
+      timestamp: Date.now()
+    });
+    if (isTerminalVisible) renderTerminal(); // live-refresh
     
   } catch (error) {
     console.error('Analysis failed:', error);
@@ -1034,7 +1216,9 @@ function isLogTraceElement(element) {
     'log-trace-info-panel',
     'claude-debug-modal',
     'log-trace-toggle-button',
-    'log-trace-tooltip'
+    'log-trace-tooltip',
+    'log-trace-terminal',
+    'log-trace-signin-modal'
   ];
   
   return logTraceIds.includes(element.id) || 
@@ -1042,7 +1226,9 @@ function isLogTraceElement(element) {
          element.closest('#log-trace-info-panel') ||
          element.closest('#claude-debug-modal') ||
          element.closest('#log-trace-toggle-button') ||
-         element.closest('#log-trace-tooltip');
+         element.closest('#log-trace-tooltip') ||
+         element.closest('#log-trace-terminal') ||
+         element.closest('#log-trace-signin-modal');
 }
 
 function generateSelector(element) {
@@ -1073,6 +1259,9 @@ function logEvent(type, element, details = {}) {
   
   debugEvents.push(event);
   console.log('LogTrace Event:', event);
+
+  // Auto-refresh terminal if it's open
+  if (isTerminalVisible) renderTerminal();
 }
 
 function showNotification(message) {
@@ -1135,7 +1324,7 @@ style.textContent = `
     0% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(34, 197, 94, 0.7); }
     50% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 8px rgba(34, 197, 94, 0.2); }
     100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(34, 197, 94, 0); }
-  }
+  }<button id="quick-debug-btn" class="debug-btn primary">Debug</button>
   
   .log-trace-active {
     animation: logTracePulse 2s infinite;
@@ -1146,6 +1335,323 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
+/* ------------------------------------------------------------------ *
+ *      Sign-In Modal for Account Management                          *
+ * ------------------------------------------------------------------ */
+
+function createSignInModal() {
+  const modal = document.createElement('div');
+  modal.id = 'log-trace-signin-modal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10010;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border: 2px solid #22c55e;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 450px;
+      width: 90%;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+      position: relative;
+    ">
+      <button id="signin-close-btn" style="
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: none;
+        border: none;
+        color: #64748b;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: all 0.2s;
+      ">&times;</button>
+      
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="
+          width: 64px;
+          height: 64px;
+          background: linear-gradient(45deg, #22c55e, #06b6d4);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 16px;
+          font-size: 28px;
+        ">🔍</div>
+        <h2 style="
+          color: #22c55e;
+          margin: 0 0 8px;
+          font-size: 24px;
+          font-weight: 600;
+        ">LogTrace AI Debugging</h2>
+        <p style="
+          color: #94a3b8;
+          margin: 0;
+          font-size: 16px;
+        ">Sign up to unlock AI-powered element debugging</p>
+      </div>
+
+      <div style="margin-bottom: 24px;">
+        <div style="
+          background: rgba(34, 197, 94, 0.1);
+          border: 1px solid rgba(34, 197, 94, 0.3);
+          border-radius: 8px;
+          padding: 16px;
+          margin-bottom: 16px;
+        ">
+          <h3 style="
+            color: #22c55e;
+            margin: 0 0 8px;
+            font-size: 16px;
+            font-weight: 600;
+          ">✨ What you'll get:</h3>
+          <ul style="
+            color: #e2e8f0;
+            margin: 0;
+            padding-left: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+          ">
+            <li>AI-powered element analysis</li>
+            <li>CSS debugging suggestions</li>
+            <li>JavaScript error detection</li>
+            <li>Accessibility recommendations</li>
+            <li>Performance optimization tips</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+        <button id="signin-signup-btn" style="
+          flex: 1;
+          background: linear-gradient(45deg, #22c55e, #16a34a);
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        ">Sign Up Free</button>
+        <button id="signin-login-btn" style="
+          flex: 1;
+          background: transparent;
+          color: #06b6d4;
+          border: 2px solid #06b6d4;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        ">Log In</button>
+      </div>
+
+      <div style="text-align: center;">
+        <p style="
+          color: #64748b;
+          margin: 0;
+          font-size: 12px;
+        ">Free account • No credit card required • Start debugging instantly</p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Event listeners
+  modal.querySelector('#signin-close-btn').addEventListener('click', () => {
+    modal.remove();
+  });
+
+  modal.querySelector('#signin-signup-btn').addEventListener('click', () => {
+    // Open sign-up page in new tab
+    window.open('https://your-app-domain.com/signup', '_blank');
+    modal.remove();
+  });
+
+  modal.querySelector('#signin-login-btn').addEventListener('click', () => {
+    // Open login page in new tab
+    window.open('https://your-app-domain.com/login', '_blank');
+    modal.remove();
+  });
+
+  // Close on backdrop click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+
+  // Close on Escape key
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      modal.remove();
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
+
+  // Add hover effects
+  const signupBtn = modal.querySelector('#signin-signup-btn');
+  const loginBtn = modal.querySelector('#signin-login-btn');
+  const closeBtn = modal.querySelector('#signin-close-btn');
+
+  signupBtn.addEventListener('mouseenter', () => {
+    signupBtn.style.transform = 'translateY(-2px)';
+    signupBtn.style.boxShadow = '0 8px 25px rgba(34, 197, 94, 0.3)';
+  });
+  signupBtn.addEventListener('mouseleave', () => {
+    signupBtn.style.transform = 'translateY(0)';
+    signupBtn.style.boxShadow = 'none';
+  });
+
+  loginBtn.addEventListener('mouseenter', () => {
+    loginBtn.style.background = 'rgba(6, 182, 212, 0.1)';
+    loginBtn.style.transform = 'translateY(-2px)';
+  });
+  loginBtn.addEventListener('mouseleave', () => {
+    loginBtn.style.background = 'transparent';
+    loginBtn.style.transform = 'translateY(0)';
+  });
+
+  closeBtn.addEventListener('mouseenter', () => {
+    closeBtn.style.background = 'rgba(239, 68, 68, 0.1)';
+    closeBtn.style.color = '#ef4444';
+  });
+  closeBtn.addEventListener('mouseleave', () => {
+    closeBtn.style.background = 'none';
+    closeBtn.style.color = '#64748b';
+  });
+}
+
+function showSignInModal() {
+  // Remove existing modal if present
+  const existing = document.getElementById('log-trace-signin-modal');
+  if (existing) {
+    existing.remove();
+  }
+  
+  createSignInModal();
+}
+
+function checkUserAuthentication() {
+  // Check if user has API key or is authenticated
+  // This is a simplified check - in production you'd check with your backend
+  const hasApiKey = apiKey && apiKey.trim() !== '';
+  const hasStoredAuth = localStorage.getItem('logtrace-auth-token');
+  
+  return hasApiKey || hasStoredAuth;
+}
+
+/* ------------------------------------------------------------------ *
+ *      LogTrace Terminal (events + AI debug)                         *
+ * ------------------------------------------------------------------ */
+
+function toggleTerminal() {
+  const existing = document.getElementById('log-trace-terminal');
+  if (existing) {
+    isTerminalVisible = existing.style.display === 'none';
+    existing.style.display = isTerminalVisible ? 'block' : 'none';
+    if (isTerminalVisible) renderTerminal();
+    return;
+  }
+  createTerminalModal();
+  isTerminalVisible = true;
+  renderTerminal();
+}
+
+function createTerminalModal() {
+  const term = document.createElement('div');
+  term.id = 'log-trace-terminal';
+  term.style.cssText = `
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    max-height: 50vh;
+    background: rgba(15,23,42,0.95);
+    color: #e2e8f0;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    border-top: 2px solid #22c55e;
+    z-index: 10005;
+    display: none;
+  `;
+
+  term.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:#0f172a;">
+      <span style="color:#22c55e;font-weight:600;">LogTrace Terminal</span>
+      <button id="terminal-close-btn" style="background:none;border:none;color:#e2e8f0;font-size:20px;cursor:pointer;">&times;</button>
+    </div>
+    <div style="display:flex;border-bottom:1px solid #334155;">
+      <div id="terminal-tab-events" class="terminal-tab terminal-tab-active" style="padding:6px 12px;cursor:pointer;">Events</div>
+      <div id="terminal-tab-debug"  class="terminal-tab"              style="padding:6px 12px;cursor:pointer;">AI&nbsp;Debug</div>
+    </div>
+    <div id="terminal-content" style="padding:8px 12px;font-size:12px;overflow-y:auto;max-height:40vh;"></div>
+  `;
+
+  document.body.appendChild(term);
+
+  term.querySelector('#terminal-close-btn').addEventListener('click', () => toggleTerminal());
+  term.querySelector('#terminal-tab-events').addEventListener('click', () => { terminalActiveTab = 'events'; switchTab(); });
+  term.querySelector('#terminal-tab-debug').addEventListener('click', () => { terminalActiveTab = 'debug';  switchTab(); });
+
+  function switchTab() {
+    term.querySelectorAll('.terminal-tab').forEach(t => t.classList.remove('terminal-tab-active'));
+    term.querySelector('#terminal-tab-' + terminalActiveTab).classList.add('terminal-tab-active');
+    renderTerminal();
+  }
+}
+
+function renderTerminal() {
+  const container = document.getElementById('terminal-content');
+  if (!container) return;
+
+  if (terminalActiveTab === 'events') {
+    const clicks = debugEvents.filter(e => e.type === 'click');
+    container.innerHTML = clicks.length === 0
+      ? '<em>No click events yet…</em>'
+      : clicks.map(ev => {
+          const t = new Date(ev.timestamp).toLocaleTimeString();
+          const el = ev.element;
+          return `[${t}] CLICK ${el.tag}${el.id ? '#' + el.id : ''}${el.classes ? '.' + el.classes.replace(/\s+/g,'.') : ''}`;
+        }).join('<br>');
+  } else {
+    container.innerHTML = debugResponses.length === 0
+      ? '<em>No AI debug responses yet…</em>'
+      : debugResponses.map(r => {
+          const t = new Date(r.timestamp).toLocaleTimeString();
+          return `<div style="margin-bottom:8px;">
+                    <span style="color:#a78bfa;">[${t}] Prompt:</span><br>
+                    ${r.prompt}<br>
+                    <span style="color:#22c55e;">Response:</span><br>
+                    ${r.response}
+                  </div>`;
+        }).join('');
+  }
+}
+
+// Basic styles for the active tab
+const termStyle = document.createElement('style');
+termStyle.textContent = `
+  .terminal-tab-active {
+    background:#073b4c;
+    color:#22c55e !important;
+  }
+`;
+document.head.appendChild(termStyle);
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
