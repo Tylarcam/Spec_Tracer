@@ -59,7 +59,7 @@ const Landing: React.FC = () => {
             Stop Describing Bugs. Start Showing Them.
           </h1>
           <p className="text-xl md:text-2xl text-slate-300 mb-8 leading-relaxed">
-            LogTrace captures perfect context for every bug and feature request. Save hours on back-and-forth and get straight to solutions.
+            LogTracer captures pixel-perfect UI context so you get precise, actionable fixes—no more writing essays or pasting screenshots. Instantly show what’s broken, not just what you think is broken.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
@@ -98,10 +98,10 @@ const Landing: React.FC = () => {
                 </div>
               </div>
               <CardTitle className="text-3xl md:text-4xl text-green-400 mb-4">
-                Perfect Context. Perfect Solutions.
+                The Context Engine for Modern Developers
               </CardTitle>
               <CardDescription className="text-xl text-slate-300 max-w-3xl mx-auto">
-                Capture every detail - styles, states, and interactions - exactly as they appear. No more guessing, no more back-and-forth.
+                LogTrace bridges the gap between your workflow and the tools that help you build, debug, and learn faster. One-click context capture for agentic developers and learning builders.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-8">
