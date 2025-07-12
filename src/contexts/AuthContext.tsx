@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { validateEmail, validatePassword, secureLog } from '@/utils/sanitization';
 
 interface AuthContextType {
   user: User | null;
@@ -37,6 +38,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Log auth events securely
+        secureLog(`Auth event: ${event}`, { 
+          userId: session?.user?.id,
+          hasSession: !!session 
+        });
       }
     );
 
@@ -51,10 +58,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    // Enhanced input validation
+    if (!validateEmail(email)) {
+      const error = new Error('Please enter a valid email address');
+      toast({
+        title: 'Sign Up Error',
+        description: error.message,
+        variant: 'destructive'
+      });
+      return { error };
+    }
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      const error = new Error(passwordValidation.errors[0]);
+      toast({
+        title: 'Sign Up Error',
+        description: error.message,
+        variant: 'destructive'
+      });
+      return { error };
+    }
+
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
-      email,
+      email: email.toLowerCase().trim(),
       password,
       options: {
         emailRedirectTo: redirectUrl
@@ -62,12 +91,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (error) {
+      secureLog('Sign up error', { error: error.message }, 'error');
       toast({
         title: 'Sign Up Error',
         description: error.message,
         variant: 'destructive'
       });
     } else {
+      secureLog('Sign up successful', { email });
       toast({
         title: 'Check your email',
         description: 'We sent you a confirmation link to complete your registration.'
@@ -78,17 +109,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) {
+    // Enhanced input validation
+    if (!validateEmail(email)) {
+      const error = new Error('Please enter a valid email address');
       toast({
         title: 'Sign In Error',
         description: error.message,
         variant: 'destructive'
       });
+      return { error };
+    }
+
+    if (!password || password.length < 1) {
+      const error = new Error('Password is required');
+      toast({
+        title: 'Sign In Error',
+        description: error.message,
+        variant: 'destructive'
+      });
+      return { error };
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase().trim(),
+      password
+    });
+
+    if (error) {
+      secureLog('Sign in error', { error: error.message, email }, 'error');
+      toast({
+        title: 'Sign In Error',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } else {
+      secureLog('Sign in successful', { email });
     }
 
     return { error };
@@ -103,6 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (error) {
+      secureLog('GitHub sign in error', { error: error.message }, 'error');
       toast({
         title: 'GitHub Sign In Error',
         description: error.message,
@@ -117,11 +173,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { error } = await supabase.auth.signOut();
     
     if (error) {
+      secureLog('Sign out error', { error: error.message }, 'error');
       toast({
         title: 'Sign Out Error',
         description: error.message,
         variant: 'destructive'
       });
+    } else {
+      secureLog('Sign out successful');
     }
 
     return { error };
