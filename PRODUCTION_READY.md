@@ -21,7 +21,7 @@ Your LogTrace Chrome extension debug tool is now **production ready** with GitHu
 - **Code Splitting**: React.lazy with Suspense for optimal loading
 - **Build Optimization**: Vite configured with minification, PWA, caching
 - **Monitoring**: Sentry integration for error tracking
-- **CI/CD**: GitHub Actions workflow for automated builds and deployments
+- **CI/CD**: Automated builds with GitHub Actions
 
 ### GitHub OAuth Setup
 - **Authentication Flow**: Complete Auth.tsx with GitHub OAuth
@@ -40,27 +40,19 @@ This script will guide you through the entire OAuth setup process.
 ### Option 2: Manual Setup
 Follow the comprehensive guide: [GITHUB_OAUTH_SETUP.md](./GITHUB_OAUTH_SETUP.md)
 
-## 🚀 Deployment Options
+## 🚀 Deployment with Lovable
 
-### Vercel (Recommended)
-```bash
-# Install Vercel CLI
-npm i -g vercel
+### Simple Deployment (Recommended)
+1. Open [Lovable Project](https://lovable.dev/projects/d405c486-a135-4ddf-8584-dee8c4a1d3ac)
+2. Click on "Share" → "Publish"
+3. Your app will be automatically deployed with optimized settings
 
-# Deploy to production
-vercel --prod
+### Environment Variables
+Ensure these are configured in your Lovable project:
 ```
-
-### Netlify
-1. Connect your GitHub repo to Netlify
-2. Set build command: `npm run build`
-3. Set publish directory: `dist`
-4. Add environment variables
-
-### GitHub Pages
-1. Enable GitHub Pages in repository settings
-2. Choose GitHub Actions as source
-3. Push changes to trigger deployment
+VITE_SUPABASE_URL=https://kepmuysqytngtqterosr.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlcG11eXNxeXRuZ3RxdGVyb3NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4MTk2NzQsImV4cCI6MjA2NzM5NTY3NH0.zlIhuBHikJjtK0Y1A31Bp7NIvP_j7E4OILRzz-7bJvA
+```
 
 ## 🔐 Critical Configuration
 
@@ -68,14 +60,7 @@ vercel --prod
 - **Homepage URL**: `https://kepmuysqytngtqterosr.supabase.co`
 - **Callback URL**: `https://kepmuysqytngtqterosr.supabase.co/auth/v1/callback`
 
-### 2. Required Secrets
-Add to GitHub repository secrets:
-```
-VITE_SUPABASE_URL=https://kepmuysqytngtqterosr.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlcG11eXNxeXRuZ3RxdGVyb3NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4MTk2NzQsImV4cCI6MjA2NzM5NTY3NH0.zlIhuBHikJjtK0Y1A31Bp7NIvP_j7E4OILRzz-7bJvA
-```
-
-### 3. Supabase Configuration
+### 2. Supabase Configuration
 1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
 2. Select project: `kepmuysqytngtqterosr`
 3. Enable GitHub provider in Authentication → Providers
@@ -112,18 +97,17 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 - ✅ Error tracking with Sentry
 - ✅ PWA capabilities
 - ✅ Optimized builds
-- ✅ Automated deployments
+- ✅ Automated deployments via Lovable
 
 ## 🎯 Immediate Next Steps
 
-1. **Deploy OAuth Setup**
-   ```bash
-   npm run setup:oauth
-   ```
+1. **Deploy via Lovable**
+   - Open your Lovable project
+   - Click "Share" → "Publish"
+   - Test the deployed application
 
 2. **Test Authentication**
-   - Deploy to your chosen platform
-   - Navigate to `/auth`
+   - Navigate to `/auth` on your deployed app
    - Test GitHub OAuth flow
    - Verify user persistence
 
@@ -164,15 +148,13 @@ Track these KPIs after deployment:
 ### Resources
 - [Supabase Auth Docs](https://supabase.com/docs/guides/auth)
 - [GitHub OAuth Docs](https://docs.github.com/en/developers/apps/building-oauth-apps)
-- [Vite Production Guide](https://vitejs.dev/guide/build.html)
+- [Lovable Deployment Guide](https://lovable.dev/docs/deployment)
 
 ---
 
 ## 🎉 Congratulations!
 
-Your LogTrace application is production-ready with enterprise-grade authentication, monitoring, and deployment automation. Run the setup script and deploy to start helping developers debug more effectively!
+Your LogTrace application is production-ready with enterprise-grade authentication, monitoring, and deployment automation. Deploy via Lovable to start helping developers debug more effectively!
 
 **Ready to launch?** 
-```bash
-npm run setup:oauth
-``` 
+Open [Lovable](https://lovable.dev/projects/d405c486-a135-4ddf-8584-dee8c4a1d3ac) and click "Share" → "Publish" 

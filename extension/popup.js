@@ -39,13 +39,13 @@ class LogTracePopup {
     const root = document.getElementById('popup-root');
     root.innerHTML = `
       <div class="header">
-        <h1>🔍 Trace Sight</h1>
-        <p>Debug View Extension</p>
+        <h1>🔍 LogTrace</h1>
+        <p>Capture Perfect Context</p>
       </div>
       
       <div class="controls">
         <div class="switch-container">
-          <span class="switch-label">Enable LogTrace</span>
+          <span class="switch-label">Enable Context Capture</span>
           <label class="switch">
             <input type="checkbox" id="activeToggle" ${this.isActive ? 'checked' : ''}>
             <span class="slider"></span>
@@ -70,19 +70,17 @@ class LogTracePopup {
       </div>
       
       <div class="instructions">
-        <h3>📖 How to Use</h3>
+        <h3>📖 Quick Start Guide</h3>
         <ol>
-          <li>Enter your OpenAI API key above</li>
-          <li>Toggle "Enable LogTrace" to activate</li>
+          <li>Toggle "Enable Context Capture" to activate</li>
           <li>Navigate to any webpage</li>
           <li>Use keyboard shortcuts:
             <ul>
-              <li><strong>D</strong> - Pause/Resume hover details</li>
-              <li><strong>Ctrl+D</strong> - Quick debug selected element</li>
-              <li><strong>Esc</strong> - Exit debug mode</li>
+              <li><strong>D</strong> - Pause/Resume context details</li>
+              <li><strong>Ctrl+D</strong> - Quick analyze selected element</li>
+              <li><strong>Esc</strong> - Exit capture mode</li>
             </ul>
           </li>
-          <li>Click elements to inspect and debug</li>
         </ol>
       </div>
     `;

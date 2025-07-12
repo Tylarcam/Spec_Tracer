@@ -61,7 +61,7 @@ const Auth: React.FC = () => {
           <CardHeader className="text-center">
             <CardTitle className="text-2xl text-green-400">Welcome to LogTrace</CardTitle>
             <CardDescription className="text-slate-300">
-              Sign in to access advanced debugging features
+              Sign in to unlock advanced context capture and sharing
             </CardDescription>
           </CardHeader>
           <CardContent>

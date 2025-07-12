@@ -56,11 +56,10 @@ const Landing: React.FC = () => {
       <section className="container mx-auto px-6 py-20 text-center">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
-            Debug Like a Pro
+            Stop Describing Bugs. Start Showing Them.
           </h1>
           <p className="text-xl md:text-2xl text-slate-300 mb-8 leading-relaxed">
-            LogTrace revolutionizes web debugging with real-time mouse cursor tracking, 
-            element inspection, and AI-powered analysis. See exactly what your users see.
+            LogTrace captures perfect context for every bug and feature request. Save hours on back-and-forth and get straight to solutions.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
@@ -99,12 +98,10 @@ const Landing: React.FC = () => {
                 </div>
               </div>
               <CardTitle className="text-3xl md:text-4xl text-green-400 mb-4">
-                The LogTrace Halo™
+                Perfect Context. Perfect Solutions.
               </CardTitle>
               <CardDescription className="text-xl text-slate-300 max-w-3xl mx-auto">
-                Our revolutionary cursor tracking system creates a visual halo around your mouse, 
-                showing real-time element information, debug data, and interaction history. 
-                It's like having X-ray vision for web development.
+                Capture every detail - styles, states, and interactions - exactly as they appear. No more guessing, no more back-and-forth.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-8">
@@ -157,7 +154,7 @@ const Landing: React.FC = () => {
       <section className="container mx-auto px-6 py-16">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-green-400 mb-12">
-            How LogTrace Works
+            How Context Engineering Works
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="space-y-4">

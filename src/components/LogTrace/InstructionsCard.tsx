@@ -10,7 +10,7 @@ const InstructionsCard: React.FC = () => {
       <div className="p-6">
         <div className="flex items-center gap-2 mb-4">
           <Zap className="w-5 h-5 text-cyan-400" />
-          <h2 className="text-xl font-bold text-cyan-400">How to Use LogTrace</h2>
+          <h2 className="text-xl font-bold text-cyan-400">Capture Context Like a Pro</h2>
         </div>
         
         <div className="grid md:grid-cols-2 gap-6">
@@ -18,20 +18,20 @@ const InstructionsCard: React.FC = () => {
           <div>
             <h3 className="text-green-400 font-semibold mb-3 flex items-center gap-2">
               <MousePointer className="w-4 h-4" />
-              Getting Started
+              Quick Start
             </h3>
             <div className="space-y-2 text-sm text-green-300">
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">S</Badge>
-                <span>Start tracing mode</span>
+                <span>Start context capture</span>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-red-500/30 text-red-400 text-xs">E</Badge>
-                <span>End tracing mode</span>
+                <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">D</Badge>
+                <span>Pin element details</span>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-cyan-500/30 text-cyan-400 text-xs">Click</Badge>
-                <span>Inspect element details</span>
+                <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">Esc</Badge>
+                <span>Exit capture mode</span>
               </div>
             </div>
           </div>
