@@ -47,7 +47,13 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
 
   // Use showTerminal prop if provided, otherwise use isVisible
   const terminalVisible = showTerminal !== undefined ? showTerminal : isVisible;
-  const handleToggle = setShowTerminal || onToggle;
+  const handleToggle = () => {
+    if (setShowTerminal) {
+      setShowTerminal(!terminalVisible);
+    } else {
+      onToggle();
+    }
+  };
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {

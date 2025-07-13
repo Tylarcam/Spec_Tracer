@@ -376,7 +376,7 @@ const LogTrace: React.FC = () => {
       <SettingsDrawer 
         isOpen={showSettingsDrawer}
         onClose={() => setShowSettingsDrawer(false)}
-        onUpgrade={handleUpgradeClick}
+        onUpgradeClick={handleUpgradeClick}
       />
 
       {/* Onboarding Walkthrough */}
@@ -386,6 +386,11 @@ const LogTrace: React.FC = () => {
           onNext={handleOnboardingNext}
           onSkip={handleOnboardingSkip}
           onComplete={handleOnboardingComplete}
+          isActive={isActive}
+          currentElement={currentElement}
+          mousePosition={mousePosition}
+          showInteractivePanel={showInteractivePanel}
+          showTerminal={showTerminal}
         />
       )}
 

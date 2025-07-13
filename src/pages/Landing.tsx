@@ -1,20 +1,19 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Chrome, Code, Zap, Target, Monitor, Sparkles, Smartphone } from 'lucide-react';
+import { ArrowRight, Chrome, Code, Zap, Target, Sparkles, Play, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Landing = () => {
-  const [isMobile, setIsMobile] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
     };
     
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Check if Chrome extension is already installed
@@ -24,7 +23,7 @@ const Landing = () => {
     return false;
   };
 
-  const handleGetStarted = () => {
+  const handleGetExtension = () => {
     if (isExtensionInstalled()) {
       // Extension is installed, go to demo
       window.location.href = '/debug';
@@ -37,199 +36,242 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      {/* Hero Section */}
-      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20">
-        <div className="text-center max-w-4xl mx-auto">
-          <div className="flex justify-center mb-6">
-            <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-3 sm:p-4 rounded-2xl">
-              <Target className="h-8 w-8 sm:h-12 sm:w-12 text-white" />
+      {/* Fixed Header */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled ? 'bg-slate-900/95 backdrop-blur-sm border-b border-green-500/30' : ''
+      }`}>
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-2 rounded-lg">
+              <Target className="h-6 w-6 text-white" />
             </div>
+            <span className="text-xl font-bold">LogTrace</span>
           </div>
           
-          <h1 className="text-4xl sm:text-6xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
-            LogTrace
-          </h1>
-          
-          <p className="text-lg sm:text-xl text-slate-300 mb-8 leading-relaxed px-4 sm:px-0">
-            The AI-powered Chrome extension that transforms web debugging. 
-            {isMobile ? 'Tap' : 'Hover'}, click, and get instant AI insights on any element.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8 sm:mb-12 px-4 sm:px-0">
+          <Button
+            onClick={handleGetExtension}
+            className="bg-green-500 hover:bg-green-600 text-black font-semibold px-4 py-2"
+          >
+            <Chrome className="h-4 w-4 mr-2" />
+            Get Extension
+          </Button>
+        </div>
+      </header>
+
+      {/* Hero Section - Above the fold */}
+      <section className="pt-24 pb-12 px-4">
+        <div className="container mx-auto text-center max-w-5xl">
+          {/* 5-second value prop */}
+          <div className="mb-8">
+            <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2 mb-6">
+              <Chrome className="h-4 w-4 text-green-400" />
+              <span className="text-green-400 text-sm font-medium">Chrome Extension</span>
+            </div>
+            
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              Stop Writing Essays to ChatGPT
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+              LogTrace captures pixel-perfect UI context so AI tools give you pixel-perfect fixes. 
+              <span className="text-green-400 font-semibold"> Hover, click, get instant AI insights.</span>
+            </p>
+          </div>
+
+          {/* Two CTAs: Primary + Secondary */}
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
             <Button
-              onClick={handleGetStarted}
-              className="bg-green-500 hover:bg-green-600 text-black font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg h-auto"
+              onClick={handleGetExtension}
+              size="lg"
+              className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto"
             >
-              <Chrome className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-              {isMobile ? 'Get Extension' : 'Install Chrome Extension'}
-              <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 ml-2" />
+              <Chrome className="h-5 w-5 mr-2" />
+              Install Chrome Extension
+              <ArrowRight className="h-5 w-5 ml-2" />
             </Button>
             
             <Link to="/debug">
               <Button
                 variant="outline"
-                className="w-full sm:w-auto border-green-400 text-green-400 hover:bg-green-400 hover:text-black px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg h-auto"
+                size="lg"
+                className="border-green-400 text-green-400 hover:bg-green-400 hover:text-black px-8 py-4 text-lg h-auto w-full sm:w-auto"
               >
-                {isMobile ? 'Try Demo' : 'Try Web Demo'}
+                <Play className="h-5 w-5 mr-2" />
+                Watch Demo
               </Button>
             </Link>
           </div>
           
-          <div className="text-sm text-slate-400">
-            Free to install • 3 AI debugs included • No signup required
+          <div className="text-sm text-slate-400 flex items-center justify-center gap-4">
+            <span>✓ Free to install</span>
+            <span>✓ Works on any website</span>
+            <span>✓ 3 AI debugs included</span>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Interactive Demo Preview */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="bg-slate-800/50 border border-green-500/20 rounded-2xl p-8 text-center">
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Eye className="h-5 w-5 text-green-400" />
+              <span className="text-green-400 font-medium">See It In Action</span>
+            </div>
+            
+            <h2 className="text-3xl font-bold mb-4">
+              From Bug Description to AI Solution in Seconds
+            </h2>
+            
+            <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
+              Instead of writing long descriptions of what's broken, LogTrace captures the exact context 
+              your AI assistant needs to provide perfect solutions.
+            </p>
+            
+            <Link to="/debug">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4"
+              >
+                Try Interactive Demo
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* Features Section */}
-      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20">
-        <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Why LogTrace?</h2>
-          <p className="text-lg sm:text-xl text-slate-300">
-            Debug smarter, not harder with AI-powered insights
-          </p>
-        </div>
-        
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
-          <div className="bg-slate-800/50 p-6 sm:p-8 rounded-xl border border-slate-700">
-            <div className="bg-green-500/20 p-3 rounded-lg w-fit mb-4">
-              <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" />
-            </div>
-            <h3 className="text-lg sm:text-xl font-semibold mb-3">Instant AI Analysis</h3>
-            <p className="text-slate-300 text-sm sm:text-base">
-              Get immediate insights on any element with GPT-4o Mini. 
-              No more guessing what's wrong.
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Why Developers Love LogTrace</h2>
+            <p className="text-xl text-slate-300">
+              The missing link between you and AI-powered debugging
             </p>
           </div>
           
-          <div className="bg-slate-800/50 p-6 sm:p-8 rounded-xl border border-slate-700">
-            <div className="bg-cyan-500/20 p-3 rounded-lg w-fit mb-4">
-              <Code className="h-5 w-5 sm:h-6 sm:w-6 text-cyan-400" />
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-slate-800/50 p-8 rounded-xl border border-slate-700 text-center">
+              <div className="bg-green-500/20 p-4 rounded-lg w-fit mx-auto mb-6">
+                <Zap className="h-8 w-8 text-green-400" />
+              </div>
+              <h3 className="text-xl font-semibold mb-4">Context Engineering</h3>
+              <p className="text-slate-300">
+                Stop describing bugs. Start showing them. One-click context capture 
+                that AI understands perfectly.
+              </p>
             </div>
-            <h3 className="text-lg sm:text-xl font-semibold mb-3">Real-time Inspection</h3>
-            <p className="text-slate-300 text-sm sm:text-base">
-              {isMobile ? 'Tap' : 'Hover over'} any element to see live CSS properties, 
-              dimensions, and computed styles instantly.
-            </p>
-          </div>
-          
-          <div className="bg-slate-800/50 p-6 sm:p-8 rounded-xl border border-slate-700 sm:col-span-2 lg:col-span-1">
-            <div className="bg-purple-500/20 p-3 rounded-lg w-fit mb-4">
-              <Monitor className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />
+            
+            <div className="bg-slate-800/50 p-8 rounded-xl border border-slate-700 text-center">
+              <div className="bg-cyan-500/20 p-4 rounded-lg w-fit mx-auto mb-6">
+                <Code className="h-8 w-8 text-cyan-400" />
+              </div>
+              <h3 className="text-xl font-semibold mb-4">Works Everywhere</h3>
+              <p className="text-slate-300">
+                Install once, debug everywhere. Works on any website, 
+                integrates with your existing AI workflow.
+              </p>
             </div>
-            <h3 className="text-lg sm:text-xl font-semibold mb-3">Debug Terminal</h3>
-            <p className="text-slate-300 text-sm sm:text-base">
-              Track your debugging session with a built-in terminal 
-              that logs all interactions and AI responses.
-            </p>
+            
+            <div className="bg-slate-800/50 p-8 rounded-xl border border-slate-700 text-center">
+              <div className="bg-purple-500/20 p-4 rounded-lg w-fit mx-auto mb-6">
+                <Target className="h-8 w-8 text-purple-400" />
+              </div>
+              <h3 className="text-xl font-semibold mb-4">Instant Insights</h3>
+              <p className="text-slate-300">
+                Get immediate AI-powered debugging suggestions. 
+                No more guessing what's wrong.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* How It Works */}
-      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20">
-        <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">How It Works</h2>
-          <p className="text-lg sm:text-xl text-slate-300">
-            Three simple steps to smarter debugging
-          </p>
-        </div>
-        
-        <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8">
-            <div className="bg-gradient-to-r from-green-500 to-cyan-500 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center font-bold text-base sm:text-lg flex-shrink-0">
-              1
-            </div>
-            <div>
-              <h3 className="text-xl sm:text-2xl font-semibold mb-2">Install & Activate</h3>
-              <p className="text-slate-300 text-base sm:text-lg">
-                Install the Chrome extension and press 'S' on any webpage to start tracing.
-                {isMobile && ' Or use the web demo on mobile devices.'}
-              </p>
-            </div>
+      <section className="py-16 px-4 bg-slate-800/20">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Three Steps to Smarter Debugging</h2>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8">
-            <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center font-bold text-base sm:text-lg flex-shrink-0">
-              2
+          <div className="space-y-12">
+            <div className="flex items-start gap-8">
+              <div className="bg-gradient-to-r from-green-500 to-cyan-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                1
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold mb-3">Install & Activate</h3>
+                <p className="text-slate-300 text-lg">
+                  Add LogTrace to Chrome and press 'S' on any webpage to start debugging. 
+                  It's that simple.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl sm:text-2xl font-semibold mb-2">
-                {isMobile ? 'Tap & Hold' : 'Hover & Click'}
-              </h3>
-              <p className="text-slate-300 text-base sm:text-lg">
-                {isMobile 
-                  ? 'Tap elements to inspect them in real-time, then hold for detailed analysis.'
-                  : 'Move your mouse to inspect elements in real-time, then click for detailed analysis.'
-                }
-              </p>
+            
+            <div className="flex items-start gap-8">
+              <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                2
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold mb-3">Hover & Click</h3>
+                <p className="text-slate-300 text-lg">
+                  Hover over any element to inspect it in real-time, then click for 
+                  detailed AI analysis and debugging suggestions.
+                </p>
+              </div>
             </div>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center font-bold text-base sm:text-lg flex-shrink-0">
-              3
-            </div>
-            <div>
-              <h3 className="text-xl sm:text-2xl font-semibold mb-2">Get AI Insights</h3>
-              <p className="text-slate-300 text-base sm:text-lg">
-                Receive instant AI-powered debugging suggestions and solutions
-                optimized for your device.
-              </p>
+            
+            <div className="flex items-start gap-8">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                3
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold mb-3">Get Perfect Context</h3>
+                <p className="text-slate-300 text-lg">
+                  Copy the generated context to ChatGPT, Claude, or any AI assistant 
+                  for pixel-perfect debugging solutions.
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Mobile-specific section */}
-      {isMobile && (
-        <div className="container mx-auto px-4 py-12">
-          <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-400/30 rounded-2xl p-6 text-center">
-            <Smartphone className="h-12 w-12 text-blue-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold mb-2">Mobile-Optimized</h3>
-            <p className="text-slate-300 mb-4">
-              LogTrace works seamlessly on mobile devices with touch-friendly controls 
-              and responsive design.
+      {/* Final CTA */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-400/30 rounded-2xl p-12 text-center">
+            <div className="flex justify-center mb-6">
+              <Sparkles className="h-16 w-16 text-green-400" />
+            </div>
+            
+            <h2 className="text-4xl font-bold mb-4">
+              Ready to Debug Smarter?
+            </h2>
+            
+            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+              Join thousands of developers who stopped writing essays to AI 
+              and started showing their bugs instead.
             </p>
-            <Link to="/debug">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                Try Mobile Demo
-              </Button>
-            </Link>
+            
+            <Button
+              onClick={handleGetExtension}
+              size="lg"
+              className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto"
+            >
+              <Chrome className="h-5 w-5 mr-2" />
+              Install LogTrace for Chrome
+              <ArrowRight className="h-5 w-5 ml-2" />
+            </Button>
+            
+            <div className="text-sm text-slate-400 mt-6">
+              Free forever • Works on any website • No account required
+            </div>
           </div>
         </div>
-      )}
-
-      {/* CTA Section */}
-      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20">
-        <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-400/30 rounded-2xl p-8 sm:p-12 text-center">
-          <div className="flex justify-center mb-6">
-            <Sparkles className="h-12 w-12 sm:h-16 sm:w-16 text-green-400" />
-          </div>
-          
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Ready to Debug Smarter?
-          </h2>
-          
-          <p className="text-lg sm:text-xl text-slate-300 mb-6 sm:mb-8 max-w-2xl mx-auto">
-            Join thousands of developers who are already debugging faster 
-            with AI-powered insights.
-          </p>
-          
-          <Button
-            onClick={handleGetStarted}
-            className="bg-green-500 hover:bg-green-600 text-black font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg h-auto"
-          >
-            <Chrome className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-            Get LogTrace for Chrome
-            <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 ml-2" />
-          </Button>
-          
-          <div className="text-sm text-slate-400 mt-4">
-            Free forever • No account required • Works on any website
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 };
