@@ -22,9 +22,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { useConsoleLogs } from '@/shared/hooks/useConsoleLogs';
 import { useContextEngine } from '@/shared/hooks/useContextEngine';
+import ElementInspector from '@/components/LogTrace/ElementInspector';
 import TabbedTerminal from '@/components/LogTrace/TabbedTerminal';
-import PinnedDetails from '@/components/LogTrace/PinnedDetails';
-import { PinnedDetail, ElementInfo, LogEvent } from '@/shared/types';
+import MoreDetailsModal from '@/components/LogTrace/PinnedDetails';
+import { ElementInfo, LogEvent } from '@/shared/types';
+import DebugModal from '@/components/LogTrace/DebugModal';
 
 const LogTraceExtension: React.FC = () => {
   const {
@@ -62,11 +64,17 @@ const LogTraceExtension: React.FC = () => {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
 
-  // --- Pinning State ---
-  const [pinnedDetails, setPinnedDetails] = React.useState<PinnedDetail[]>([]);
+  // --- More Details Modal State ---
+  const [showMoreDetails, setShowMoreDetails] = React.useState(false);
+  const [detailsElement, setDetailsElement] = React.useState<ElementInfo | null>(null);
 
   // --- Terminal State ---
   const [debugResponses, setDebugResponses] = React.useState<Array<{ id: string; prompt: string; response: string; timestamp: string }>>([]);
+
+  // --- Element Inspector State ---
+  const [showElementInspector, setShowElementInspector] = React.useState(false);
+  const [inspectorIsPinned, setInspectorIsPinned] = React.useState(false);
+  const inspectorRef = React.useRef<HTMLDivElement>(null);
 
   // --- Toast State ---
   const [toast, setToast] = React.useState<{ title: string; description?: string; variant?: 'destructive' | undefined } | null>(null);
@@ -218,24 +226,6 @@ const LogTraceExtension: React.FC = () => {
     localStorage.setItem('logtrace_guest_debug_count', newCount.toString());
   };
 
-  // --- Pinning Logic ---
-  const addPin = (element: ElementInfo, position: { x: number; y: number }) => {
-    const pin: PinnedDetail = {
-      id: crypto.randomUUID(),
-      element,
-      position,
-      pinnedAt: {
-        x: Math.max(0, Math.min(window.innerWidth - 320, position.x)),
-        y: Math.max(0, Math.min(window.innerHeight - 200, position.y)),
-      },
-    };
-    setPinnedDetails(prev => [...prev, pin]);
-  };
-  const removePin = (id: string) => setPinnedDetails(prev => prev.filter(pin => pin.id !== id));
-  const updatePinPosition = (id: string, position: { x: number; y: number }) => {
-    setPinnedDetails(prev => prev.map(pin => pin.id === id ? { ...pin, pinnedAt: position } : pin));
-  };
-
   // --- Debug Response Logging ---
   const addDebugResponse = (prompt: string, response: string) => {
     setDebugResponses(prev => [
@@ -296,6 +286,29 @@ const LogTraceExtension: React.FC = () => {
     }
   };
 
+  // --- Element Inspector Handlers ---
+  const handleDebugFromInspector = React.useCallback(() => {
+    setShowElementInspector(false);
+    setShowDebugModal(true);
+    
+    if (currentElement) {
+      addEvent({
+        type: 'debug',
+        position: mousePosition,
+        element: {
+          tag: currentElement.tag,
+          id: currentElement.id,
+          classes: currentElement.classes,
+          text: currentElement.text,
+        },
+      });
+    }
+  }, [currentElement, mousePosition, addEvent, setShowDebugModal]);
+
+  const handleToggleInspectorPin = React.useCallback(() => {
+    setInspectorIsPinned(prev => !prev);
+  }, []);
+
   // --- Prompt Generation ---
   const handleGeneratePrompt = () => {
     const prompt = contextEngine.generatePrompt();
@@ -321,10 +334,15 @@ const LogTraceExtension: React.FC = () => {
     if (!isActive) return;
     
     const target = e.target as HTMLElement;
-    if (target && !target.closest('#logtrace-overlay') && !target.closest('#logtrace-modal')) {
+    if (target && !target.closest('#logtrace-overlay') && !target.closest('#logtrace-modal') && !target.closest('[data-element-inspector]')) {
       setMousePosition({ x: e.clientX, y: e.clientY });
       const elementInfo = extractElementInfo(target);
       setCurrentElement(elementInfo);
+      
+      // Auto-close inspector if not pinned and hovering over a different element
+      if (showElementInspector && !inspectorIsPinned) {
+        setShowElementInspector(false);
+      }
       
       addEvent({
         type: 'move',
@@ -337,15 +355,21 @@ const LogTraceExtension: React.FC = () => {
         },
       });
     }
-  }, [isActive, extractElementInfo, addEvent, setMousePosition, setCurrentElement]);
+  }, [isActive, extractElementInfo, addEvent, setMousePosition, setCurrentElement, showElementInspector, inspectorIsPinned]);
 
   const handleClick = useCallback((e: MouseEvent) => {
     if (!isActive) return;
     
     const target = e.target as HTMLElement;
-    if (target && !target.closest('#logtrace-overlay') && !target.closest('#logtrace-modal')) {
+    if (target && !target.closest('#logtrace-overlay') && !target.closest('#logtrace-modal') && !target.closest('[data-element-inspector]')) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      setShowElementInspector(true);
+      setMousePosition({ x: e.clientX, y: e.clientY });
+      
       addEvent({
-        type: 'click',
+        type: 'inspect',
         position: { x: e.clientX, y: e.clientY },
         element: currentElement ? {
           tag: currentElement.tag,
@@ -355,7 +379,7 @@ const LogTraceExtension: React.FC = () => {
         } : undefined,
       });
     }
-  }, [isActive, currentElement, addEvent]);
+  }, [isActive, currentElement, addEvent, setMousePosition]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     const activeElement = document.activeElement as HTMLElement | null;
@@ -387,36 +411,16 @@ const LogTraceExtension: React.FC = () => {
       return;
     }
 
-    // D: Pin/unpin selected element
-    if (isActive && e.key === 'd' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    // Escape: Close modals and inspector
+    if (e.key === 'Escape') {
       e.preventDefault();
-      if (currentElement) {
-        // Check if already pinned
-        const alreadyPinned = pinnedDetails.some(
-          (pin) =>
-            pin.element.tag === currentElement.tag &&
-            pin.element.id === currentElement.id &&
-            pin.element.classes.join(' ') === currentElement.classes.join(' ') &&
-            pin.element.text === currentElement.text
-        );
-        if (alreadyPinned) {
-          // Unpin
-          const pinToRemove = pinnedDetails.find(
-            (pin) =>
-              pin.element.tag === currentElement.tag &&
-              pin.element.id === currentElement.id &&
-              pin.element.classes.join(' ') === currentElement.classes.join(' ') &&
-              pin.element.text === currentElement.text
-          );
-          if (pinToRemove) removePin(pinToRemove.id);
-        } else {
-          // Pin at current mouse position
-          addPin(currentElement, mousePosition);
-        }
-      }
+      setShowDebugModal(false);
+      setShowElementInspector(false);
+      setShowAuthModal(false);
+      setShowMoreDetails(false);
       return;
     }
-  }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal, pinnedDetails]);
+  }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal]);
 
   // Set up event listeners for extension context
   useEffect(() => {
@@ -492,7 +496,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
       </div>
 
       {/* Mouse Overlay */}
-      {isActive && currentElement && (
+      {isActive && currentElement && !showElementInspector && (
         <div
           id="logtrace-overlay"
           ref={overlayRef}
@@ -525,180 +529,52 @@ Provide specific, actionable debugging steps and potential solutions.`;
                 </div>
               )}
               <div className="text-cyan-300 mt-2 text-xs">
-                Ctrl+D to debug
+                Click to inspect • Ctrl+D to debug
               </div>
             </div>
           </Card>
         </div>
       )}
 
+      {/* Element Inspector */}
+      <div data-element-inspector>
+        <ElementInspector
+          isVisible={showElementInspector}
+          currentElement={currentElement}
+          mousePosition={mousePosition}
+          onDebug={handleDebugFromInspector}
+          onClose={() => setShowElementInspector(false)}
+          panelRef={inspectorRef}
+          isExtensionMode={true}
+          isDraggable={true}
+          isPinned={inspectorIsPinned}
+          onPin={handleToggleInspectorPin}
+          onShowMoreDetails={() => {
+            setDetailsElement(currentElement);
+            setShowMoreDetails(true);
+            setShowElementInspector(false);
+          }}
+        />
+      </div>
+
       {/* Debug Modal */}
       {showDebugModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2147483649] flex items-center justify-center p-4 pointer-events-auto">
-          <Card 
-            id="logtrace-modal"
-            ref={modalRef}
-            className="bg-slate-900/95 border-cyan-500/50 w-full max-w-4xl max-h-[90vh] overflow-hidden"
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-cyan-400">Debug Assistant</h3>
-                <Button 
-                  onClick={() => setShowDebugModal(false)}
-                  variant="ghost" 
-                  className="text-gray-400 hover:text-white"
-                >
-                  ✕
-                </Button>
-              </div>
-
-              {currentElement && (
-                <div className="mb-6 p-4 bg-slate-800/50 rounded-lg border border-green-500/30">
-                  <h4 className="text-green-400 font-semibold mb-2">Element Context</h4>
-                  <div className="text-sm text-green-300">
-                    <div><strong>Tag:</strong> {currentElement.tag}</div>
-                    {currentElement.id && <div><strong>ID:</strong> {sanitizeText(currentElement.id)}</div>}
-                    {currentElement.classes.length > 0 && (
-                      <div><strong>Classes:</strong> {currentElement.classes.map(c => sanitizeText(c)).join(', ')}</div>
-                    )}
-                    <div><strong>Position:</strong> x:{mousePosition.x}, y:{mousePosition.y}</div>
-                    {currentElement.text && (
-                      <div><strong>Text:</strong> "{sanitizeText(currentElement.text)}"</div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-slate-800/50">
-                  <TabsTrigger value="quick" className="data-[state=active]:bg-cyan-600">Quick Debug</TabsTrigger>
-                  <TabsTrigger value="advanced" className="data-[state=active]:bg-cyan-600">Advanced</TabsTrigger>
-                  <TabsTrigger value="prompt" className="data-[state=active]:bg-cyan-600">
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-400">✨</span>
-                      Prompt
-                    </div>
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="quick" className="space-y-4">
-                  <div>
-                    <label className="block text-cyan-400 font-semibold mb-2">What do you want to change or fix?</label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={userIntent}
-                        onChange={(e) => setUserIntent(e.target.value)}
-                        className="bg-slate-800 border-green-500/30 text-green-400"
-                        placeholder="Describe what you want to change or fix..."
-                        maxLength={500}
-                      />
-                      <Button 
-                        onClick={async () => {
-                          try {
-                            await handleAIDebug(userIntent);
-                          } catch (error) {
-                            setToast({ title: 'Debug Failed', description: 'AI debugging is not available in extension mode', variant: 'destructive' });
-                          }
-                        }}
-                        disabled={isAnalyzing || !userIntent.trim()}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        {isAnalyzing ? 'Analyzing...' : 'Debug'}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleGeneratePrompt}
-                      disabled={!userIntent.trim()}
-                      className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                    >
-                      <span className="text-yellow-200 mr-2">✨</span>
-                      Generate Context Prompt
-                    </Button>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="advanced" className="space-y-4">
-                  <div>
-                    <label className="block text-cyan-400 font-semibold mb-2">Advanced Debug</label>
-                    <Textarea
-                      value={advancedPrompt || generateAdvancedPrompt()}
-                      onChange={(e) => setAdvancedPrompt(e.target.value)}
-                      className="bg-slate-800 border-green-500/30 text-green-400 min-h-32"
-                      placeholder="Detailed debugging prompt..."
-                      maxLength={2000}
-                    />
-                    <Button 
-                      onClick={async () => {
-                        try {
-                          await handleAIDebug(advancedPrompt || generateAdvancedPrompt());
-                        } catch (error) {
-                          setToast({ title: 'Debug Failed', description: 'AI debugging is not available in extension mode', variant: 'destructive' });
-                        }
-                      }}
-                      disabled={isAnalyzing}
-                      className="bg-cyan-600 hover:bg-cyan-700 text-white mt-2"
-                    >
-                      {isAnalyzing ? 'Analyzing...' : 'Advanced Debug'}
-                    </Button>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="prompt" className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-cyan-400 font-semibold">Generated Context Prompt</label>
-                      <Button 
-                        onClick={handleCopyPrompt}
-                        disabled={!generatedPrompt}
-                        variant="outline"
-                        className="border-green-500/30 text-green-400 hover:bg-green-500/10"
-                        size="sm"
-                      >
-                        📋 Copy Prompt
-                      </Button>
-                    </div>
-                    <ScrollArea className="h-64 w-full rounded-md border border-green-500/30">
-                      <Textarea
-                        value={generatedPrompt}
-                        onChange={(e) => setGeneratedPrompt(e.target.value)}
-                        className="bg-slate-800 border-none text-green-400 min-h-60 resize-none"
-                        placeholder="Generated prompt will appear here..."
-                        readOnly={!generatedPrompt}
-                      />
-                    </ScrollArea>
-                    {generatedPrompt && (
-                      <div className="flex gap-2 mt-2">
-                        <Button 
-                          onClick={async () => {
-                            try {
-                              await handleAIDebug(generatedPrompt);
-                            } catch (error) {
-                              setToast({ title: 'Debug Failed', description: 'AI debugging is not available in extension mode', variant: 'destructive' });
-                            }
-                          }}
-                          disabled={isAnalyzing}
-                          className="bg-purple-600 hover:bg-purple-700 text-white"
-                        >
-                          {isAnalyzing ? 'Analyzing...' : 'Debug with Generated Prompt'}
-                        </Button>
-                        <Button 
-                          onClick={handleCopyPrompt}
-                          variant="outline"
-                          className="border-green-500/30 text-green-400 hover:bg-green-500/10"
-                        >
-                          📋 Copy to Clipboard
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-          </Card>
-        </div>
+        <DebugModal
+          showDebugModal={showDebugModal}
+          setShowDebugModal={setShowDebugModal}
+          currentElement={currentElement}
+          mousePosition={mousePosition}
+          isAnalyzing={isAnalyzing}
+          analyzeWithAI={handleAIDebug}
+          generateAdvancedPrompt={generateAdvancedPrompt}
+          modalRef={modalRef}
+          isExtensionMode={true}
+          showAuthModal={showAuthModal}
+          setShowAuthModal={setShowAuthModal}
+          user={user}
+          guestDebugCount={guestDebugCount}
+          maxGuestDebugs={3}
+        />
       )}
 
       {/* Auth Modal */}
@@ -833,8 +709,12 @@ Provide specific, actionable debugging steps and potential solutions.`;
         </div>
       )}
 
-      {/* Pinned Details */}
-      <PinnedDetails pinnedDetails={pinnedDetails} onRemovePin={removePin} onUpdatePosition={updatePinPosition} />
+      {/* More Details Modal */}
+      <MoreDetailsModal 
+        element={detailsElement}
+        open={showMoreDetails}
+        onClose={() => setShowMoreDetails(false)}
+      />
 
       {/* Terminal Modal */}
       <TabbedTerminal showTerminal={showTerminal} setShowTerminal={setShowTerminal} events={events} exportEvents={exportEvents} clearEvents={clearEvents} debugResponses={debugResponses} clearDebugResponses={clearDebugResponses} />

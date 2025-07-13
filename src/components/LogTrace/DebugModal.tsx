@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
+import { X, Sparkles, Copy } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
@@ -22,6 +23,13 @@ interface DebugModalProps {
   analyzeWithAI: (prompt: string) => Promise<void>;
   generateAdvancedPrompt: () => string;
   modalRef: React.RefObject<HTMLDivElement>;
+  // Extension-specific props
+  isExtensionMode?: boolean;
+  showAuthModal?: boolean;
+  setShowAuthModal?: (show: boolean) => void;
+  user?: any;
+  guestDebugCount?: number;
+  maxGuestDebugs?: number;
 }
 
 const DebugModal: React.FC<DebugModalProps> = ({
@@ -33,6 +41,12 @@ const DebugModal: React.FC<DebugModalProps> = ({
   analyzeWithAI,
   generateAdvancedPrompt,
   modalRef,
+  isExtensionMode = false,
+  showAuthModal = false,
+  setShowAuthModal,
+  user,
+  guestDebugCount = 0,
+  maxGuestDebugs = 3,
 }) => {
   const [userIntent, setUserIntent] = useState('');
   const [advancedPrompt, setAdvancedPrompt] = useState('');
@@ -118,6 +132,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
   if (!showDebugModal) return null;
 
+  // Add guest gating logic for extension
   const handleDebugSubmit = async (prompt: string) => {
     if (!prompt.trim()) {
       toast({
@@ -125,6 +140,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
         description: 'Please enter a valid prompt before debugging.',
         variant: 'destructive',
       });
+      return;
+    }
+    // Extension guest gating
+    if (isExtensionMode && !user && guestDebugCount >= maxGuestDebugs) {
+      setShowAuthModal && setShowAuthModal(true);
       return;
     }
     try {
@@ -188,7 +208,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
               variant="ghost" 
               className="text-gray-400 hover:text-white"
             >
-              ✕
+              <X className="w-5 h-5" />
             </Button>
           </div>
 
@@ -215,7 +235,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
               <TabsTrigger value="advanced" className="data-[state=active]:bg-cyan-600">Advanced</TabsTrigger>
               <TabsTrigger value="prompt" className="data-[state=active]:bg-cyan-600">
                 <div className="flex items-center gap-2">
-                  <span className="text-yellow-400">✨</span>
+                  <Sparkles className="w-4 h-4 text-yellow-400" />
                   Prompt
                 </div>
               </TabsTrigger>
@@ -248,7 +268,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                   disabled={!userIntent.trim()}
                   className="bg-yellow-600 hover:bg-yellow-700 text-white"
                 >
-                  <span className="text-yellow-200 mr-2">✨</span>
+                  <Sparkles className="w-4 h-4 mr-2 text-yellow-200" />
                   Generate Context Prompt
                 </Button>
               </div>
@@ -285,7 +305,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                     className="border-green-500/30 text-green-400 hover:bg-green-500/10"
                     size="sm"
                   >
-                    📋 Copy Prompt
+                    <Copy className="w-4 h-4 mr-1" /> Copy Prompt
                   </Button>
                 </div>
                 <ScrollArea className="h-64 w-full rounded-md border border-green-500/30">
@@ -311,7 +331,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                       variant="outline"
                       className="border-green-500/30 text-green-400 hover:bg-green-500/10"
                     >
-                      📋 Copy to Clipboard
+                      <Copy className="w-4 h-4 mr-1" /> Copy to Clipboard
                     </Button>
                   </div>
                 )}

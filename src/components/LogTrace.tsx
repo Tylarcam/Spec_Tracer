@@ -1,15 +1,14 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
-import { usePinnedDetails } from '@/shared/hooks/usePinnedDetails';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 import { useToast } from '@/hooks/use-toast';
 import Header from './LogTrace/Header';
 import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
-import InteractivePanel from './LogTrace/InteractivePanel';
+import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
 import TabbedTerminal from './LogTrace/TabbedTerminal';
-import PinnedDetails from './LogTrace/PinnedDetails';
+import MoreDetailsModal from './LogTrace/PinnedDetails';
 
 const LogTrace: React.FC = () => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
@@ -17,6 +16,8 @@ const LogTrace: React.FC = () => {
   const [pausedPosition, setPausedPosition] = useState({ x: 0, y: 0 });
   const [pausedElement, setPausedElement] = useState<any>(null);
   const interactivePanelRef = useRef<HTMLDivElement>(null);
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const [detailsElement, setDetailsElement] = useState<any>(null);
 
   const {
     isActive,
@@ -42,14 +43,6 @@ const LogTrace: React.FC = () => {
     hasErrors,
     errors,
   } = useLogTrace();
-
-  const {
-    pinnedDetails,
-    addPin,
-    removePin,
-    updatePinPosition,
-    clearAllPins,
-  } = usePinnedDetails();
 
   const {
     debugResponses,
@@ -89,8 +82,10 @@ const LogTrace: React.FC = () => {
   const handleElementClick = useCallback(() => {
     if (!currentElement) return;
     
+    // Ensure only one modal is visible at a time
+    setShowDebugModal(false);
+    setShowTerminal(false);
     setShowInteractivePanel(true);
-    addPin(currentElement, mousePosition);
     
     addEvent({
       type: 'inspect',
@@ -102,10 +97,12 @@ const LogTrace: React.FC = () => {
         text: currentElement.text,
       },
     });
-  }, [currentElement, mousePosition, addPin, addEvent]);
+  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowTerminal]);
 
   const handleDebugFromPanel = useCallback(() => {
+    // Ensure only one modal is visible at a time
     setShowInteractivePanel(false);
+    setShowTerminal(false);
     setShowDebugModal(true);
     
     if (currentElement) {
@@ -120,14 +117,13 @@ const LogTrace: React.FC = () => {
         },
       });
     }
-  }, [currentElement, mousePosition, addEvent, setShowDebugModal]);
+  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowTerminal]);
 
   const handleEscape = useCallback(() => {
     setShowInteractivePanel(false);
     setShowDebugModal(false);
     setIsHoverPaused(false);
-    clearAllPins();
-  }, [clearAllPins, setShowDebugModal]);
+  }, [setShowDebugModal]);
 
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
     try {
@@ -148,16 +144,19 @@ const LogTrace: React.FC = () => {
     if (target && 
         !target.closest('#logtrace-overlay') && 
         !target.closest('#logtrace-modal') &&
-        !target.closest('[data-interactive-panel]')) {
+        !target.closest('[data-interactive-panel]') &&
+        !target.closest('[data-element-inspector]')) {
       setMousePosition({ x: e.clientX, y: e.clientY });
       const elementInfo = extractElementInfo(target);
       setCurrentElement(elementInfo);
       
-      if (showInteractivePanel) {
+      // Only auto-close inspector if user is moving to a different element
+      // and no debug modal is currently open
+      if (showInteractivePanel && !showDebugModal) {
         setShowInteractivePanel(false);
       }
     }
-  }, [isActive, isHoverPaused, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel]);
+  }, [isActive, isHoverPaused, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel, showDebugModal]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive) return;
@@ -191,7 +190,9 @@ const LogTrace: React.FC = () => {
       
       if (isActive && e.ctrlKey && e.key === 'd') {
         e.preventDefault();
+        // Ensure only one modal is visible at a time
         setShowInteractivePanel(false);
+        setShowTerminal(false);
         setShowDebugModal(true);
         
         if (currentElement) {
@@ -236,7 +237,14 @@ const LogTrace: React.FC = () => {
       
       if (e.key === 't' && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
-        setShowTerminal(!showTerminal);
+        // Ensure only one modal is visible at a time
+        if (!showTerminal) {
+          setShowInteractivePanel(false);
+          setShowDebugModal(false);
+          setShowTerminal(true);
+        } else {
+          setShowTerminal(false);
+        }
       }
       
       if (e.key === 'Escape') {
@@ -304,13 +312,18 @@ const LogTrace: React.FC = () => {
       />
 
       <div data-interactive-panel>
-        <InteractivePanel
+        <ElementInspector
           isVisible={showInteractivePanel}
           currentElement={currentElement}
           mousePosition={mousePosition}
           onDebug={handleDebugFromPanel}
           onClose={() => setShowInteractivePanel(false)}
           panelRef={interactivePanelRef}
+          onShowMoreDetails={() => {
+            setDetailsElement(currentElement);
+            setShowMoreDetails(true);
+            setShowInteractivePanel(false);
+          }}
         />
       </div>
 
@@ -325,10 +338,10 @@ const LogTrace: React.FC = () => {
         modalRef={modalRef}
       />
 
-      <PinnedDetails 
-        pinnedDetails={pinnedDetails}
-        onRemovePin={removePin}
-        onUpdatePosition={updatePinPosition}
+      <MoreDetailsModal 
+        element={detailsElement}
+        open={showMoreDetails}
+        onClose={() => setShowMoreDetails(false)}
       />
 
       <TabbedTerminal 
