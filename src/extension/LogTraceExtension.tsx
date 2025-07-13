@@ -1,4 +1,3 @@
-
 /**
  * LogTrace component optimized for Chrome extension
  */
@@ -80,7 +79,6 @@ const LogTraceExtension: React.FC = () => {
   const [toast, setToast] = React.useState<{ title: string; description?: string; variant?: 'destructive' | undefined } | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
-  // Get console logs for current element
   const currentElementSelector = useMemo(() => {
     if (!currentElement) return undefined;
     let selector = currentElement.tag;
@@ -91,7 +89,6 @@ const LogTraceExtension: React.FC = () => {
 
   const { logs } = useConsoleLogs(currentElementSelector);
 
-  // Get computed styles for current element
   const computedStyles = useMemo(() => {
     if (!currentElement?.element) return {};
     const styles = window.getComputedStyle(currentElement.element);
@@ -120,7 +117,6 @@ const LogTraceExtension: React.FC = () => {
     };
   }, [currentElement]);
 
-  // Get event listeners for current element
   const eventListeners = useMemo(() => {
     if (!currentElement?.element) return [];
     const el = currentElement.element as any;
@@ -132,7 +128,6 @@ const LogTraceExtension: React.FC = () => {
     return listeners.filter(listener => typeof el[listener] === 'function');
   }, [currentElement]);
 
-  // Filter console logs for current element
   const filteredLogs = useMemo(() => {
     return logs.filter(log => 
       log.associatedElement === currentElementSelector || 
@@ -140,7 +135,6 @@ const LogTraceExtension: React.FC = () => {
     );
   }, [logs, currentElementSelector, currentElement]);
 
-  // Context engine
   const contextEngine = useContextEngine({
     elementInfo: {
       tag: currentElement?.tag || '',
@@ -155,14 +149,11 @@ const LogTraceExtension: React.FC = () => {
     userIntent,
   });
 
-  // --- Auth Logic ---
   React.useEffect(() => {
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setAuthLoading(false);
     });
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setAuthLoading(false);
@@ -214,7 +205,6 @@ const LogTraceExtension: React.FC = () => {
     setUser(null);
   };
 
-  // --- Guest Usage Tracking ---
   React.useEffect(() => {
     const count = parseInt(localStorage.getItem('logtrace_guest_debug_count') || '0', 10);
     setGuestDebugCount(count);
@@ -226,7 +216,6 @@ const LogTraceExtension: React.FC = () => {
     localStorage.setItem('logtrace_guest_debug_count', newCount.toString());
   };
 
-  // --- Debug Response Logging ---
   const addDebugResponse = (prompt: string, response: string) => {
     setDebugResponses(prev => [
       { id: crypto.randomUUID(), prompt, response, timestamp: new Date().toISOString() },
@@ -235,7 +224,6 @@ const LogTraceExtension: React.FC = () => {
   };
   const clearDebugResponses = () => setDebugResponses([]);
 
-  // --- AI Debug Handler (with guest gating) ---
   const handleAIDebug = async (prompt: string) => {
     if (!validatePrompt(prompt)) {
       setToast({ title: 'Invalid Prompt', description: 'Invalid prompt format.', variant: 'destructive' });
@@ -249,7 +237,6 @@ const LogTraceExtension: React.FC = () => {
     if (!user) incrementGuestDebug();
 
     try {
-      // Call Supabase edge function for AI debug
       const { data, error } = await supabase.functions.invoke('ai-debug', {
         body: {
           prompt: sanitizeText(prompt, 2000),
@@ -286,7 +273,6 @@ const LogTraceExtension: React.FC = () => {
     }
   };
 
-  // --- Element Inspector Handlers ---
   const handleDebugFromInspector = React.useCallback(() => {
     setShowElementInspector(false);
     setShowDebugModal(true);
@@ -309,7 +295,6 @@ const LogTraceExtension: React.FC = () => {
     setInspectorIsPinned(prev => !prev);
   }, []);
 
-  // --- Prompt Generation ---
   const handleGeneratePrompt = () => {
     const prompt = contextEngine.generatePrompt();
     setGeneratedPrompt(prompt);
@@ -339,7 +324,6 @@ const LogTraceExtension: React.FC = () => {
       const elementInfo = extractElementInfo(target);
       setCurrentElement(elementInfo);
       
-      // Auto-close inspector if not pinned and hovering over a different element
       if (showElementInspector && !inspectorIsPinned) {
         setShowElementInspector(false);
       }
@@ -392,7 +376,6 @@ const LogTraceExtension: React.FC = () => {
       return;
     }
 
-    // Ctrl+D: Open debug modal
     if (isActive && e.ctrlKey && e.key === 'd') {
       e.preventDefault();
       setShowDebugModal(true);
@@ -411,7 +394,6 @@ const LogTraceExtension: React.FC = () => {
       return;
     }
 
-    // Escape: Close modals and inspector
     if (e.key === 'Escape') {
       e.preventDefault();
       setShowDebugModal(false);
@@ -422,7 +404,6 @@ const LogTraceExtension: React.FC = () => {
     }
   }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal]);
 
-  // Set up event listeners for extension context
   useEffect(() => {
     if (isActive) {
       document.addEventListener('mousemove', handleMouseMove, true);
@@ -469,7 +450,6 @@ Provide specific, actionable debugging steps and potential solutions.`;
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[2147483647] font-mono">
-      {/* Floating Control Panel */}
       <div className="fixed top-4 right-4 pointer-events-auto z-[2147483648]">
         <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl">
           <div className="p-4">
@@ -495,7 +475,6 @@ Provide specific, actionable debugging steps and potential solutions.`;
         </Card>
       </div>
 
-      {/* Mouse Overlay */}
       {isActive && currentElement && !showElementInspector && (
         <div
           id="logtrace-overlay"
@@ -536,7 +515,6 @@ Provide specific, actionable debugging steps and potential solutions.`;
         </div>
       )}
 
-      {/* Element Inspector */}
       <div data-element-inspector>
         <ElementInspector
           isVisible={showElementInspector}
@@ -557,7 +535,6 @@ Provide specific, actionable debugging steps and potential solutions.`;
         />
       </div>
 
-      {/* Debug Modal */}
       {showDebugModal && (
         <DebugModal
           showDebugModal={showDebugModal}
@@ -577,7 +554,6 @@ Provide specific, actionable debugging steps and potential solutions.`;
         />
       )}
 
-      {/* Auth Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 bg-black/70 z-[2147483650] flex items-center justify-center">
           <Card className="w-full max-w-md p-0">
@@ -709,17 +685,25 @@ Provide specific, actionable debugging steps and potential solutions.`;
         </div>
       )}
 
-      {/* More Details Modal */}
       <MoreDetailsModal 
         element={detailsElement}
         open={showMoreDetails}
         onClose={() => setShowMoreDetails(false)}
       />
 
-      {/* Terminal Modal */}
-      <TabbedTerminal showTerminal={showTerminal} setShowTerminal={setShowTerminal} events={events} exportEvents={exportEvents} clearEvents={clearEvents} debugResponses={debugResponses} clearDebugResponses={clearDebugResponses} />
+      <TabbedTerminal 
+        isVisible={showTerminal}
+        onToggle={() => setShowTerminal(!showTerminal)}
+        onClear={clearEvents}
+        showTerminal={showTerminal}
+        setShowTerminal={setShowTerminal}
+        events={events}
+        exportEvents={exportEvents}
+        clearEvents={clearEvents}
+        debugResponses={debugResponses}
+        clearDebugResponses={clearDebugResponses}
+      />
 
-      {/* Terminal */}
       {showTerminal && (
         <div className="fixed bottom-0 left-0 right-0 h-96 bg-slate-900/95 border-t border-green-500/50 backdrop-blur-md z-[2147483648] pointer-events-auto">
           <div className="flex items-center justify-between p-4 border-b border-green-500/30">

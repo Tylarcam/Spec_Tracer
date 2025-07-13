@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { X, Settings, Keyboard, Zap, Eye, Terminal, MousePointer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 interface SettingsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpgrade: () => void;
+  onUpgrade?: () => void;
   onUpgradeClick?: () => void;
 }
 
@@ -20,7 +19,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
     { key: 'Ctrl+D', description: 'Trigger AI debug', icon: MousePointer },
   ];
 
-  const handleUpgrade = onUpgradeClick || onUpgrade;
+  const handleUpgrade = onUpgradeClick || onUpgrade || (() => {});
 
   if (!isOpen) return null;
 
