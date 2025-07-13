@@ -48,9 +48,47 @@ export const callAIDebugFunction = async (
     return data.response;
   } catch (error) {
     console.error('AI Debug API Error:', error);
-    if (error instanceof Error && error.message.includes('Authentication required')) {
-      throw error;
+    throw error;
+  }
+};
+
+export const transformContextRequest = async (rawRequest: string) => {
+  if (!rawRequest || rawRequest.trim().length === 0) {
+    throw new Error('Request cannot be empty');
+  }
+
+  if (rawRequest.length > 1000) {
+    throw new Error('Request too long (max 1000 characters)');
+  }
+
+  // Check if user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Authentication required for context transformation features. Please sign in to continue.');
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('context-transform', {
+      body: {
+        rawRequest: sanitizeText(rawRequest, 1000),
+      },
+    });
+
+    if (error) {
+      console.error('Context transform error:', error);
+      throw new Error('Failed to transform context');
     }
-    throw new Error('AI debugging service is currently unavailable. Please try again later.');
+
+    if (!data?.success) {
+      throw new Error(data?.error || 'Context transformation failed');
+    }
+
+    return {
+      originalRequest: data.originalRequest,
+      transformedPrompt: data.transformedPrompt
+    };
+  } catch (error) {
+    console.error('Context Transform API Error:', error);
+    throw error;
   }
 };

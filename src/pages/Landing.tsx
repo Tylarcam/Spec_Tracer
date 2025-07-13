@@ -191,14 +191,28 @@ const Landing: React.FC = () => {
           <p className="text-xl text-slate-300 mb-8">
             Join developers who've already discovered the power of visual debugging with LogTrace.
           </p>
-          <Button
-            size="lg"
-            onClick={handleGetStarted}
-            className="bg-green-600 hover:bg-green-700 text-white px-12 py-4 text-xl"
-          >
-            Get Started Now
-            <ArrowRight className="ml-2 h-6 w-6" />
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              size="lg"
+              onClick={handleGetStarted}
+              className="bg-green-600 hover:bg-green-700 text-white px-12 py-4 text-xl"
+            >
+              Get Started Now
+              <ArrowRight className="ml-2 h-6 w-6" />
+            </Button>
+            <Button
+              size="lg"
+              onClick={() => navigate('/context-transform')}
+              variant="outline"
+              className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 px-12 py-4 text-xl"
+            >
+              Try Context Engineering
+              <span className="ml-2">✨</span>
+            </Button>
+          </div>
+          <p className="text-sm text-slate-400 mt-4">
+            Test our Context Engineering Transformer - transform raw requests into optimized prompts
+          </p>
         </div>
       </section>
 
