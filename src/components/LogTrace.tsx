@@ -339,6 +339,11 @@ const LogTrace: React.FC = () => {
         clearEvents={clearEvents}
         debugResponses={debugResponses}
         clearDebugResponses={clearDebugResponses}
+        currentElement={currentElement ? {
+          tag: currentElement.tag,
+          id: currentElement.id,
+          classes: currentElement.classes,
+        } : null}
       />
     </div>
   );

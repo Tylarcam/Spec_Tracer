@@ -33,29 +33,48 @@ const InteractivePanel: React.FC<InteractivePanelProps> = ({
   const getComputedStyles = () => {
     if (!currentElement.element) return null;
     const styles = window.getComputedStyle(currentElement.element);
+    // Only include key properties
     return {
       display: styles.display,
       position: styles.position,
+      zIndex: styles.zIndex,
       visibility: styles.visibility,
       opacity: styles.opacity,
-      zIndex: styles.zIndex,
-      width: styles.width,
-      height: styles.height,
-      backgroundColor: styles.backgroundColor,
+      pointerEvents: styles.pointerEvents,
+      overflow: styles.overflow,
       color: styles.color,
+      backgroundColor: styles.backgroundColor,
       fontSize: styles.fontSize,
       fontFamily: styles.fontFamily,
+      width: styles.width,
+      height: styles.height,
       margin: styles.margin,
       padding: styles.padding,
       border: styles.border,
-      cursor: styles.cursor,
+      flexDirection: styles.flexDirection,
+      alignItems: styles.alignItems,
+      justifyContent: styles.justifyContent,
+      gridTemplateColumns: styles.gridTemplateColumns,
+      gridTemplateRows: styles.gridTemplateRows,
     };
   };
 
   const styles = getComputedStyles();
   const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(currentElement.tag) || 
-                       currentElement.element?.onclick !== null || 
-                       styles?.cursor === 'pointer';
+                       currentElement.element?.onclick !== null;
+
+  // Utility to detect event listeners
+  const getEventListeners = () => {
+    if (!currentElement.element) return [];
+    const el = currentElement.element as any;
+    const listeners = [
+      'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmouseout',
+      'onmouseenter', 'onmouseleave', 'onkeydown', 'onkeyup', 'oninput',
+      'onchange', 'onfocus', 'onblur', 'onsubmit'
+    ];
+    return listeners.filter(listener => typeof el[listener] === 'function');
+  };
+  const eventListeners = getEventListeners();
 
   return (
     <div
@@ -140,6 +159,14 @@ const InteractivePanel: React.FC<InteractivePanelProps> = ({
                       </span>
                     </div>
                   )}
+                  {currentElement.parentPath && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Hierarchy:</span>
+                      <span className="text-blue-300 font-mono text-right max-w-32 truncate">
+                        {currentElement.parentPath}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-400">Position:</span>
                     <span className="text-cyan-300 font-mono">
@@ -195,6 +222,28 @@ const InteractivePanel: React.FC<InteractivePanelProps> = ({
                 </div>
               </AccordionContent>
             </AccordionItem>
+
+            {/* Event Listeners */}
+            {eventListeners.length > 0 && (
+              <AccordionItem value="listeners" className="border-green-500/20">
+                <AccordionTrigger className="text-cyan-400 text-sm py-2 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    Event Listeners
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-2">
+                  <div className="space-y-1 text-xs">
+                    {eventListeners.map(listener => (
+                      <div key={listener} className="flex justify-between">
+                        <span className="text-gray-400">{listener.replace('on', '')}:</span>
+                        <span className="text-purple-300 font-mono">attached</span>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )}
           </Accordion>
 
           <Separator className="bg-green-500/30 my-3" />

@@ -24,6 +24,7 @@ export interface ElementInfo {
   classes: string[];
   text: string;
   element: HTMLElement;
+  parentPath?: string; // DOM hierarchy path, e.g., 'form.checkout-form > div.flex > button.submit-btn'
 }
 
 export interface LogTraceSettings {
