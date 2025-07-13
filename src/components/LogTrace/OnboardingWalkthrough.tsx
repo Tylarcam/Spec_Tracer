@@ -8,6 +8,11 @@ interface OnboardingWalkthroughProps {
   onNext: () => void;
   onSkip: () => void;
   onComplete: () => void;
+  isActive?: boolean;
+  currentElement?: any;
+  mousePosition?: { x: number; y: number };
+  showInteractivePanel?: boolean;
+  showTerminal?: boolean;
 }
 
 const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({

@@ -4,17 +4,23 @@ import { Settings, Zap, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface HeaderProps {
-  onSettingsClick: () => void;
-  onUpgradeClick: () => void;
+  isActive: boolean;
+  setIsActive: (active: boolean) => void;
+  showTerminal: boolean;
+  setShowTerminal: (show: boolean) => void;
   remainingUses: number;
-  isTracing: boolean;
+  onSettingsClick?: () => void;
+  onUpgradeClick?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
-  onSettingsClick, 
-  onUpgradeClick, 
-  remainingUses, 
-  isTracing 
+  isActive,
+  setIsActive,
+  showTerminal,
+  setShowTerminal,
+  remainingUses,
+  onSettingsClick,
+  onUpgradeClick
 }) => {
   return (
     <div className="fixed top-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-sm border-b border-green-500/30">
@@ -25,7 +31,7 @@ const Header: React.FC<HeaderProps> = ({
             <Zap className="h-3 w-3 md:h-4 md:w-4 text-white" />
           </div>
           <h1 className="text-lg md:text-xl font-bold text-white">LogTrace</h1>
-          {isTracing && (
+          {isActive && (
             <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               <span className="text-xs text-green-400 font-medium">Active</span>
@@ -66,7 +72,7 @@ const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Mobile Status Bar */}
-      {isTracing && (
+      {isActive && (
         <div className="sm:hidden px-3 pb-2">
           <div className="flex items-center justify-center gap-2 py-1 bg-green-500/10 rounded-full">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>

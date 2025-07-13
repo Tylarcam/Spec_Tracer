@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Terminal, History, Download, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Terminal, History, Download, Trash2, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -13,29 +13,48 @@ interface LogEntry {
 }
 
 interface TabbedTerminalProps {
-  logs: LogEntry[];
+  logs?: LogEntry[];
   isVisible: boolean;
   onToggle: () => void;
   onClear: () => void;
+  showTerminal?: boolean;
+  setShowTerminal?: (show: boolean) => void;
+  events?: any[];
+  exportEvents?: () => void;
+  clearEvents?: () => void;
+  debugResponses?: any[];
+  clearDebugResponses?: () => void;
+  currentElement?: any;
 }
 
 const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
-  logs,
+  logs = [],
   isVisible,
   onToggle,
   onClear,
+  showTerminal,
+  setShowTerminal,
+  events = [],
+  exportEvents,
+  clearEvents,
+  debugResponses = [],
+  clearDebugResponses,
 }) => {
   const [activeTab, setActiveTab] = useState('terminal');
   const [isExpanded, setIsExpanded] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
   const isMobile = window.innerWidth < 768;
 
+  // Use showTerminal prop if provided, otherwise use isVisible
+  const terminalVisible = showTerminal !== undefined ? showTerminal : isVisible;
+  const handleToggle = setShowTerminal || onToggle;
+
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
     if (terminalRef.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
-  }, [logs]);
+  }, [logs, events]);
 
   const formatTimestamp = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
@@ -57,8 +76,9 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   };
 
   const exportLogs = () => {
-    const content = logs.map(log => 
-      `[${formatTimestamp(log.timestamp)}] ${log.type.toUpperCase()}: ${log.content}`
+    const allLogs = [...logs, ...events];
+    const content = allLogs.map(log => 
+      `[${log.timestamp ? formatTimestamp(new Date(log.timestamp)) : new Date().toLocaleTimeString()}] ${(log.type || 'event').toUpperCase()}: ${log.content || log.prompt || JSON.stringify(log)}`
     ).join('\n');
     
     const blob = new Blob([content], { type: 'text/plain' });
@@ -70,16 +90,32 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  if (!isVisible) {
+  const handleClear = () => {
+    onClear();
+    if (clearEvents) clearEvents();
+    if (clearDebugResponses) clearDebugResponses();
+  };
+
+  const handleExport = () => {
+    if (exportEvents) {
+      exportEvents();
+    } else {
+      exportLogs();
+    }
+  };
+
+  if (!terminalVisible) {
     return (
       <Button
-        onClick={onToggle}
+        onClick={handleToggle}
         className="fixed bottom-4 right-4 z-30 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
       >
         <Terminal className="h-5 w-5" />
       </Button>
     );
   }
+
+  const allLogs = [...logs, ...events];
 
   return (
     <div className={`
@@ -93,7 +129,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
         <div className="flex items-center gap-2">
           <Terminal className="h-4 w-4 text-green-400" />
           <span className="text-green-400 font-semibold text-sm">Debug Terminal</span>
-          <span className="text-xs text-gray-400">({logs.length} entries)</span>
+          <span className="text-xs text-gray-400">({allLogs.length} entries)</span>
         </div>
         
         <div className="flex items-center gap-1">
@@ -110,32 +146,32 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
           )}
           
           <Button
-            onClick={exportLogs}
+            onClick={handleExport}
             variant="ghost"
             size="sm"
             className="text-gray-400 hover:text-white h-7 w-7 p-0"
-            disabled={logs.length === 0}
+            disabled={allLogs.length === 0}
           >
             <Download className="h-3 w-3" />
           </Button>
           
           <Button
-            onClick={onClear}
+            onClick={handleClear}
             variant="ghost"
             size="sm"
             className="text-gray-400 hover:text-red-400 h-7 w-7 p-0"
-            disabled={logs.length === 0}
+            disabled={allLogs.length === 0}
           >
             <Trash2 className="h-3 w-3" />
           </Button>
           
           <Button
-            onClick={onToggle}
+            onClick={handleToggle}
             variant="ghost"
             size="sm"
             className="text-gray-400 hover:text-white h-7 w-7 p-0"
           >
-            <ChevronDown className="h-4 w-4" />
+            <X className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -162,7 +198,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
             ref={terminalRef}
             className="h-full overflow-y-auto p-3 space-y-2 font-mono text-sm"
           >
-            {logs.length === 0 ? (
+            {allLogs.length === 0 ? (
               <div className="flex items-center justify-center h-full text-gray-500">
                 <div className="text-center">
                   <Terminal className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -170,13 +206,13 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                 </div>
               </div>
             ) : (
-              logs.map((log) => (
-                <div key={log.id} className="flex gap-2 text-xs">
+              allLogs.map((log, index) => (
+                <div key={log.id || index} className="flex gap-2 text-xs">
                   <span className="text-gray-500 shrink-0">
-                    {formatTimestamp(log.timestamp)}
+                    {log.timestamp ? formatTimestamp(new Date(log.timestamp)) : new Date().toLocaleTimeString()}
                   </span>
-                  <span className="shrink-0">{getLogIcon(log.type)}</span>
-                  <span className="text-gray-300 break-all">{log.content}</span>
+                  <span className="shrink-0">{getLogIcon(log.type || 'system')}</span>
+                  <span className="text-gray-300 break-all">{log.content || log.prompt || JSON.stringify(log)}</span>
                 </div>
               ))
             )}
@@ -186,16 +222,18 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
         <TabsContent value="history" className="flex-1 m-0 p-0">
           <div className="h-full overflow-y-auto p-3">
             <div className="space-y-3">
-              {logs.filter(log => log.type === 'ai-response').map((log) => (
-                <div key={log.id} className="bg-slate-800 rounded-lg p-3 border border-green-500/20">
+              {debugResponses.filter(log => log.type === 'ai-response' || log.response).map((log, index) => (
+                <div key={log.id || index} className="bg-slate-800 rounded-lg p-3 border border-green-500/20">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs text-gray-500">{formatTimestamp(log.timestamp)}</span>
+                    <span className="text-xs text-gray-500">
+                      {log.timestamp ? formatTimestamp(new Date(log.timestamp)) : new Date().toLocaleTimeString()}
+                    </span>
                     <span className="text-xs text-green-400 font-medium">AI Response</span>
                   </div>
-                  <p className="text-sm text-gray-300 leading-relaxed">{log.content}</p>
+                  <p className="text-sm text-gray-300 leading-relaxed">{log.content || log.response}</p>
                 </div>
               ))}
-              {logs.filter(log => log.type === 'ai-response').length === 0 && (
+              {debugResponses.filter(log => log.type === 'ai-response' || log.response).length === 0 && (
                 <div className="flex items-center justify-center h-full text-gray-500">
                   <div className="text-center">
                     <History className="h-8 w-8 mx-auto mb-2 opacity-50" />

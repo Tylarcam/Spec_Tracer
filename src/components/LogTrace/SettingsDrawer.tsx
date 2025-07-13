@@ -8,9 +8,10 @@ interface SettingsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onUpgrade: () => void;
+  onUpgradeClick?: () => void;
 }
 
-const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgrade }) => {
+const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgrade, onUpgradeClick }) => {
   const shortcuts = [
     { key: 'S', description: 'Start/Stop tracing', icon: Zap },
     { key: 'E', description: 'End tracing session', icon: X },
@@ -18,6 +19,8 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
     { key: 'T', description: 'Toggle terminal panel', icon: Terminal },
     { key: 'Ctrl+D', description: 'Trigger AI debug', icon: MousePointer },
   ];
+
+  const handleUpgrade = onUpgradeClick || onUpgrade;
 
   if (!isOpen) return null;
 
@@ -60,7 +63,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
               Unlock unlimited AI debugging, export features, and priority support.
             </p>
             <Button
-              onClick={onUpgrade}
+              onClick={handleUpgrade}
               className="w-full bg-green-600 hover:bg-green-700 text-white"
             >
               Upgrade to Pro

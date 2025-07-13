@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
@@ -24,6 +23,11 @@ const LogTrace: React.FC = () => {
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [detailsElement, setDetailsElement] = useState<any>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem('logtrace-onboarding-completed');
+  });
 
   // Usage tracking
   const {
@@ -93,6 +97,21 @@ const LogTrace: React.FC = () => {
     }
   }, [hasErrors, errors, toast]);
 
+  // Onboarding handlers
+  const handleOnboardingNext = () => {
+    setOnboardingStep(prev => prev + 1);
+  };
+
+  const handleOnboardingSkip = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('logtrace-onboarding-completed', 'true');
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('logtrace-onboarding-completed', 'true');
+  };
+
   const handleElementClick = useCallback(() => {
     if (!currentElement) return;
     
@@ -143,6 +162,7 @@ const LogTrace: React.FC = () => {
     setShowInteractivePanel(false);
     setShowDebugModal(false);
     setIsHoverPaused(false);
+    setShowSettingsDrawer(false);
   }, [setShowDebugModal]);
 
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
@@ -169,6 +189,10 @@ const LogTrace: React.FC = () => {
 
   const handleUpgradeClick = useCallback(() => {
     setShowUpgradeModal(true);
+  }, []);
+
+  const handleSettingsClick = useCallback(() => {
+    setShowSettingsDrawer(true);
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -331,6 +355,8 @@ const LogTrace: React.FC = () => {
           showTerminal={showTerminal}
           setShowTerminal={setShowTerminal}
           remainingUses={remainingUses}
+          onSettingsClick={handleSettingsClick}
+          onUpgradeClick={handleUpgradeClick}
         />
 
         {hasErrors && (
@@ -347,17 +373,21 @@ const LogTrace: React.FC = () => {
       </div>
 
       {/* Settings Drawer */}
-      <SettingsDrawer onUpgradeClick={handleUpgradeClick} />
+      <SettingsDrawer 
+        isOpen={showSettingsDrawer}
+        onClose={() => setShowSettingsDrawer(false)}
+        onUpgrade={handleUpgradeClick}
+      />
 
       {/* Onboarding Walkthrough */}
-      <OnboardingWalkthrough
-        isActive={isActive}
-        currentElement={currentElement}
-        mousePosition={mousePosition}
-        showInteractivePanel={showInteractivePanel}
-        showTerminal={showTerminal}
-        onComplete={() => {}}
-      />
+      {showOnboarding && (
+        <OnboardingWalkthrough
+          step={onboardingStep}
+          onNext={handleOnboardingNext}
+          onSkip={handleOnboardingSkip}
+          onComplete={handleOnboardingComplete}
+        />
+      )}
 
       <MouseOverlay 
         isActive={isActive}
@@ -401,6 +431,9 @@ const LogTrace: React.FC = () => {
       />
 
       <TabbedTerminal 
+        isVisible={showTerminal}
+        onToggle={() => setShowTerminal(!showTerminal)}
+        onClear={clearEvents}
         showTerminal={showTerminal}
         setShowTerminal={setShowTerminal}
         events={events}
@@ -408,11 +441,6 @@ const LogTrace: React.FC = () => {
         clearEvents={clearEvents}
         debugResponses={debugResponses}
         clearDebugResponses={clearDebugResponses}
-        currentElement={currentElement ? {
-          tag: currentElement.tag,
-          id: currentElement.id,
-          classes: currentElement.classes,
-        } : null}
       />
 
       {/* Upgrade Modal */}
