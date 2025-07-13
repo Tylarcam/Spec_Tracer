@@ -1,57 +1,88 @@
 
-import React, { useState } from 'react';
-import { Settings, X, Keyboard, Zap } from 'lucide-react';
+import React from 'react';
+import { X, Settings, Keyboard, Zap, Eye, Terminal, MousePointer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
+import { Separator } from '@/components/ui/separator';
 
 interface SettingsDrawerProps {
-  onUpgradeClick: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpgrade: () => void;
 }
 
-const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ onUpgradeClick }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
+const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgrade }) => {
   const shortcuts = [
-    { key: 'S', description: 'Start element tracing mode' },
-    { key: 'E', description: 'End tracing and exit mode' },
-    { key: 'D', description: 'Freeze hover (pause element selection)' },
-    { key: 'T', description: 'Toggle terminal history panel' },
-    { key: 'Ctrl+D', description: 'Trigger AI debug analysis' },
-    { key: 'Escape', description: 'Close all panels and modals' },
+    { key: 'S', description: 'Start/Stop tracing', icon: Zap },
+    { key: 'E', description: 'End tracing session', icon: X },
+    { key: 'D', description: 'Freeze hover state', icon: Eye },
+    { key: 'T', description: 'Toggle terminal panel', icon: Terminal },
+    { key: 'Ctrl+D', description: 'Trigger AI debug', icon: MousePointer },
   ];
 
+  if (!isOpen) return null;
+
   return (
-    <Drawer open={isOpen} onOpenChange={setIsOpen}>
-      <DrawerTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="fixed top-4 right-4 z-40 bg-slate-800/80 hover:bg-slate-700 text-green-400 border border-green-400/20"
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
-      </DrawerTrigger>
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+        onClick={onClose}
+      />
       
-      <DrawerContent className="bg-slate-900 border-green-400/20">
-        <DrawerHeader className="border-b border-green-400/20">
-          <DrawerTitle className="text-green-400 font-mono flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            LogTrace Settings
-          </DrawerTitle>
-        </DrawerHeader>
-        
-        <div className="p-6 space-y-6">
-          {/* Keyboard Shortcuts Section */}
+      {/* Drawer */}
+      <div className={`
+        fixed right-0 top-0 h-full w-full max-w-sm bg-slate-900 border-l border-green-500/30 
+        shadow-2xl z-50 transform transition-transform duration-300 ease-out
+        ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+      `}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-green-500/20">
+          <div className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-green-400" />
+            <h2 className="text-lg font-semibold text-white">Settings</h2>
+          </div>
+          <Button
+            onClick={onClose}
+            variant="ghost"
+            size="sm"
+            className="text-gray-400 hover:text-white h-8 w-8 p-0"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 space-y-6 overflow-y-auto h-full pb-20">
+          {/* Upgrade Section */}
+          <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-400/30 rounded-lg p-4">
+            <h3 className="text-green-400 font-semibold mb-2">LogTrace Pro</h3>
+            <p className="text-gray-300 text-sm mb-3">
+              Unlock unlimited AI debugging, export features, and priority support.
+            </p>
+            <Button
+              onClick={onUpgrade}
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+            >
+              Upgrade to Pro
+            </Button>
+          </div>
+
+          <Separator className="bg-gray-700" />
+
+          {/* Keyboard Shortcuts */}
           <div>
-            <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-              <Keyboard className="h-4 w-4" />
-              Keyboard Shortcuts
-            </h3>
-            <div className="space-y-2">
-              {shortcuts.map((shortcut, index) => (
-                <div key={index} className="flex justify-between items-center py-2 px-3 bg-slate-800/50 rounded border border-slate-700">
-                  <span className="text-slate-300 text-sm">{shortcut.description}</span>
-                  <kbd className="bg-slate-700 text-green-400 px-2 py-1 rounded text-xs font-mono">
+            <div className="flex items-center gap-2 mb-4">
+              <Keyboard className="h-4 w-4 text-cyan-400" />
+              <h3 className="text-cyan-400 font-semibold">Keyboard Shortcuts</h3>
+            </div>
+            <div className="space-y-3">
+              {shortcuts.map((shortcut) => (
+                <div key={shortcut.key} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <shortcut.icon className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-300 text-sm">{shortcut.description}</span>
+                  </div>
+                  <kbd className="px-2 py-1 bg-gray-800 border border-gray-600 rounded text-xs text-gray-300">
                     {shortcut.key}
                   </kbd>
                 </div>
@@ -59,31 +90,26 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ onUpgradeClick }) => {
             </div>
           </div>
 
-          {/* Upgrade Section */}
-          <div className="border-t border-green-400/20 pt-6">
-            <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              Upgrade
-            </h3>
-            <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-400/30 rounded-lg p-4">
-              <h4 className="text-green-400 font-semibold mb-2">LogTrace Pro</h4>
-              <p className="text-slate-300 text-sm mb-4">
-                Unlock unlimited AI debugging, export features, and advanced analytics.
-              </p>
-              <Button
-                onClick={() => {
-                  onUpgradeClick();
-                  setIsOpen(false);
-                }}
-                className="w-full bg-green-500 hover:bg-green-600 text-black font-semibold"
-              >
-                Upgrade to Pro
-              </Button>
+          <Separator className="bg-gray-700" />
+
+          {/* Mobile Tips */}
+          <div className="lg:hidden">
+            <h3 className="text-cyan-400 font-semibold mb-3">Mobile Tips</h3>
+            <div className="space-y-2 text-sm text-gray-300">
+              <p>• Tap elements to inspect them</p>
+              <p>• Long press for additional options</p>
+              <p>• Swipe up to access terminal</p>
+              <p>• Use two fingers to scroll content</p>
             </div>
           </div>
+
+          {/* Version Info */}
+          <div className="text-center text-xs text-gray-500 pt-4">
+            LogTrace v1.0.0
+          </div>
         </div>
-      </DrawerContent>
-    </Drawer>
+      </div>
+    </>
   );
 };
 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, Zap, Check, Star } from 'lucide-react';
+import { X, Crown, Check, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface UpgradeModalProps {
@@ -11,103 +11,95 @@ interface UpgradeModalProps {
 
 const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, remainingUses }) => {
   const handleUpgrade = () => {
-    // For MVP, we'll use a simple Stripe Checkout link
-    // In production, you'd integrate with your Stripe setup
-    const stripeCheckoutUrl = 'https://buy.stripe.com/test_YOUR_STRIPE_LINK'; // Replace with actual link
-    window.open(stripeCheckoutUrl, '_blank');
-    onClose();
+    // Replace with your actual Stripe checkout URL
+    window.open('https://buy.stripe.com/test_your_checkout_link', '_blank');
   };
 
   if (!isOpen) return null;
 
-  const isLimitReached = remainingUses <= 0;
+  const features = [
+    'Unlimited AI debugging requests',
+    'Export debug sessions to PDF',
+    'Advanced element analysis',
+    'Priority customer support',
+    'Team collaboration features',
+    'Custom branding options'
+  ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      
-      {/* Modal */}
-      <div className="relative bg-slate-900 border border-green-400/30 rounded-xl max-w-md w-full p-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white"
-        >
-          <X className="h-5 w-5" />
-        </Button>
-
-        <div className="text-center mb-6">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-cyan-500 rounded-full flex items-center justify-center mb-4">
-            <Zap className="h-8 w-8 text-white" />
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-slate-900 border border-green-500/30 rounded-xl shadow-2xl w-full max-w-md mx-4 animate-scale-in">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-green-500/20">
+          <div className="flex items-center gap-2">
+            <Crown className="h-6 w-6 text-yellow-400" />
+            <h2 className="text-xl font-bold text-white">Upgrade to Pro</h2>
           </div>
-          
-          <h2 className="text-2xl font-bold text-white mb-2">
-            {isLimitReached ? 'Free Limit Reached!' : 'Upgrade to Pro'}
-          </h2>
-          
-          <p className="text-slate-300">
-            {isLimitReached 
-              ? "You've used all 3 free AI debug requests." 
-              : `${remainingUses} free AI debug requests remaining.`
-            }
-          </p>
-        </div>
-
-        {/* Features */}
-        <div className="space-y-3 mb-6">
-          <div className="flex items-center gap-3 text-slate-200">
-            <Check className="h-5 w-5 text-green-400 flex-shrink-0" />
-            <span>Unlimited AI debugging requests</span>
-          </div>
-          <div className="flex items-center gap-3 text-slate-200">
-            <Check className="h-5 w-5 text-green-400 flex-shrink-0" />
-            <span>Export debugging sessions</span>
-          </div>
-          <div className="flex items-center gap-3 text-slate-200">
-            <Check className="h-5 w-5 text-green-400 flex-shrink-0" />
-            <span>Advanced element analytics</span>
-          </div>
-          <div className="flex items-center gap-3 text-slate-200">
-            <Check className="h-5 w-5 text-green-400 flex-shrink-0" />
-            <span>Priority support</span>
-          </div>
-        </div>
-
-        {/* Pricing */}
-        <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-400/30 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Star className="h-5 w-5 text-yellow-400" />
-            <span className="text-lg font-semibold text-white">LogTrace Pro</span>
-          </div>
-          <div className="text-center">
-            <span className="text-3xl font-bold text-green-400">$9</span>
-            <span className="text-slate-300">/month</span>
-          </div>
-          <p className="text-center text-sm text-slate-400 mt-1">
-            Cancel anytime
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className="space-y-3">
           <Button
-            onClick={handleUpgrade}
-            className="w-full bg-green-500 hover:bg-green-600 text-black font-semibold py-3"
+            onClick={onClose}
+            variant="ghost"
+            size="sm"
+            className="text-gray-400 hover:text-white h-8 w-8 p-0"
           >
-            Upgrade to Pro Now
+            <X className="h-4 w-4" />
           </Button>
-          
-          {!isLimitReached && (
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {/* Usage Notice */}
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="h-4 w-4 text-red-400" />
+              <span className="text-red-400 font-semibold text-sm">Free Limit Reached</span>
+            </div>
+            <p className="text-gray-300 text-sm">
+              You've used all {3 - remainingUses} free AI debugging requests. 
+              Upgrade to continue with unlimited access.
+            </p>
+          </div>
+
+          {/* Pricing */}
+          <div className="text-center mb-6">
+            <div className="text-3xl font-bold text-white mb-1">
+              $9<span className="text-lg text-gray-400">/month</span>
+            </div>
+            <p className="text-gray-400 text-sm">Cancel anytime</p>
+          </div>
+
+          {/* Features */}
+          <div className="space-y-3 mb-6">
+            {features.map((feature, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
+                <span className="text-gray-300 text-sm">{feature}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="space-y-3">
             <Button
-              variant="ghost"
+              onClick={handleUpgrade}
+              className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-base font-semibold"
+            >
+              <Crown className="h-4 w-4 mr-2" />
+              Upgrade Now
+            </Button>
+            <Button
               onClick={onClose}
-              className="w-full text-slate-400 hover:text-white"
+              variant="outline"
+              className="w-full border-gray-600 text-gray-300 hover:bg-gray-800 h-10"
             >
               Maybe Later
             </Button>
-          )}
+          </div>
+
+          {/* Trust indicators */}
+          <div className="text-center text-xs text-gray-500 mt-4 space-y-1">
+            <p>🔒 Secure payment powered by Stripe</p>
+            <p>💳 30-day money-back guarantee</p>
+          </div>
         </div>
       </div>
     </div>
