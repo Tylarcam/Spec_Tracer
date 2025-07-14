@@ -33,7 +33,20 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
       }}
       onClick={onElementClick}
     >
-      <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20 hover:border-cyan-400/70 transition-colors">
+      {/* Halo effect */}
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0"
+        style={{
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          boxShadow: '0 0 32px 12px rgba(34,211,238,0.35), 0 0 0 4px rgba(34,211,238,0.15)',
+          background: 'radial-gradient(circle, rgba(34,211,238,0.18) 0%, rgba(34,211,238,0.08) 80%, transparent 100%)',
+          pointerEvents: 'none',
+        }}
+        aria-hidden="true"
+      />
+      <Card className="relative z-10 bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20 hover:border-cyan-400/70 transition-colors">
         <div className="p-2 text-xs">
           <div className="flex items-center gap-2 mb-1">
             <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400 text-xs">
