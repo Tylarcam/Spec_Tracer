@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
@@ -147,14 +146,18 @@ const LogTrace: React.FC<LogTraceProps> = ({
   useEffect(() => {
     if (contextCaptureEnabled && !isActive) {
       setIsActive(true);
+    } else if (!contextCaptureEnabled && isActive) {
+      setIsActive(false);
     }
   }, [contextCaptureEnabled, isActive, setIsActive]);
 
   // Sync mobile gesture state with context capture
   useEffect(() => {
-    setContextCaptureEnabled(captureActive);
-    setIsActive(captureActive);
-  }, [captureActive, setIsActive]);
+    if (captureActive !== contextCaptureEnabled) {
+      setContextCaptureEnabled(captureActive);
+      setIsActive(captureActive);
+    }
+  }, [captureActive, contextCaptureEnabled, setIsActive]);
 
   // Watch for errors from useLogTrace and display toast
   useEffect(() => {
@@ -251,7 +254,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
     setIsHoverPaused(false);
     setShowSettingsDrawer(false);
     if (showTerminal) setShowTerminal(false);
-  }, [setShowDebugModal, showTerminal]);
+  }, [setShowDebugModal, showTerminal, setShowTerminal]);
 
   // Analyze with AI handler
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
@@ -448,6 +451,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
         e.preventDefault();
         if (!isActive) {
           setIsActive(true);
+          setContextCaptureEnabled(true);
         }
       }
       
@@ -455,6 +459,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
         e.preventDefault();
         if (isActive) {
           setIsActive(false);
+          setContextCaptureEnabled(false);
           handleEscape();
         }
       }
@@ -489,7 +494,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
     setShowTerminal, 
     setIsActive,
     handleEscape,
-    canUseAiDebug
+    canUseAiDebug,
+    setContextCaptureEnabled
   ]);
 
   // mouse events for resizing

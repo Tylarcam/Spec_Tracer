@@ -56,7 +56,6 @@ const Index: React.FC = () => {
   };
 
   const handleUpgrade = () => {
-    // This will trigger the upgrade modal in LogTrace
     setBannerDismissed(true);
   };
 
@@ -72,7 +71,7 @@ const Index: React.FC = () => {
   return (
     <div className="min-h-screen relative">
       {/* Upgrade Notification Banner - only show for authenticated users with low credits */}
-      {!bannerDismissed && !loading && creditsStatus && user && (
+      {!bannerDismissed && !loading && creditsStatus && user && (remainingCredits <= 2 && !isPremiumUser) && (
         <UpgradeNotificationBanner
           remainingCredits={remainingCredits}
           totalCredits={totalCredits}
