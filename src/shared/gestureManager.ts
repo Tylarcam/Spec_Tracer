@@ -28,6 +28,7 @@ export const GestureProvider: React.FC<{ children: React.ReactNode }> = ({
   const touchStartRef = useRef<number>(0);
   const activeTouchesRef = useRef<number>(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const externalListeners = useRef<((e: GestureEvent) => void)[]>([]);
 
   /* -------------------------------- Gestures -------------------------------- */
   const handleTouchStart = useCallback((e: TouchEvent) => {
@@ -95,7 +96,6 @@ export const GestureProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // consumer-supplied listener
-  const externalListeners = useRef<((e: GestureEvent) => void)[]>([]);
   const externalEmit = (e: GestureEvent) =>
     externalListeners.current.forEach((cb) => cb(e));
 
@@ -106,7 +106,9 @@ export const GestureProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <GestureContext.Provider value={value}>{children}</GestureContext.Provider>
+    <GestureContext.Provider value={value}>
+      {children}
+    </GestureContext.Provider>
   );
 };
 
