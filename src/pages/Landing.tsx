@@ -3,11 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Code, Zap, Target, Sparkles, Play, Eye, Mail, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const Landing = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [email, setEmail] = useState('');
   const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,16 +23,44 @@ const Landing = () => {
 
   const handleJoinWaitlist = async () => {
     if (!email.trim()) return;
-    
     setIsJoiningWaitlist(true);
-    
-    // TODO: Implement actual waitlist signup
-    // For now, just simulate success
-    setTimeout(() => {
-      alert('Thanks for joining the waitlist! We\'ll notify you when the Chrome extension launches.');
+    try {
+      // Check for duplicate
+      const { data: existing, error: fetchError } = await supabase
+        .from('waitlist')
+        .select('id')
+        .eq('email', email.trim().toLowerCase())
+        .maybeSingle();
+      if (fetchError) throw fetchError;
+      if (existing) {
+        toast({
+          title: 'Already Signed Up',
+          description: 'This email is already on the waitlist.',
+          variant: 'default',
+        });
+        setIsJoiningWaitlist(false);
+        return;
+      }
+      // Insert new
+      const { error } = await supabase
+        .from('waitlist')
+        .insert([{ email: email.trim().toLowerCase() }]);
+      if (error) throw error;
+      toast({
+        title: 'Success!',
+        description: 'You have joined the waitlist. Check your email for confirmation.',
+        variant: 'success',
+      });
       setEmail('');
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err?.message || 'Could not join waitlist. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
       setIsJoiningWaitlist(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -78,7 +109,7 @@ const Landing = () => {
           </div>
 
           {/* Two CTAs: Primary + Secondary */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
             <Link to="/debug">
               <Button
                 size="lg"
@@ -110,7 +141,12 @@ const Landing = () => {
               </Button>
             </div>
           </div>
-          
+          {/* Privacy Assurance & Benefits */}
+          <div className="text-sm text-slate-400 mb-6 text-center">
+            <span className="text-cyan-400 font-medium">🎯 Early access to Chrome extension</span>
+            <span className="mx-2">•</span>
+            <span>No spam, unsubscribe anytime</span>
+          </div>
           <div className="text-sm text-slate-400 flex items-center justify-center gap-4">
             <span>✓ Free demo available now</span>
             <span>✓ Chrome extension coming soon</span>
@@ -297,10 +333,13 @@ const Landing = () => {
                 </Button>
               </div>
             </div>
-            
-            <div className="text-sm text-slate-400 mt-6">
-              Demo available now • Chrome extension coming soon • Early access signup
+            {/* Privacy Assurance & Benefits */}
+            <div className="text-sm text-slate-400 mt-6 text-center">
+              <span className="text-cyan-400 font-medium">🎯 Early access to Chrome extension</span>
+              <span className="mx-2">•</span>
+              <span>No spam, unsubscribe anytime</span>
             </div>
+            <div className="text-sm text-slate-400 mt-2">Demo available now • Chrome extension coming soon • Early access signup</div>
           </div>
         </div>
       </section>
