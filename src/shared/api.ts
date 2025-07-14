@@ -25,12 +25,12 @@ export const callAIDebugFunction = async (
 
   // Check if user has premium subscription
   const { data: subscription } = await supabase
-    .from('subscribers')
-    .select('subscribed')
+    .from('user_subscriptions')
+    .select('subscription_status')
     .eq('user_id', user.id)
     .single();
 
-  const isPremium = subscription?.subscribed === true;
+  const isPremium = subscription?.subscription_status === 'active';
 
   // If not premium, check and use credits
   if (!isPremium && useCredit) {

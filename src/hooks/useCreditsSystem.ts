@@ -35,32 +35,22 @@ export const useCreditsSystem = (): UseCreditsSystemReturn => {
 
     try {
       setError(null);
-      const { data, error: functionError } = await supabase
-        .from('subscribers')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      const { data, error: functionError } = await supabase.rpc('get_user_credits_status', {
+        user_uuid: user.id
+      });
 
       if (functionError) {
         throw functionError;
       }
 
-      if (data) {
+      if (data && data.length > 0) {
+        const status = data[0];
         setCreditsStatus({
-          creditsRemaining: data.subscribed ? 999 : 5, // Simple fallback
-          creditsLimit: data.subscribed ? 999 : 5,
-          resetTime: new Date().toISOString(),
-          isPremium: data.subscribed,
-          waitlistBonusRemaining: 0
-        });
-      } else {
-        // No subscription record, create default
-        setCreditsStatus({
-          creditsRemaining: 5,
-          creditsLimit: 5,
-          resetTime: new Date().toISOString(),
-          isPremium: false,
-          waitlistBonusRemaining: 0
+          creditsRemaining: status.credits_remaining,
+          creditsLimit: status.credits_limit,
+          resetTime: status.reset_time,
+          isPremium: status.is_premium,
+          waitlistBonusRemaining: status.waitlist_bonus_remaining
         });
       }
     } catch (err: any) {
@@ -76,19 +66,57 @@ export const useCreditsSystem = (): UseCreditsSystemReturn => {
       return false;
     }
 
-    // Simple credit system - just return true for now
-    // In a real app, you'd implement proper credit tracking
-    return true;
-  }, [user]);
+    try {
+      const { data, error: functionError } = await supabase.rpc('use_credit', {
+        user_uuid: user.id
+      });
+
+      if (functionError) {
+        throw functionError;
+      }
+
+      if (data) {
+        // Refresh status after using credit
+        await refreshStatus();
+        return true;
+      }
+
+      return false;
+    } catch (err: any) {
+      console.error('Error using credit:', err);
+      setError(err.message || 'Failed to use credit');
+      return false;
+    }
+  }, [user, refreshStatus]);
 
   const grantWaitlistCredits = useCallback(async (email: string): Promise<boolean> => {
     if (!user) {
       return false;
     }
 
-    // Simple implementation - just return true
-    return true;
-  }, [user]);
+    try {
+      const { data, error: functionError } = await supabase.rpc('grant_waitlist_credits', {
+        user_uuid: user.id,
+        user_email: email
+      });
+
+      if (functionError) {
+        throw functionError;
+      }
+
+      if (data) {
+        // Refresh status after granting credits
+        await refreshStatus();
+        return true;
+      }
+
+      return false;
+    } catch (err: any) {
+      console.error('Error granting waitlist credits:', err);
+      setError(err.message || 'Failed to grant waitlist credits');
+      return false;
+    }
+  }, [user, refreshStatus]);
 
   // Load credits status on mount and when user changes
   useEffect(() => {
