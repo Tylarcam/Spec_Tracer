@@ -39,7 +39,7 @@ const Index: React.FC = () => {
         <div className="relative">
           <iframe
             src={siteUrl}
-            className="w-full h-[80vh] border-none"
+            className="w-full h-[calc(100vh-60px)] border-none"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
             onError={handleIframeError}
             onLoad={handleIframeLoad}
@@ -53,6 +53,26 @@ const Index: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+      
+      {/* Show modern search interface when no URL */}
+      {!siteUrl && (
+        <div className="flex items-center justify-center min-h-[calc(100vh-60px)] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+          <div className="text-center text-white max-w-4xl px-4">
+            <div className="mb-8">
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-3 rounded-2xl">
+                  <div className="w-8 h-8 flex items-center justify-center">⚡</div>
+                </div>
+                <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                  LogTrace
+                </h1>
+              </div>
+              <p className="text-xl text-slate-300 mb-4">Debug any website with AI-powered inspection</p>
+              <p className="text-slate-400">Enter a URL above to start debugging, or press 'S' to activate on any loaded page</p>
+            </div>
+          </div>
         </div>
       )}
       
