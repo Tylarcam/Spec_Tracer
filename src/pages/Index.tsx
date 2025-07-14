@@ -1,17 +1,16 @@
 
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-const LogTrace = React.lazy(() => import('@/components/LogTrace'));
-import Spinner from '@/components/ui/spinner';
 import IframeDemoBar from '@/components/IframeDemoBar';
 import UpgradeNotificationBanner from '@/components/LogTrace/UpgradeNotificationBanner';
+import HybridIframeDebugger from '@/components/LogTrace/HybridIframeDebugger';
 import { useToast } from '@/hooks/use-toast';
 import { useCreditsSystem } from '@/hooks/useCreditsSystem';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Terminal, Settings, Crown, Zap, User, LogOut } from 'lucide-react';
+import { Crown, Zap, User, LogOut, Terminal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,8 +21,9 @@ const Index: React.FC = () => {
   const siteUrl = params.get('site');
   const [iframeError, setIframeError] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  const [contextCaptureEnabled, setContextCaptureEnabled] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const { creditsStatus, loading } = useCreditsSystem();
@@ -39,6 +39,51 @@ const Index: React.FC = () => {
     }
   }, [siteUrl, iframeError, toast]);
 
+  // Keyboard shortcuts for debugging
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement as HTMLElement | null;
+      if (
+        activeElement &&
+        (activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          activeElement.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === 's' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        if (!debugMode) {
+          setDebugMode(true);
+          toast({
+            title: 'LogTrace Activated',
+            description: 'Hover over iframe elements to inspect them. Press Ctrl+D to debug.',
+          });
+        }
+      }
+
+      if (e.key === 'e' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        if (debugMode) {
+          setDebugMode(false);
+          toast({
+            title: 'LogTrace Deactivated',
+            description: 'Element inspection is now disabled.',
+          });
+        }
+      }
+
+      if (e.key === 't' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        setShowTerminal(!showTerminal);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [debugMode, showTerminal, toast]);
+
   const handleIframeError = () => {
     setIframeError(true);
   };
@@ -50,8 +95,8 @@ const Index: React.FC = () => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     toast({
-      title: 'Signed Out',
-      description: 'You have been successfully signed out.',
+      title: 'Signed out successfully',
+      description: 'You have been signed out of your account.',
     });
   };
 
@@ -95,15 +140,15 @@ const Index: React.FC = () => {
 
         {/* Center - LogTrace Controls */}
         <div className="flex items-center gap-4">
-          {/* Context Capture Toggle */}
+          {/* Debug Mode Toggle */}
           <div className="flex items-center gap-2">
-            <Label htmlFor="context-capture" className="text-sm text-gray-300">
-              Context Capture
+            <Label htmlFor="debug-mode" className="text-sm text-gray-300">
+              Debug Mode
             </Label>
             <Switch
-              id="context-capture"
-              checked={contextCaptureEnabled}
-              onCheckedChange={setContextCaptureEnabled}
+              id="debug-mode"
+              checked={debugMode}
+              onCheckedChange={setDebugMode}
               className="data-[state=checked]:bg-green-600"
             />
           </div>
@@ -188,9 +233,10 @@ const Index: React.FC = () => {
         </div>
       </div>
       
-      {/* Iframe */}
+      {/* Main content area with iframe */}
       <div className="relative">
         <iframe
+          ref={iframeRef}
           src={siteUrl}
           className={`w-full border-none ${!bannerDismissed && !loading && creditsStatus && user && (remainingCredits <= 2 && !isPremiumUser) ? 'h-[calc(100vh-108px)]' : 'h-[calc(100vh-60px)]'}`}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
@@ -206,22 +252,26 @@ const Index: React.FC = () => {
             </div>
           </div>
         )}
+        
+        {/* LogTrace activation hint */}
+        {!debugMode && !iframeError && (
+          <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur border border-green-500/30 rounded-lg p-3 text-sm text-slate-300">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="font-medium text-green-400">LogTrace Ready</span>
+            </div>
+            <p>Press <kbd className="px-1 py-0.5 bg-slate-700 rounded text-xs">S</kbd> to start debugging iframe</p>
+          </div>
+        )}
       </div>
       
-      {/* LogTrace Component - Pass down the states we're managing */}
-      <Suspense fallback={<div className="flex justify-center items-center h-screen"><Spinner size={48} /></div>}>
-        <div className="fixed inset-0 pointer-events-none z-50">
-          <div className="pointer-events-auto">
-            <LogTrace 
-              contextCaptureEnabled={contextCaptureEnabled}
-              onContextCaptureChange={setContextCaptureEnabled}
-              showTerminal={showTerminal}
-              onShowTerminalChange={setShowTerminal}
-              hideHeader={true}
-            />
-          </div>
-        </div>
-      </Suspense>
+      {/* Hybrid iframe debugger - automatically detects same-origin vs cross-origin */}
+      <HybridIframeDebugger
+        iframeRef={iframeRef}
+        isActive={debugMode}
+        showTerminal={showTerminal}
+        setShowTerminal={setShowTerminal}
+      />
     </div>
   );
 };
