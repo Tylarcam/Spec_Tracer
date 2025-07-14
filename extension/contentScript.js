@@ -173,35 +173,57 @@ function createInfoPanel() {
     position: fixed;
     top: 20px;
     right: 20px;
-    width: 300px;
-    max-height: 400px;
+    width: 320px;
+    max-height: 500px;
     background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid #334155;
-    border-radius: 12px;
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(6, 182, 212, 0.5);
+    border-radius: 8px;
     padding: 16px;
     color: #e2e8f0;
     font-size: 14px;
     z-index: 10001;
     display: none;
     overflow-y: auto;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    transition: transform 0.2s ease;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(6, 182, 212, 0.05);
+    transition: all 0.2s ease;
   `;
   
   panel.innerHTML = `
     <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; cursor: move;">
-      <h3 style="margin: 0; color: #06b6d4; font-size: 16px;">🔍 Element Inspector</h3>
+      <h3 style="margin: 0; color: #06b6d4; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        Element Inspector
+      </h3>
       <div style="display: flex; gap: 8px;">
-        <button id="pin-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px;" title="Pin panel">📌</button>
-        <button id="close-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 18px;" title="Close panel">&times;</button>
+        <button id="pin-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px; display: flex; align-items: center; padding: 4px;" title="Pin panel">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </button>
+        <button id="close-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px; display: flex; align-items: center; padding: 4px;" title="Close panel">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
+        </button>
       </div>
     </div>
     
     <!-- Basic Info Accordion Section -->
     <div class="accordion-section">
-      <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid #334155;">
-        <h4 style="margin: 0; color: #06b6d4; font-size: 14px;">👁️ Basic Info</h4>
+      <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid rgba(34, 197, 94, 0.2);">
+        <h4 style="margin: 0; color: #06b6d4; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          Basic Info
+        </h4>
         <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▼</span>
       </div>
       <div class="accordion-content" style="padding: 8px 0; display: block;">
@@ -211,8 +233,14 @@ function createInfoPanel() {
     
     <!-- Computed Styles Accordion Section -->
     <div class="accordion-section">
-      <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid #334155;">
-        <h4 style="margin: 0; color: #06b6d4; font-size: 14px;">🎨 Computed Styles</h4>
+      <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid rgba(168, 85, 247, 0.2);">
+        <h4 style="margin: 0; color: #a855f7; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          Computed Styles
+        </h4>
         <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▲</span>
       </div>
       <div class="accordion-content" style="padding: 8px 0; display: none;">
@@ -222,8 +250,16 @@ function createInfoPanel() {
     
     <!-- Attributes Accordion Section -->
     <div class="accordion-section">
-      <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid #334155;">
-        <h4 style="margin: 0; color: #06b6d4; font-size: 14px;">🏷️ Attributes</h4>
+      <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid rgba(249, 115, 22, 0.2);">
+        <h4 style="margin: 0; color: #f97316; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" x2="20" y1="9" y2="9"></line>
+            <line x1="4" x2="20" y1="15" y2="15"></line>
+            <line x1="10" x2="8" y1="3" y2="21"></line>
+            <line x1="16" x2="14" y1="3" y2="21"></line>
+          </svg>
+          Attributes
+        </h4>
         <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▲</span>
       </div>
       <div class="accordion-content" style="padding: 8px 0; display: none;">
@@ -298,6 +334,19 @@ function createInfoPanel() {
     isPanelPinned = !isPanelPinned;
     pinButton.style.color = isPanelPinned ? '#22c55e' : '#64748b';
     pinButton.title = isPanelPinned ? 'Unpin panel' : 'Pin panel';
+    
+    // Update icon based on pinned state
+    const lockIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>`;
+    
+    const unlockIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 0 0 0v4"></path>
+    </svg>`;
+    
+    pinButton.innerHTML = isPanelPinned ? lockIcon : unlockIcon;
   });
   
   // Accordion functionality
@@ -1324,7 +1373,7 @@ style.textContent = `
     0% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(34, 197, 94, 0.7); }
     50% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 8px rgba(34, 197, 94, 0.2); }
     100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(34, 197, 94, 0); }
-  }<button id="quick-debug-btn" class="debug-btn primary">Debug</button>
+  }
   
   .log-trace-active {
     animation: logTracePulse 2s infinite;
@@ -1479,14 +1528,18 @@ function createSignInModal() {
   });
 
   modal.querySelector('#signin-signup-btn').addEventListener('click', () => {
-    // Open sign-up page in new tab
-    window.open('https://your-app-domain.com/signup', '_blank');
+    // Open main app sign-up page
+    const returnUrl = encodeURIComponent(`${window.location.origin}?auth=extension`);
+    const authUrl = `http://localhost:8081/auth?mode=signup&return=${returnUrl}`;
+    window.open(authUrl, '_blank');
     modal.remove();
   });
 
   modal.querySelector('#signin-login-btn').addEventListener('click', () => {
-    // Open login page in new tab
-    window.open('https://your-app-domain.com/login', '_blank');
+    // Open main app login page
+    const returnUrl = encodeURIComponent(`${window.location.origin}?auth=extension`);
+    const authUrl = `http://localhost:8081/auth?mode=signin&return=${returnUrl}`;
+    window.open(authUrl, '_blank');
     modal.remove();
   });
 
@@ -1550,12 +1603,36 @@ function showSignInModal() {
 }
 
 function checkUserAuthentication() {
-  // Check if user has API key or is authenticated
-  // This is a simplified check - in production you'd check with your backend
-  const hasApiKey = apiKey && apiKey.trim() !== '';
-  const hasStoredAuth = localStorage.getItem('logtrace-auth-token');
-  
-  return hasApiKey || hasStoredAuth;
+  try {
+    // Check if user has API key
+    const hasApiKey = apiKey && apiKey.trim() !== '';
+    
+    // Check for stored auth using new format
+    const storedAuth = localStorage.getItem('logtrace_extension_auth');
+    let hasValidAuth = false;
+    
+    if (storedAuth) {
+      try {
+        const { user, session, timestamp } = JSON.parse(storedAuth);
+        // Check if auth is not older than 24 hours and has valid data
+        if (user && session && timestamp && (Date.now() - timestamp < 24 * 60 * 60 * 1000)) {
+          hasValidAuth = true;
+        } else {
+          // Clear expired or invalid auth
+          localStorage.removeItem('logtrace_extension_auth');
+        }
+      } catch (parseError) {
+        console.warn('Failed to parse auth data:', parseError);
+        localStorage.removeItem('logtrace_extension_auth');
+      }
+    }
+    
+    return hasApiKey || hasValidAuth;
+  } catch (error) {
+    // Handle extension context invalidation and other errors
+    console.warn('Authentication check failed (extension context may be invalidated):', error);
+    return false;
+  }
 }
 
 /* ------------------------------------------------------------------ *

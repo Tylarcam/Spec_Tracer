@@ -23,3 +23,46 @@ Interactive Panel (side panel on inspect)
 Debug Modal (full modal on debug)
 New “Prompt” tab in the terminal
 Let me know your preference and I’ll implement the next step!
+
+
+July 14, 2025: Today work plan to pre-launch 
+
+
+TLDR: Yesterday we made some edits to the debugger modal panel and change it to the context editor. 
+1. Set up Stripe place holder
+2. Created a Example Walk Through in the demo how to use 
+3. Aligned the Sign in modal ( still some error below)
+4. updated the landing page.  
+
+
+Today's Task: 
+
+Chrome Extension Focus. 
+Right now there is an error with the sign in flow for the chrome app. 
+
+Current User Flow:  User installs app, activate it in the extensions. > The modal panel pops open asking user to active toggle and openai api key. > User adds this information and activate the mouse cursor tool. > user then searches and app finds something that doesnt work > presses ctrl d to inspect the element. > User puts in some information about the element they want to know more about, fix, modify funcionality. > User then proceeds to app calls api to chat gpt and responds in the terminal (this step is being block by user sign sign in, when a user signs up or log-in to there acccount there are stuck a a sign up loop when they try to use the debugger assistant) 
+
+Priority Fixes :
+
+1. We have to fix the sign-in flow and logic. 
+context: I am currently using supabase in our main web  debugger app, this is working great for sign in. I need to ensue this logic and connection information works for the sign in flow for the user on the chrome extension app.
+
+Improvements to flow: 
+
+
+Updates and Enhancement: 
+
+
+
+
+
+
+
+( lets modify this and have a modal response pop up on screen and stay there until user closes the modal by clicking x or uses the esc key. In the modal needs to be a way to quick copy the text, edit, and or respond and send a follow up).
+
+It's also missing the context enginnering modal update that is in the main app. 
+
+
+
+
+2. Also we need to improve the landing copy once and for all. 

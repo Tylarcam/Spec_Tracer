@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, Target, MousePointer, Zap, Shield, Code, Terminal } from 'lucide-react';
+import { ArrowRight, Target, MousePointer, Zap, Shield, Code, Terminal, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -207,7 +207,7 @@ const Landing: React.FC = () => {
               className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 px-12 py-4 text-xl"
             >
               Try Context Engineering
-              <span className="ml-2">✨</span>
+              <Sparkles className="ml-2 h-5 w-5" />
             </Button>
           </div>
           <p className="text-sm text-slate-400 mt-4">

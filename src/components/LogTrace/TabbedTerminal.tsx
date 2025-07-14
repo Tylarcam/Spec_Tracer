@@ -3,7 +3,7 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Copy, Check, AlertCircle, AlertTriangle } from 'lucide-react';
+import { Copy, Check, AlertCircle, AlertTriangle, X } from 'lucide-react';
 import { LogEvent } from '@/shared/types';
 import { useToast } from '@/hooks/use-toast';
 import { useNotification } from '@/hooks/useNotification';
@@ -138,7 +138,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                 size="sm"
                 className="text-gray-400 hover:text-white"
               >
-                ✕
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>

@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Github, Mail } from 'lucide-react';
+import { Github, Mail, X } from 'lucide-react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { sanitizeText, validatePrompt } from '@/utils/sanitization';
 import { supabase } from '@/integrations/supabase/client';
@@ -172,46 +172,121 @@ const LogTraceExtension: React.FC = () => {
 
   const handleSignUp = async (email: string, password: string) => {
     setIsLoading(true);
-    const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: redirectUrl }
-    });
+    // Redirect to main app for sign-up
+    const returnUrl = encodeURIComponent(`${window.location.origin}?auth=extension`);
+    const authUrl = `http://localhost:8081/auth?mode=signup&email=${encodeURIComponent(email)}&return=${returnUrl}`;
+    window.open(authUrl, '_blank');
     setIsLoading(false);
-    if (error) {
-      setToast({ title: 'Sign Up Error', description: error.message, variant: 'destructive' });
-    } else {
-      setToast({ title: 'Check your email', description: 'We sent you a confirmation link to complete your registration.' });
-      setShowAuthModal(false);
-    }
+    setShowAuthModal(false);
+    
+    // Set up listener for authentication completion
+    window.addEventListener('message', handleAuthMessage);
   };
 
   const handleSignIn = async (email: string, password: string) => {
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // Redirect to main app for sign-in
+    const returnUrl = encodeURIComponent(`${window.location.origin}?auth=extension`);
+    const authUrl = `http://localhost:8081/auth?mode=signin&email=${encodeURIComponent(email)}&return=${returnUrl}`;
+    window.open(authUrl, '_blank');
     setIsLoading(false);
-    if (error) {
-      setToast({ title: 'Sign In Error', description: error.message, variant: 'destructive' });
-    } else {
-      setShowAuthModal(false);
-    }
+    setShowAuthModal(false);
+    
+    // Set up listener for authentication completion
+    window.addEventListener('message', handleAuthMessage);
   };
 
   const handleSignInWithGitHub = async () => {
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: `${window.location.origin}/` } });
+    // Redirect to main app for GitHub authentication
+    const returnUrl = encodeURIComponent(`${window.location.origin}?auth=extension`);
+    const authUrl = `http://localhost:8081/auth?provider=github&return=${returnUrl}`;
+    window.open(authUrl, '_blank');
     setIsLoading(false);
-    if (error) {
-      setToast({ title: 'GitHub Sign In Error', description: error.message, variant: 'destructive' });
-    } else {
+    setShowAuthModal(false);
+    
+    // Set up listener for authentication completion
+    window.addEventListener('message', handleAuthMessage);
+  };
+
+  // Handle authentication completion from main app
+  const handleAuthMessage = React.useCallback((event: MessageEvent) => {
+    // Only accept messages from our main app
+    if (event.origin !== 'http://localhost:8081') return;
+    
+    if (event.data.type === 'AUTH_SUCCESS') {
+      setUser(event.data.user);
       setShowAuthModal(false);
+      setToast({ 
+        title: 'Sign In Successful', 
+        description: 'You are now signed in to LogTrace!', 
+        variant: 'default' 
+      });
+      
+      // Store auth state in extension storage
+      storeAuthState(event.data.user, event.data.session);
+      
+      // Clean up listener
+      window.removeEventListener('message', handleAuthMessage);
+    } else if (event.data.type === 'AUTH_ERROR') {
+      setToast({ 
+        title: 'Sign In Error', 
+        description: event.data.message || 'Authentication failed', 
+        variant: 'destructive' 
+      });
+      window.removeEventListener('message', handleAuthMessage);
+    }
+  }, []);
+
+  // Store auth state in local storage for extension persistence
+  const storeAuthState = (user: any, session: any) => {
+    try {
+      localStorage.setItem('logtrace_extension_auth', JSON.stringify({
+        user,
+        session,
+        timestamp: Date.now()
+      }));
+    } catch (error) {
+      console.error('Failed to store auth state:', error);
     }
   };
+
+  // Load auth state on component mount
+  React.useEffect(() => {
+    try {
+      const storedAuth = localStorage.getItem('logtrace_extension_auth');
+      if (storedAuth) {
+        const { user, session, timestamp } = JSON.parse(storedAuth);
+        // Check if auth is not older than 24 hours
+        if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+          setUser(user);
+        } else {
+          // Clear expired auth
+          localStorage.removeItem('logtrace_extension_auth');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load auth state:', error);
+      localStorage.removeItem('logtrace_extension_auth');
+    }
+  }, []);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    
+    // Clear stored auth state from extension storage
+    try {
+      localStorage.removeItem('logtrace_extension_auth');
+    } catch (error) {
+      console.error('Failed to clear auth state:', error);
+    }
+    
+    setToast({ 
+      title: 'Signed Out', 
+      description: 'You have been successfully signed out.', 
+      variant: 'default' 
+    });
   };
 
   // --- Guest Usage Tracking ---
@@ -747,7 +822,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
                 size="sm"
                 className="text-gray-400 hover:text-white"
               >
-                ✕
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>

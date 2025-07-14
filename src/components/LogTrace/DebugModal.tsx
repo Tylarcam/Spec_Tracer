@@ -242,25 +242,25 @@ const DebugModal: React.FC<DebugModalProps> = ({
             </TabsList>
 
             <TabsContent value="quick" className="space-y-4">
-              <div>
+            <div>
                 <label className="block text-cyan-400 font-semibold mb-2">What do you want to change or fix?</label>
-                <div className="flex gap-2">
-                  <Input
+              <div className="flex gap-2">
+                <Input
                     value={userIntent}
                     onChange={(e) => setUserIntent(e.target.value)}
-                    className="bg-slate-800 border-green-500/30 text-green-400"
+                  className="bg-slate-800 border-green-500/30 text-green-400"
                     placeholder="Describe what you want to change or fix..."
-                    maxLength={500}
-                  />
-                  <Button 
+                  maxLength={500}
+                />
+                <Button 
                     onClick={() => handleDebugSubmit(userIntent)}
                     disabled={isAnalyzing || !userIntent.trim()}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    {isAnalyzing ? 'Analyzing...' : 'Debug'}
-                  </Button>
-                </div>
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {isAnalyzing ? 'Analyzing...' : 'Debug'}
+                </Button>
               </div>
+            </div>
 
               <div className="flex gap-2">
                 <Button 
@@ -275,23 +275,23 @@ const DebugModal: React.FC<DebugModalProps> = ({
             </TabsContent>
 
             <TabsContent value="advanced" className="space-y-4">
-              <div>
-                <label className="block text-cyan-400 font-semibold mb-2">Advanced Debug</label>
-                <Textarea
-                  value={advancedPrompt || generateAdvancedPrompt()}
-                  onChange={(e) => setAdvancedPrompt(e.target.value)}
-                  className="bg-slate-800 border-green-500/30 text-green-400 min-h-32"
-                  placeholder="Detailed debugging prompt..."
-                  maxLength={2000}
-                />
-                <Button 
-                  onClick={() => handleDebugSubmit(advancedPrompt || generateAdvancedPrompt())}
-                  disabled={isAnalyzing}
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white mt-2"
-                >
-                  {isAnalyzing ? 'Analyzing...' : 'Advanced Debug'}
-                </Button>
-              </div>
+            <div>
+              <label className="block text-cyan-400 font-semibold mb-2">Advanced Debug</label>
+              <Textarea
+                value={advancedPrompt || generateAdvancedPrompt()}
+                onChange={(e) => setAdvancedPrompt(e.target.value)}
+                className="bg-slate-800 border-green-500/30 text-green-400 min-h-32"
+                placeholder="Detailed debugging prompt..."
+                maxLength={2000}
+              />
+              <Button 
+                onClick={() => handleDebugSubmit(advancedPrompt || generateAdvancedPrompt())}
+                disabled={isAnalyzing}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white mt-2"
+              >
+                {isAnalyzing ? 'Analyzing...' : 'Advanced Debug'}
+              </Button>
+            </div>
             </TabsContent>
 
             <TabsContent value="prompt" className="space-y-4">
@@ -335,7 +335,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                     </Button>
                   </div>
                 )}
-              </div>
+          </div>
             </TabsContent>
           </Tabs>
 

@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { Eye, Settings, Code, Zap, X, Hash, Type, Pin, Copy } from 'lucide-react';
+import { Eye, Settings, Code, Zap, X, Hash, Type, Lock, Unlock, Copy } from 'lucide-react';
 import { ElementInfo } from '@/shared/types';
 import { sanitizeText } from '@/utils/sanitization';
 
@@ -174,7 +174,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                   className={`h-6 w-6 p-0 ${isPinned ? 'text-green-400' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10`}
                   title={isPinned ? 'Unpin panel' : 'Pin panel'}
                 >
-                  <Pin className="w-3 h-3" fill={isPinned ? 'currentColor' : 'none'} />
+                  {isPinned ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
                 </Button>
               )}
               <Button
