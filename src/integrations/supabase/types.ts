@@ -14,6 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
+      user_credits: {
+        Row: {
+          id: string
+          user_id: string
+          credits_used: number
+          credits_limit: number
+          reset_date: string
+          session_start_time: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          credits_used?: number
+          credits_limit?: number
+          reset_date?: string
+          session_start_time?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          credits_used?: number
+          credits_limit?: number
+          reset_date?: string
+          session_start_time?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          plan_type: string | null
+          current_period_start: string | null
+          current_period_end: string | null
+          cancel_at_period_end: boolean | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          plan_type?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          plan_type?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      waitlist_credits: {
+        Row: {
+          id: string
+          user_id: string
+          email: string
+          bonus_credits_granted: number
+          credits_used: number
+          granted_at: string
+          expires_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          email: string
+          bonus_credits_granted?: number
+          credits_used?: number
+          granted_at?: string
+          expires_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          email?: string
+          bonus_credits_granted?: number
+          credits_used?: number
+          granted_at?: string
+          expires_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       waitlist: {
         Row: {
           created_at: string
@@ -55,6 +163,24 @@ export type Database = {
       get_waitlist_position: {
         Args: { user_email: string }
         Returns: number
+      }
+      get_user_credits_status: {
+        Args: { user_uuid: string }
+        Returns: {
+          credits_remaining: number
+          credits_limit: number
+          reset_time: string
+          is_premium: boolean
+          waitlist_bonus_remaining: number
+        }[]
+      }
+      use_credit: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
+      grant_waitlist_credits: {
+        Args: { user_uuid: string; user_email: string }
+        Returns: boolean
       }
     }
     Enums: {

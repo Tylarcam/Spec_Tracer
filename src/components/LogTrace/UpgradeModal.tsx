@@ -11,8 +11,8 @@ interface UpgradeModalProps {
 
 const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, remainingUses }) => {
   const handleUpgrade = () => {
-    // Replace with your actual Stripe checkout URL
-    window.open('https://buy.stripe.com/test_your_checkout_link', '_blank');
+    // Production Stripe checkout URL - replace with your actual link
+    window.open('https://buy.stripe.com/bIY3fKaLT2zW4mY8ww', '_blank');
   };
 
   if (!isOpen) return null;
@@ -54,7 +54,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, remainingU
               <span className="text-red-400 font-semibold text-sm">Free Limit Reached</span>
             </div>
             <p className="text-gray-300 text-sm">
-              You've used all {5 - remainingUses} free AI debugging requests. 
+              You've used all {5 - remainingUses} of your free daily AI debugging requests. 
               Upgrade to continue with unlimited access.
             </p>
           </div>
