@@ -60,24 +60,32 @@ export const GestureProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     // cancel long-press timer
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
     activeTouchesRef.current = e.touches.length;
   }, []);
 
   const handleTouchMove = useCallback(() => {
-    // Nothing yet — MouseOverlay will follow touchmove
+    // Cancel long-press on move
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
   }, []);
 
   useEffect(() => {
     window.addEventListener("touchstart", handleTouchStart, { passive: false });
     window.addEventListener("touchend", handleTouchEnd, { passive: false });
     window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    
     return () => {
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchend", handleTouchEnd);
       window.removeEventListener("touchmove", handleTouchMove);
     };
-  }, [handleTouchEnd, handleTouchMove, handleTouchStart]);
+  }, [handleTouchStart, handleTouchEnd, handleTouchMove]);
 
   /* ------------------------------ Public API ------------------------------ */
   const emitInternal = (e: GestureEvent) => {
@@ -96,8 +104,9 @@ export const GestureProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // consumer-supplied listener
-  const externalEmit = (e: GestureEvent) =>
+  const externalEmit = (e: GestureEvent) => {
     externalListeners.current.forEach((cb) => cb(e));
+  };
 
   /* ------------------------------ Context val ------------------------------ */
   const value: GestureContextValue = {
