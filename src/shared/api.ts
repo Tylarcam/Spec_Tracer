@@ -23,14 +23,12 @@ export const callAIDebugFunction = async (
     throw new Error('Authentication required for AI debugging features. Please sign in to continue.');
   }
 
-  // Check if user has premium subscription using the subscribers table
-  const { data: subscription } = await supabase
-    .from('subscribers')
-    .select('subscribed, subscription_tier')
-    .eq('user_id', user.id)
-    .single();
+  // Check if user has premium subscription using the new credits system
+  const { data: creditsData } = await supabase.rpc('get_user_credits_status', {
+    user_uuid: user.id
+  });
 
-  const isPremium = subscription?.subscribed === true;
+  const isPremium = creditsData?.[0]?.is_premium || false;
 
   // If not premium, check and use credits
   if (!isPremium && useCredit) {

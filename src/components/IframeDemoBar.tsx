@@ -4,7 +4,10 @@ import { Globe, Search, Zap, Crown, Settings, User, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCreditsSystem } from '@/hooks/useCreditsSystem';
 import SettingsDrawer from '@/components/LogTrace/SettingsDrawer';
+import UpgradeNotificationBanner from '@/components/LogTrace/UpgradeNotificationBanner';
+import UpgradeModal from '@/components/LogTrace/UpgradeModal';
 
 const popularSites = [
   'github.com',
@@ -17,8 +20,11 @@ const popularSites = [
 const IframeDemoBar: React.FC = () => {
   const [url, setUrl] = useState('');
   const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { creditsStatus, loading } = useCreditsSystem();
 
   const handleAnalyze = () => {
     if (!url.trim()) return;
@@ -38,41 +44,31 @@ const IframeDemoBar: React.FC = () => {
   };
 
   const handleUpgrade = () => {
-    // Navigate to upgrade or handle upgrade logic
-    navigate('/auth'); // For now, redirect to auth page
+    setShowUpgradeModal(true);
   };
+
+  const remainingCredits = creditsStatus?.creditsRemaining || 0;
+  const totalCredits = creditsStatus?.creditsLimit || 5;
+  const isPremium = creditsStatus?.isPremium || false;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 relative">
-      {/* Header with icons */}
-      <div className="absolute top-4 left-4 flex items-center gap-3">
-        {/* Credits indicator */}
-        <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-slate-800/80 border border-green-500/30 text-green-400">
-          <Zap className="w-4 h-4" />
-          <span className="text-sm font-medium">3/5</span>
-        </div>
-        
-        {/* Pro badge */}
-        <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-orange-500/20 border border-orange-500/30 text-orange-400">
-          <Crown className="w-4 h-4" />
-          <span className="text-sm font-medium">Pro</span>
-        </div>
-        
-        {/* Settings */}
-        <Button
-          onClick={handleSettingsClick}
-          variant="ghost"
-          size="sm"
-          className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-slate-700/50"
-        >
-          <Settings className="w-4 h-4" />
-        </Button>
-      </div>
+      {/* Upgrade Notification Banner */}
+      {!bannerDismissed && !loading && creditsStatus && (
+        <UpgradeNotificationBanner
+          remainingCredits={remainingCredits}
+          totalCredits={totalCredits}
+          onUpgrade={handleUpgrade}
+          onDismiss={() => setBannerDismissed(true)}
+          isPremium={isPremium}
+        />
+      )}
 
-      {/* Sign in button */}
-      <div className="absolute top-4 right-4">
+      {/* Header with rearranged layout */}
+      <div className="absolute top-4 left-4 flex items-center gap-3">
+        {/* User info moved to left */}
         {user ? (
-          <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/50 border border-slate-700/50">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/80 border border-slate-700/50">
             <User className="w-4 h-4 text-gray-400" />
             <span className="text-sm text-gray-300">{user.email}</span>
           </div>
@@ -89,8 +85,37 @@ const IframeDemoBar: React.FC = () => {
         )}
       </div>
 
+      {/* Right side - Credits, Pro badge, Settings */}
+      <div className="absolute top-4 right-4 flex items-center gap-3">
+        {/* Credits indicator */}
+        {!loading && creditsStatus && !isPremium && (
+          <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-slate-800/80 border border-green-500/30 text-green-400">
+            <Zap className="w-4 h-4" />
+            <span className="text-sm font-medium">{remainingCredits}/{totalCredits}</span>
+          </div>
+        )}
+        
+        {/* Pro badge */}
+        {isPremium && (
+          <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-orange-500/20 border border-orange-500/30 text-orange-400">
+            <Crown className="w-4 h-4" />
+            <span className="text-sm font-medium">Pro</span>
+          </div>
+        )}
+        
+        {/* Settings */}
+        <Button
+          onClick={handleSettingsClick}
+          variant="ghost"
+          size="sm"
+          className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-slate-700/50"
+        >
+          <Settings className="w-4 h-4" />
+        </Button>
+      </div>
+
       {/* Main content - centered */}
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center mt-16">
         {/* Logo and Title */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center gap-3 mb-2">
@@ -146,11 +171,17 @@ const IframeDemoBar: React.FC = () => {
         </div>
       </div>
 
-      {/* Settings Drawer */}
-      <SettingsDrawer
+      {/* Modals */}
+      <SettingsDrawer 
         isOpen={showSettingsDrawer}
         onClose={() => setShowSettingsDrawer(false)}
         onUpgradeClick={handleUpgrade}
+      />
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        remainingUses={remainingCredits}
       />
     </div>
   );
