@@ -1,11 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Chrome, Code, Zap, Target, Sparkles, Play, Eye } from 'lucide-react';
+import { ArrowRight, Code, Zap, Target, Sparkles, Play, Eye, Mail, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Landing = () => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,22 +18,18 @@ const Landing = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Check if Chrome extension is already installed
-  const isExtensionInstalled = () => {
-    // This would need to be implemented based on your extension's communication
-    // For now, we'll assume it's not installed
-    return false;
-  };
-
-  const handleGetExtension = () => {
-    if (isExtensionInstalled()) {
-      // Extension is installed, go to demo
-      window.location.href = '/debug';
-    } else {
-      // Extension not installed, go to Chrome Web Store
-      // Replace with your actual Chrome Web Store URL
-      window.open('https://chrome.google.com/webstore/detail/YOUR_EXTENSION_ID', '_blank');
-    }
+  const handleJoinWaitlist = async () => {
+    if (!email.trim()) return;
+    
+    setIsJoiningWaitlist(true);
+    
+    // TODO: Implement actual waitlist signup
+    // For now, just simulate success
+    setTimeout(() => {
+      alert('Thanks for joining the waitlist! We\'ll notify you when the Chrome extension launches.');
+      setEmail('');
+      setIsJoiningWaitlist(false);
+    }, 1000);
   };
 
   return (
@@ -48,13 +46,14 @@ const Landing = () => {
             <span className="text-xl font-bold">LogTrace</span>
           </div>
           
-          <Button
-            onClick={handleGetExtension}
-            className="bg-green-500 hover:bg-green-600 text-black font-semibold px-4 py-2"
-          >
-            <Chrome className="h-4 w-4 mr-2" />
-            Get Extension
-          </Button>
+          <Link to="/debug">
+            <Button
+              className="bg-green-500 hover:bg-green-600 text-black font-semibold px-4 py-2"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Try Demo
+            </Button>
+          </Link>
         </div>
       </header>
 
@@ -63,9 +62,9 @@ const Landing = () => {
         <div className="container mx-auto text-center max-w-5xl">
           {/* 5-second value prop */}
           <div className="mb-8">
-            <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2 mb-6">
-              <Chrome className="h-4 w-4 text-green-400" />
-              <span className="text-green-400 text-sm font-medium">Chrome Extension</span>
+            <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 rounded-full px-4 py-2 mb-6">
+              <Sparkles className="h-4 w-4 text-cyan-400" />
+              <span className="text-cyan-400 text-sm font-medium">Early Access Demo</span>
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
@@ -80,31 +79,41 @@ const Landing = () => {
 
           {/* Two CTAs: Primary + Secondary */}
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
-            <Button
-              onClick={handleGetExtension}
-              size="lg"
-              className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto"
-            >
-              <Chrome className="h-5 w-5 mr-2" />
-              Install Chrome Extension
-              <ArrowRight className="h-5 w-5 ml-2" />
-            </Button>
-            
             <Link to="/debug">
               <Button
-                variant="outline"
                 size="lg"
-                className="border-green-400 text-green-400 hover:bg-green-400 hover:text-black px-8 py-4 text-lg h-auto w-full sm:w-auto"
+                className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto w-full sm:w-auto"
               >
                 <Play className="h-5 w-5 mr-2" />
-                Watch Demo
+                Try Interactive Demo
+                <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
             </Link>
+            
+            <div className="flex gap-2 w-full sm:w-auto">
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 flex-1 min-w-0"
+              />
+              <Button
+                onClick={handleJoinWaitlist}
+                disabled={!email.trim() || isJoiningWaitlist}
+                variant="outline"
+                size="lg"
+                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-6 py-4 text-lg h-auto whitespace-nowrap"
+              >
+                <Users className="h-5 w-5 mr-2" />
+                {isJoiningWaitlist ? 'Joining...' : 'Join Waitlist'}
+              </Button>
+            </div>
           </div>
           
           <div className="text-sm text-slate-400 flex items-center justify-center gap-4">
-            <span>✓ Free to install</span>
-            <span>✓ Works on any website</span>
+            <span>✓ Free demo available now</span>
+            <span>✓ Chrome extension coming soon</span>
             <span>✓ 5 AI debugs included</span>
           </div>
         </div>
@@ -170,7 +179,7 @@ const Landing = () => {
               </div>
               <h3 className="text-xl font-semibold mb-4">Works Everywhere</h3>
               <p className="text-slate-300">
-                Install once, debug everywhere. Works on any website, 
+                Try the demo now, Chrome extension launching soon. Works on any website, 
                 integrates with your existing AI workflow.
               </p>
             </div>
@@ -202,10 +211,10 @@ const Landing = () => {
                 1
               </div>
               <div>
-                <h3 className="text-2xl font-semibold mb-3">Install & Activate</h3>
+                <h3 className="text-2xl font-semibold mb-3">Try the Demo</h3>
                 <p className="text-slate-300 text-lg">
-                  Add LogTrace to Chrome and press 'S' on any webpage to start debugging. 
-                  It's that simple.
+                  Experience LogTrace in our interactive demo. Press 'S' to start debugging 
+                  any element on the demo page.
                 </p>
               </div>
             </div>
@@ -248,26 +257,49 @@ const Landing = () => {
             </div>
             
             <h2 className="text-4xl font-bold mb-4">
-              Ready to Debug Smarter?
+              Ready to Experience the Future of Debugging?
             </h2>
             
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Join thousands of developers who stopped writing essays to AI 
-              and started showing their bugs instead.
+              Try our interactive demo now and join the waitlist for early access 
+              to the Chrome extension.
             </p>
             
-            <Button
-              onClick={handleGetExtension}
-              size="lg"
-              className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto"
-            >
-              <Chrome className="h-5 w-5 mr-2" />
-              Install LogTrace for Chrome
-              <ArrowRight className="h-5 w-5 ml-2" />
-            </Button>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link to="/debug">
+                <Button
+                  size="lg"
+                  className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto w-full sm:w-auto"
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  Try Interactive Demo
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </Button>
+              </Link>
+              
+              <div className="flex gap-2 w-full sm:w-auto">
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 flex-1 min-w-0"
+                />
+                <Button
+                  onClick={handleJoinWaitlist}
+                  disabled={!email.trim() || isJoiningWaitlist}
+                  variant="outline"
+                  size="lg"
+                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-6 py-4 text-lg h-auto whitespace-nowrap"
+                >
+                  <Mail className="h-5 w-5 mr-2" />
+                  Join Waitlist
+                </Button>
+              </div>
+            </div>
             
             <div className="text-sm text-slate-400 mt-6">
-              Free forever • Works on any website • No account required
+              Demo available now • Chrome extension coming soon • Early access signup
             </div>
           </div>
         </div>
