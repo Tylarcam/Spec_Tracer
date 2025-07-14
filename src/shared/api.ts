@@ -23,14 +23,14 @@ export const callAIDebugFunction = async (
     throw new Error('Authentication required for AI debugging features. Please sign in to continue.');
   }
 
-  // Check if user has premium subscription
+  // Check if user has premium subscription using the subscribers table
   const { data: subscription } = await supabase
-    .from('user_subscriptions')
-    .select('subscription_status')
+    .from('subscribers')
+    .select('subscribed, subscription_tier')
     .eq('user_id', user.id)
     .single();
 
-  const isPremium = subscription?.subscription_status === 'active';
+  const isPremium = subscription?.subscribed === true;
 
   // If not premium, check and use credits
   if (!isPremium && useCredit) {

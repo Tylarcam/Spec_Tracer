@@ -1,10 +1,10 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 import { useToast } from '@/hooks/use-toast';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useGesture } from '@/shared/gestureManager';
 import Header from './LogTrace/Header';
 import MouseOverlay from './LogTrace/MouseOverlay';
 import ElementInspector from './LogTrace/ElementInspector';
@@ -554,7 +554,6 @@ const LogTrace: React.FC = () => {
             </ul>
           </div>
         )}
-        {/* InstructionsCard hidden - shortcuts info moved to settings panel */}
       </div>
 
       {/* Test components section */}
@@ -608,7 +607,6 @@ const LogTrace: React.FC = () => {
         isActive={isActive}
         currentElement={isHoverPaused ? pausedElement : currentElement}
         mousePosition={isHoverPaused ? pausedPosition : mousePosition}
-        touchPosition={touchPosition}
         overlayRef={overlayRef}
         onElementClick={handleElementClick}
       />

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ElementInfo } from '@/shared/types';
 import { Badge } from '../ui/badge';
@@ -109,4 +110,3 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
 };
 
 export default MouseOverlay;
-
