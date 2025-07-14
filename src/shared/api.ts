@@ -1,4 +1,3 @@
-
 import { sanitizeText, validatePrompt, debugRateLimiter } from '@/utils/sanitization';
 import { ElementInfo } from './types';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,12 +24,12 @@ export const callAIDebugFunction = async (
 
   // Check if user has premium subscription
   const { data: subscription } = await supabase
-    .from('user_subscriptions')
-    .select('subscription_status')
+    .from('subscribers')
+    .select('subscribed')
     .eq('user_id', user.id)
     .single();
 
-  const isPremium = subscription?.subscription_status === 'active';
+  const isPremium = subscription?.subscribed || false;
 
   // If not premium, check and use credits
   if (!isPremium && useCredit) {
