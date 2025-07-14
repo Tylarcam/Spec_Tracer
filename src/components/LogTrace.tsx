@@ -20,7 +20,21 @@ import { Button } from './ui/button';
 import html2canvas from 'html2canvas';
 import { Switch } from './ui/switch';
 
-const LogTrace: React.FC = () => {
+interface LogTraceProps {
+  contextCaptureEnabled?: boolean;
+  onContextCaptureChange?: (enabled: boolean) => void;
+  showTerminal?: boolean;
+  onShowTerminalChange?: (show: boolean) => void;
+  hideHeader?: boolean;
+}
+
+const LogTrace: React.FC<LogTraceProps> = ({
+  contextCaptureEnabled: externalContextCapture,
+  onContextCaptureChange,
+  showTerminal: externalShowTerminal,
+  onShowTerminalChange,
+  hideHeader = false,
+}) => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
   const [isHoverPaused, setIsHoverPaused] = useState(false);
   const [pausedPosition, setPausedPosition] = useState({ x: 0, y: 0 });
@@ -32,6 +46,7 @@ const LogTrace: React.FC = () => {
   const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (hideHeader) return false; // Don't show onboarding in iframe mode
     return !localStorage.getItem('logtrace-onboarding-completed');
   });
   
@@ -50,7 +65,30 @@ const LogTrace: React.FC = () => {
   const [quickActionModalX, setQuickActionModalX] = useState(0);
   const [quickActionModalY, setQuickActionModalY] = useState(0);
   const logTraceRef = useRef<HTMLDivElement>(null);
-  const [contextCaptureEnabled, setContextCaptureEnabled] = useState(false);
+  
+  // Use external state if provided, otherwise use internal state
+  const [internalContextCapture, setInternalContextCapture] = useState(false);
+  const [internalShowTerminal, setInternalShowTerminal] = useState(false);
+  
+  const contextCaptureEnabled = externalContextCapture !== undefined ? externalContextCapture : internalContextCapture;
+  const showTerminal = externalShowTerminal !== undefined ? externalShowTerminal : internalShowTerminal;
+  
+  const setContextCaptureEnabled = (enabled: boolean) => {
+    if (onContextCaptureChange) {
+      onContextCaptureChange(enabled);
+    } else {
+      setInternalContextCapture(enabled);
+    }
+  };
+  
+  const setShowTerminal = (show: boolean) => {
+    if (onShowTerminalChange) {
+      onShowTerminalChange(show);
+    } else {
+      setInternalShowTerminal(show);
+    }
+  };
+
   const [touchPosition, setTouchPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Mobile gesture integration
@@ -75,8 +113,6 @@ const LogTrace: React.FC = () => {
     setCurrentElement,
     showDebugModal,
     setShowDebugModal,
-    showTerminal,
-    setShowTerminal,
     events,
     isAnalyzing,
     overlayRef,
@@ -517,33 +553,36 @@ const LogTrace: React.FC = () => {
           onAction={handleQuickAction}
         />
         
-        <div className="relative z-10 p-6">
-          <Header 
-            isActive={isActive}
-            setIsActive={setIsActive}
-            showTerminal={showTerminal}
-            setShowTerminal={setShowTerminal}
-            remainingUses={remainingUses}
-            onSettingsClick={() => setShowSettingsDrawer(true)}
-            onUpgradeClick={() => setShowUpgradeModal(true)}
-            contextCaptureEnabled={contextCaptureEnabled}
-            onContextCaptureChange={(enabled) => {
-              setContextCaptureEnabled(enabled);
-              setIsActive(enabled);
-            }}
-          />
+        {/* Only show header if not hidden */}
+        {!hideHeader && (
+          <div className="relative z-10 p-6">
+            <Header 
+              isActive={isActive}
+              setIsActive={setIsActive}
+              showTerminal={showTerminal}
+              setShowTerminal={setShowTerminal}
+              remainingUses={remainingUses}
+              onSettingsClick={() => setShowSettingsDrawer(true)}
+              onUpgradeClick={() => setShowUpgradeModal(true)}
+              contextCaptureEnabled={contextCaptureEnabled}
+              onContextCaptureChange={(enabled) => {
+                setContextCaptureEnabled(enabled);
+                setIsActive(enabled);
+              }}
+            />
 
-          {hasErrors && (
-            <div className="my-4 p-3 rounded bg-red-800/60 text-red-200 animate-pulse max-w-xl">
-              <h4 className="font-semibold text-red-300 mb-1">Errors Detected</h4>
-              <ul className="text-sm list-disc list-inside space-y-1">
-                {Object.entries(errors).map(([key, value]) => (
-                  value ? <li key={key}>{value}</li> : null
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+            {hasErrors && (
+              <div className="my-4 p-3 rounded bg-red-800/60 text-red-200 animate-pulse max-w-xl">
+                <h4 className="font-semibold text-red-300 mb-1">Errors Detected</h4>
+                <ul className="text-sm list-disc list-inside space-y-1">
+                  {Object.entries(errors).map(([key, value]) => (
+                    value ? <li key={key}>{value}</li> : null
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         <SettingsDrawer 
           isOpen={showSettingsDrawer}
@@ -609,7 +648,7 @@ const LogTrace: React.FC = () => {
           terminalHeight={showTerminal ? terminalHeight : 0}
         />
 
-        {!showTerminal && (
+        {!showTerminal && !hideHeader && (
           <Button
             onClick={() => setShowTerminal(true)}
             className={`fixed ${isMobile ? 'bottom-6 right-6 w-16 h-16' : 'bottom-4 right-4 w-12 h-12'} z-30 bg-green-600 hover:bg-green-700 text-white rounded-full p-0 shadow-lg pointer-events-auto`}
