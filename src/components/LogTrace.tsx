@@ -461,9 +461,13 @@ const LogTrace: React.FC = () => {
 
       <div className="relative z-10 p-6">
         <Header 
+          isActive={isActive}
+          setIsActive={setIsActive}
+          showTerminal={showTerminal}
+          setShowTerminal={setShowTerminal}
           remainingUses={remainingUses}
-          onSettingsClick={handleSettingsClick}
-          onUpgradeClick={handleUpgradeClick}
+          onSettingsClick={() => setShowSettingsDrawer(true)}
+          onUpgradeClick={() => setShowUpgradeModal(true)}
         />
         <div className="flex items-center gap-4 mt-2 mb-6">
           <span className="text-cyan-300 font-medium">Enable Context Capture</span>
@@ -595,7 +599,7 @@ const LogTrace: React.FC = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            zIndex: 50,
+            zIndex: 100,
             height: terminalHeight,
             minHeight: terminalMinHeight,
             display: 'flex',
@@ -609,7 +613,7 @@ const LogTrace: React.FC = () => {
               background: 'rgba(34,197,94,0.15)',
               borderTopLeftRadius: 8,
               borderTopRightRadius: 8,
-              zIndex: 51,
+              zIndex: 101,
             }}
             onMouseDown={(e) => {
               e.preventDefault();
@@ -618,6 +622,8 @@ const LogTrace: React.FC = () => {
           />
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <TabbedTerminal
+              showTerminal={showTerminal}
+              setShowTerminal={setShowTerminal}
               events={events}
               exportEvents={exportEvents}
               clearEvents={clearEvents}
