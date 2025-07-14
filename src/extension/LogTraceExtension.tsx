@@ -437,8 +437,6 @@ Provide specific, actionable debugging steps and potential solutions.`;
       />
 
       <TabbedTerminal
-        showTerminal={showTerminal}
-        setShowTerminal={setShowTerminal}
         events={events}
         exportEvents={exportEvents}
         clearEvents={clearEvents}

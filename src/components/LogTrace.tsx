@@ -125,6 +125,7 @@ const LogTrace: React.FC = () => {
     localStorage.setItem('logtrace-onboarding-completed', 'true');
   };
 
+  // Element click handler
   const handleElementClick = useCallback(() => {
     if (!currentElement) return;
     
@@ -144,6 +145,7 @@ const LogTrace: React.FC = () => {
     });
   }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowInteractivePanel]);
 
+  // Debug from panel handler
   const handleDebugFromPanel = useCallback(() => {
     // Check usage limit before proceeding
     if (!canUseAiDebug) {
@@ -169,6 +171,7 @@ const LogTrace: React.FC = () => {
     }
   }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowInteractivePanel, canUseAiDebug]);
 
+  // Escape handler
   const handleEscape = useCallback(() => {
     setShowInteractivePanel(false);
     setShowDebugModal(false);
@@ -177,6 +180,7 @@ const LogTrace: React.FC = () => {
     if (showTerminal) setShowTerminal(false);
   }, [setShowDebugModal, showTerminal]);
 
+  // Analyze with AI handler
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
     // Check usage limit
     if (!canUseAiDebug) {
@@ -207,6 +211,7 @@ const LogTrace: React.FC = () => {
     setShowSettingsDrawer(true);
   }, []);
 
+  // Mouse move handler
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive || isHoverPaused || showDebugModal) return;
 
@@ -228,6 +233,7 @@ const LogTrace: React.FC = () => {
     }
   }, [isActive, isHoverPaused, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel, showDebugModal]);
 
+  // Click handler
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive) return;
     
@@ -251,6 +257,7 @@ const LogTrace: React.FC = () => {
     }
   }, [isActive, currentElement, addEvent]);
 
+  // quick action handler
   const handleQuickAction = async (action: 'screenshot' | 'context' | 'debug') => {
     setQuickActionModalVisible(false);
     if (action === 'screenshot') {
@@ -302,6 +309,7 @@ const LogTrace: React.FC = () => {
     }
   };
 
+  // keyboard event handlers
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeElement = document.activeElement;
@@ -395,7 +403,7 @@ const LogTrace: React.FC = () => {
     canUseAiDebug
   ]);
 
-  // Handle mouse events for resizing
+  // mouse events for resizing
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (resizingRef.current) {
@@ -448,10 +456,6 @@ const LogTrace: React.FC = () => {
 
       <div className="relative z-10 p-6">
         <Header 
-          isActive={isActive}
-          setIsActive={setIsActive}
-          showTerminal={showTerminal}
-          setShowTerminal={setShowTerminal}
           remainingUses={remainingUses}
           onSettingsClick={handleSettingsClick}
           onUpgradeClick={handleUpgradeClick}
@@ -478,6 +482,7 @@ const LogTrace: React.FC = () => {
         <InstructionsCard />
       </div>
 
+      {/* Test components section */}
       <div className="p-6 mt-6 bg-slate-800/40 rounded-xl border border-cyan-500/20">
         <h3 className="text-cyan-400 font-semibold mb-4">Test These Components</h3>
         <div className="flex items-center gap-6 mb-6">
@@ -505,14 +510,11 @@ const LogTrace: React.FC = () => {
         </div>
       </div>
 
-      {/* Settings Drawer */}
       <SettingsDrawer 
         isOpen={showSettingsDrawer}
         onClose={() => setShowSettingsDrawer(false)}
-        onUpgradeClick={handleUpgradeClick}
       />
 
-      {/* Onboarding Walkthrough */}
       {showOnboarding && (
         <OnboardingWalkthrough
           step={onboardingStep}
@@ -572,7 +574,6 @@ const LogTrace: React.FC = () => {
         terminalHeight={showTerminal ? terminalHeight : 0}
       />
 
-      {/* Always render TabbedTerminal for the icon button when closed */}
       {!showTerminal && (
         <Button
           onClick={() => setShowTerminal(true)}
@@ -582,7 +583,6 @@ const LogTrace: React.FC = () => {
         </Button>
       )}
 
-      {/* Only render the resizable terminal when open */}
       {showTerminal && (
         <div
           style={{
@@ -614,8 +614,6 @@ const LogTrace: React.FC = () => {
           />
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <TabbedTerminal
-              showTerminal={showTerminal}
-              setShowTerminal={setShowTerminal}
               events={events}
               exportEvents={exportEvents}
               clearEvents={clearEvents}
@@ -627,7 +625,6 @@ const LogTrace: React.FC = () => {
         </div>
       )}
 
-      {/* Upgrade Modal */}
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
