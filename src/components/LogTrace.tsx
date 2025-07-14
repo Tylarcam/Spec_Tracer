@@ -52,12 +52,14 @@ const LogTrace: React.FC = () => {
   const logTraceRef = useRef<HTMLDivElement>(null);
   const [contextCaptureEnabled, setContextCaptureEnabled] = useState(false);
 
-  // Usage tracking
+  // Usage tracking with new credits system
   const {
     remainingUses,
     hasReachedLimit,
     canUseAiDebug,
     incrementAiDebugUsage,
+    isPremium,
+    waitlistBonusRemaining,
   } = useUsageTracking();
 
   const {
@@ -92,6 +94,13 @@ const LogTrace: React.FC = () => {
   } = useDebugResponses();
 
   const { toast } = useToast();
+
+  // Sync contextCaptureEnabled with isActive state
+  useEffect(() => {
+    if (contextCaptureEnabled && !isActive) {
+      setIsActive(true);
+    }
+  }, [contextCaptureEnabled, isActive, setIsActive]);
 
   // Watch for errors from useLogTrace and display toast
   useEffect(() => {
@@ -192,18 +201,32 @@ const LogTrace: React.FC = () => {
 
   // Analyze with AI handler
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
-    // Check usage limit
+    // Check usage limit for premium users
+    if (isPremium) {
+      // Premium users have unlimited access
+      try {
+        const response = await analyzeWithAI(prompt);
+        addDebugResponse(prompt, response || 'No response received');
+        return response;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Error occurred during analysis';
+        addDebugResponse(prompt, errorMessage);
+        return null;
+      }
+    }
+
+    // For non-premium users, check credit availability
     if (!canUseAiDebug) {
       setShowUpgradeModal(true);
       return null;
     }
 
     try {
+      // The credit will be used inside analyzeWithAI via the API call
       const response = await analyzeWithAI(prompt);
       addDebugResponse(prompt, response || 'No response received');
       
-      // Increment usage after successful AI debug
-      incrementAiDebugUsage();
+      // The new system handles credit usage automatically, no need to manually increment
       
       return response;
     } catch (error) {
@@ -211,7 +234,7 @@ const LogTrace: React.FC = () => {
       addDebugResponse(prompt, errorMessage);
       return null;
     }
-  }, [analyzeWithAI, addDebugResponse, canUseAiDebug, incrementAiDebugUsage]);
+  }, [analyzeWithAI, addDebugResponse, canUseAiDebug, isPremium]);
 
   const handleUpgradeClick = useCallback(() => {
     setShowUpgradeModal(true);
@@ -223,7 +246,13 @@ const LogTrace: React.FC = () => {
 
   // Mouse move handler
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isActive || isHoverPaused || showDebugModal) return;
+    if (!isActive || isHoverPaused) return;
+
+    // Always update mouse position for cursor circle, even when debug modal is open
+    setMousePosition({ x: e.clientX, y: e.clientY });
+
+    // Only update current element when debug modal is NOT open
+    if (showDebugModal) return;
 
     const target = e.target as HTMLElement;
     if (target && 
@@ -231,7 +260,6 @@ const LogTrace: React.FC = () => {
         !target.closest('#logtrace-modal') &&
         !target.closest('[data-interactive-panel]') &&
         !target.closest('[data-element-inspector]')) {
-      setMousePosition({ x: e.clientX, y: e.clientY });
       const elementInfo = extractElementInfo(target);
       setCurrentElement(elementInfo);
       
@@ -473,15 +501,12 @@ const LogTrace: React.FC = () => {
           remainingUses={remainingUses}
           onSettingsClick={() => setShowSettingsDrawer(true)}
           onUpgradeClick={() => setShowUpgradeModal(true)}
+          contextCaptureEnabled={contextCaptureEnabled}
+          onContextCaptureChange={(enabled) => {
+            setContextCaptureEnabled(enabled);
+            setIsActive(enabled);
+          }}
         />
-        <div className="flex items-center gap-4 mt-2 mb-6">
-          <span className="text-cyan-300 font-medium">Enable Context Capture</span>
-          <Switch
-            checked={contextCaptureEnabled}
-            onCheckedChange={setContextCaptureEnabled}
-            aria-label="Enable Context Capture"
-          />
-        </div>
 
         {hasErrors && (
           <div className="my-4 p-3 rounded bg-red-800/60 text-red-200 animate-pulse max-w-xl">
