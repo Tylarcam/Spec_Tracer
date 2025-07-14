@@ -25,10 +25,11 @@ export default defineConfig(({ mode }) => {
       minify: 'terser',
       rollupOptions: {
         output: {
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              return id.toString().split('node_modules/')[1].split('/')[0].toString();
-            }
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            ui: ['@radix-ui/react-dialog', '@radix-ui/react-toast'],
+            charts: ['recharts'],
+            query: ['@tanstack/react-query'],
           },
         },
       },

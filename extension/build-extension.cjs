@@ -1,3 +1,4 @@
+
 // Build script for Trace Sight Extension
 const fs = require('fs');
 const path = require('path');
@@ -51,50 +52,25 @@ function validateExtension() {
   
   if (isValid) {
     console.log('✅ Extension validation passed');
-  } else {
-    console.log('❌ Extension validation failed');
   }
   
   return isValid;
 }
 
-// Create extension package
-function createPackage() {
-  const extensionDir = __dirname;
-  
-  console.log('📦 To create extension package:');
-  console.log('1. Navigate to the extension directory');
-  console.log('2. Select all files and create a ZIP archive');
-  console.log('3. Upload to Chrome Web Store');
-  console.log(`📁 Extension directory: ${extensionDir}`);
-}
-
 // Main build process
 async function build() {
-  console.log('🚀 Starting build process...');
+  console.log('🚀 Starting extension build...');
   
-  // Step 1: Update manifest version
   updateManifestVersion();
-  
-  // Step 2: Validate extension
   const isValid = validateExtension();
   
   if (isValid) {
-    console.log('✅ Build completed successfully!');
-    console.log('🎉 Extension is ready for testing');
-    console.log('');
-    console.log('📋 Next steps:');
-    console.log('1. Open Chrome and go to chrome://extensions/');
-    console.log('2. Enable "Developer mode"');
-    console.log('3. Click "Load unpacked" and select the extension folder');
-    console.log('4. Test the extension on any webpage');
-    
-    createPackage();
+    console.log('✅ Extension build completed successfully!');
   } else {
-    console.log('❌ Build failed. Please fix the issues above.');
+    console.log('❌ Extension build failed. Please fix the issues above.');
     process.exit(1);
   }
 }
 
 // Run build
-build().catch(console.error); 
+build().catch(console.error);
