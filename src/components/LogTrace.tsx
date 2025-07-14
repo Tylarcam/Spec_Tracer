@@ -4,6 +4,7 @@ import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 import { useToast } from '@/hooks/use-toast';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
+import { useIsMobile } from '@/hooks/use-mobile';
 import Header from './LogTrace/Header';
 import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
@@ -14,12 +15,10 @@ import MoreDetailsModal from './LogTrace/PinnedDetails';
 import OnboardingWalkthrough from './LogTrace/OnboardingWalkthrough';
 import SettingsDrawer from './LogTrace/SettingsDrawer';
 import UpgradeModal from './LogTrace/UpgradeModal';
+import QuickActionModal from './LogTrace/QuickActionModal';
 import { Button } from './ui/button';
 import html2canvas from 'html2canvas';
 import { Switch } from './ui/switch';
-
-// Import QuickActionModal directly to avoid module resolution issues
-const QuickActionModal = React.lazy(() => import('./LogTrace/QuickActionModal'));
 
 const LogTrace: React.FC = () => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
@@ -35,8 +34,16 @@ const LogTrace: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return !localStorage.getItem('logtrace-onboarding-completed');
   });
-  const [terminalHeight, setTerminalHeight] = useState(() => Math.max(window.innerHeight * 0.4, 200));
-  const terminalMinHeight = 200;
+  
+  // Mobile detection
+  const isMobile = useIsMobile();
+  
+  // Terminal height - mobile vs desktop
+  const [terminalHeight, setTerminalHeight] = useState(() => {
+    const baseHeight = isMobile ? window.innerHeight * 0.6 : window.innerHeight * 0.4;
+    return Math.max(baseHeight, isMobile ? 300 : 200);
+  });
+  const terminalMinHeight = isMobile ? 300 : 200;
   const resizingRef = useRef(false);
   const [pillOn, setPillOn] = useState(false);
   const [quickActionModalVisible, setQuickActionModalVisible] = useState(false);
@@ -439,15 +446,13 @@ const LogTrace: React.FC = () => {
         setQuickActionModalVisible(true);
       }}
     >
-      <React.Suspense fallback={<div>Loading...</div>}>
-        <QuickActionModal
-          visible={quickActionModalVisible}
-          x={quickActionModalX}
-          y={quickActionModalY}
-          onClose={() => setQuickActionModalVisible(false)}
-          onAction={handleQuickAction}
-        />
-      </React.Suspense>
+      <QuickActionModal
+        visible={quickActionModalVisible}
+        x={quickActionModalX}
+        y={quickActionModalY}
+        onClose={() => setQuickActionModalVisible(false)}
+        onAction={handleQuickAction}
+      />
       
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
@@ -586,9 +591,16 @@ const LogTrace: React.FC = () => {
       {!showTerminal && (
         <Button
           onClick={() => setShowTerminal(true)}
-          className="fixed bottom-4 right-4 z-30 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
+          className={`fixed ${isMobile ? 'bottom-6 right-6 w-16 h-16' : 'bottom-4 right-4 w-12 h-12'} z-30 bg-green-600 hover:bg-green-700 text-white rounded-full p-0 shadow-lg`}
         >
-          <span style={{ fontSize: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{'>'}</span>
+          <span style={{ 
+            fontSize: isMobile ? 24 : 32, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center' 
+          }}>
+            {isMobile ? '⌨' : '>'}
+          </span>
         </Button>
       )}
 
@@ -599,27 +611,48 @@ const LogTrace: React.FC = () => {
             left: 0,
             right: 0,
             bottom: 0,
+            top: isMobile ? 0 : 'auto',
             zIndex: 100,
-            height: terminalHeight,
+            height: isMobile ? '100vh' : terminalHeight,
             minHeight: terminalMinHeight,
             display: 'flex',
             flexDirection: 'column',
+            backgroundColor: isMobile ? 'rgba(15, 23, 42, 0.98)' : 'transparent',
           }}
         >
-          <div
-            style={{
-              height: 8,
-              cursor: 'ns-resize',
-              background: 'rgba(34,197,94,0.15)',
-              borderTopLeftRadius: 8,
-              borderTopRightRadius: 8,
-              zIndex: 101,
-            }}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              resizingRef.current = true;
-            }}
-          />
+          {/* Mobile: Add close button at top */}
+          {isMobile && (
+            <div className="flex items-center justify-between p-4 bg-slate-900 border-b border-green-500/30">
+              <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
+              <Button
+                onClick={() => setShowTerminal(false)}
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </Button>
+            </div>
+          )}
+          
+          {/* Desktop: Resize handle */}
+          {!isMobile && (
+            <div
+              style={{
+                height: 8,
+                cursor: 'ns-resize',
+                background: 'rgba(34,197,94,0.15)',
+                borderTopLeftRadius: 8,
+                borderTopRightRadius: 8,
+                zIndex: 101,
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                resizingRef.current = true;
+              }}
+            />
+          )}
+          
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <TabbedTerminal
               showTerminal={showTerminal}
@@ -629,7 +662,7 @@ const LogTrace: React.FC = () => {
               clearEvents={clearEvents}
               debugResponses={debugResponses}
               clearDebugResponses={clearDebugResponses}
-              terminalHeight={terminalHeight}
+              terminalHeight={isMobile ? undefined : terminalHeight}
             />
           </div>
         </div>

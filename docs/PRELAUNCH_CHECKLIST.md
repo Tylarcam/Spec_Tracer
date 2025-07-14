@@ -6,8 +6,8 @@ This checklist outlines the priorities for aligning the product with its new str
 
 The goal of this phase is to ensure the product itself and its messaging reflect the new "Context Engine" positioning.
 
-- [ ] **Reframe All User-Facing Copy:**
-  - [ ] **Website/Landing Page:** Update headlines and descriptions to focus on "Stop Describing Bugs. Start Showing Them." instead of generic debugging language.
+- [x ] **Reframe All User-Facing Copy:**
+  - [ x] **Website/Landing Page:** Update headlines and descriptions to focus on "Stop Describing Bugs. Start Showing Them." instead of generic debugging language.
   - [ ] **Extension Store Listing:** Revise the name, short description, and long description in `extension/manifest.json` and for the store page itself.
   - [ ] **In-App Content:** Ensure all tooltips, modals, and onboarding messages communicate the value of providing rich context to AI.
 

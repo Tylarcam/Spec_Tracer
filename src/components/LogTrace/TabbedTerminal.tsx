@@ -4,6 +4,7 @@ import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { X, Download, Play, History } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TabbedTerminalProps {
   showTerminal: boolean;
@@ -30,6 +31,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'events' | 'debug' | 'console'>('events');
   const [associateWithElement, setAssociateWithElement] = useState(false);
+  const isMobile = useIsMobile();
 
   if (!showTerminal) {
     return (
@@ -45,47 +47,75 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50"
+      className={`fixed bottom-0 left-0 right-0 ${isMobile ? 'z-100' : 'z-50'}`}
       style={terminalHeight ? { height: terminalHeight, minHeight: 0 } : {}}
     >
-      <Card className="bg-slate-900/95 border-green-500/50 rounded-t-lg border-b-0" style={terminalHeight ? { height: '100%' } : {}}>
-        <div className="p-4" style={terminalHeight ? { height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 } : {}}>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
-            <div className="flex gap-2">
-              <Button
-                onClick={exportEvents}
-                variant="outline"
-                size="sm"
-                className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
-              >
-                Export
-              </Button>
-              <Button
-                onClick={() => setShowTerminal(false)}
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-white"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+      <Card className={`bg-slate-900/95 border-green-500/50 ${isMobile ? 'rounded-none border-x-0 border-b-0' : 'rounded-t-lg border-b-0'}`} style={terminalHeight ? { height: '100%' } : {}}>
+        <div className={`${isMobile ? 'p-2' : 'p-4'}`} style={terminalHeight ? { height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 } : {}}>
+          {!isMobile && (
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
+              <div className="flex gap-2">
+                <Button
+                  onClick={exportEvents}
+                  variant="outline"
+                  size="sm"
+                  className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
+                >
+                  Export
+                </Button>
+                <Button
+                  onClick={() => setShowTerminal(false)}
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
+          
           <Tabs value={activeTab} onValueChange={setActiveTab as any} className="w-full flex-1 flex flex-col min-h-0">
-            <TabsList className="h-10 items-center justify-center rounded-md p-1 text-muted-foreground grid w-full grid-cols-3 bg-slate-800/50">
-              <TabsTrigger value="events" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">Events ({events.length})</TabsTrigger>
-              <TabsTrigger value="debug" className="data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-400">AI Debug ({debugResponses.length})</TabsTrigger>
-              <TabsTrigger value="console" className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400">Console (0)</TabsTrigger>
+            <TabsList className={`${isMobile ? 'h-12' : 'h-10'} items-center justify-center rounded-md p-1 text-muted-foreground grid w-full grid-cols-3 bg-slate-800/50`}>
+              <TabsTrigger 
+                value="events" 
+                className={`data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 ${isMobile ? 'text-xs p-2' : ''}`}
+              >
+                Events ({events.length})
+              </TabsTrigger>
+              <TabsTrigger 
+                value="debug" 
+                className={`data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-400 ${isMobile ? 'text-xs p-2' : ''}`}
+              >
+                AI Debug ({debugResponses.length})
+              </TabsTrigger>
+              <TabsTrigger 
+                value="console" 
+                className={`data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 ${isMobile ? 'text-xs p-2' : ''}`}
+              >
+                Console (0)
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="events" className="mt-4 relative flex-1 min-h-0">
               <div className="flex justify-between items-center shrink-0 h-6">
-                <span className="text-sm text-gray-400">Interaction Events</span>
-                <button
-                  className="bg-red-500/10 text-red-400 border border-red-500/50 rounded px-3 py-1 text-xs hover:bg-red-500/20 transition"
-                  onClick={clearEvents}
-                >
-                  Clear Events
-                </button>
+                <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400`}>Interaction Events</span>
+                <div className="flex gap-2">
+                  {isMobile && (
+                    <button
+                      className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/50 rounded px-2 py-1 text-xs hover:bg-cyan-500/20 transition"
+                      onClick={exportEvents}
+                    >
+                      Export
+                    </button>
+                  )}
+                  <button
+                    className={`bg-red-500/10 text-red-400 border border-red-500/50 rounded ${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-xs'} hover:bg-red-500/20 transition`}
+                    onClick={clearEvents}
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
                 <div className="absolute inset-x-0 bottom-0 top-6 font-mono text-sm space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
                 {events.length === 0 ? (
