@@ -114,5 +114,7 @@ export const GestureProvider: React.FC<{ children: React.ReactNode }> = ({
 
 /* -------------------------------- Helpers -------------------------------- */
 const vibrate = (ms: number) => {
-  if (navigator.vibrate) navigator.vibrate(ms);
+  if (navigator.vibrate) {
+    navigator.vibrate(ms);
+  }
 };
