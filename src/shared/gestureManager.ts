@@ -1,3 +1,4 @@
+
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 type GestureEvent =
@@ -111,4 +112,4 @@ export const GestureProvider: React.FC<{ children: React.ReactNode }> = ({
 /* -------------------------------- Helpers -------------------------------- */
 const vibrate = (ms: number) => {
   if (navigator.vibrate) navigator.vibrate(ms);
-}; 
+};
