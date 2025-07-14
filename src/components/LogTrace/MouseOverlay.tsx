@@ -9,6 +9,7 @@ interface MouseOverlayProps {
   isActive: boolean;
   currentElement: ElementInfo | null;
   mousePosition: { x: number; y: number };
+  touchPosition?: { x: number; y: number } | null;
   overlayRef: React.RefObject<HTMLDivElement>;
   onElementClick: () => void;
 }
@@ -17,10 +18,14 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
   isActive,
   currentElement,
   mousePosition,
+  touchPosition,
   overlayRef,
   onElementClick,
 }) => {
   if (!isActive) return null;
+
+  // Choose coords source - prioritize touch on mobile
+  const pos = touchPosition ?? mousePosition;
 
   return (
     <>
@@ -28,8 +33,8 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
       <div
         className="fixed pointer-events-none z-50"
         style={{
-          left: mousePosition.x,
-          top: mousePosition.y,
+          left: pos.x,
+          top: pos.y,
           transform: 'translate(-50%, -50%)',
           width: '20px',
           height: '20px',
@@ -61,8 +66,8 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
           ref={overlayRef}
           className="fixed pointer-events-auto z-40 cursor-pointer transform -translate-y-full -translate-x-1/2"
           style={{
-            left: mousePosition.x,
-            top: mousePosition.y - 10,
+            left: pos.x,
+            top: pos.y - 10,
           }}
           onClick={onElementClick}
         >

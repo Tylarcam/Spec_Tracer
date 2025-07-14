@@ -5,6 +5,7 @@ import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 import { useToast } from '@/hooks/use-toast';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useGesture } from '@/shared/gestureManager';
 import Header from './LogTrace/Header';
 import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
@@ -51,6 +52,10 @@ const LogTrace: React.FC = () => {
   const [quickActionModalY, setQuickActionModalY] = useState(0);
   const logTraceRef = useRef<HTMLDivElement>(null);
   const [contextCaptureEnabled, setContextCaptureEnabled] = useState(false);
+  const [touchPosition, setTouchPosition] = useState<{ x: number; y: number } | null>(null);
+
+  // Mobile gesture integration
+  const { captureActive } = useGesture();
 
   // Usage tracking with new credits system
   const {
@@ -95,12 +100,26 @@ const LogTrace: React.FC = () => {
 
   const { toast } = useToast();
 
+  // Auto-open upgrade modal when landing page sends ?upgrade=1
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upgrade') === '1') {
+      setShowUpgradeModal(true);
+    }
+  }, []);
+
   // Sync contextCaptureEnabled with isActive state
   useEffect(() => {
     if (contextCaptureEnabled && !isActive) {
       setIsActive(true);
     }
   }, [contextCaptureEnabled, isActive, setIsActive]);
+
+  // Sync mobile gesture state with context capture
+  useEffect(() => {
+    setContextCaptureEnabled(captureActive);
+    setIsActive(captureActive);
+  }, [captureActive, setIsActive]);
 
   // Watch for errors from useLogTrace and display toast
   useEffect(() => {
@@ -461,11 +480,30 @@ const LogTrace: React.FC = () => {
     };
   }, []);
 
+  // Handle touch move for mobile gestures
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1 && captureActive) {
+      const touch = e.touches[0];
+      setTouchPosition({ x: touch.clientX, y: touch.clientY });
+      
+      const target = e.target as HTMLElement;
+      if (target && 
+          !target.closest('#logtrace-overlay') && 
+          !target.closest('#logtrace-modal') &&
+          !target.closest('[data-interactive-panel]') &&
+          !target.closest('[data-element-inspector]')) {
+        const elementInfo = extractElementInfo(target);
+        setCurrentElement(elementInfo);
+      }
+    }
+  }, [captureActive, extractElementInfo, setCurrentElement]);
+
   return (
     <div
       ref={logTraceRef}
       className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
       onMouseMove={handleMouseMove}
+      onTouchMove={handleTouchMove}
       onClick={handleClick}
       onContextMenu={e => {
         e.preventDefault();
@@ -572,6 +610,7 @@ const LogTrace: React.FC = () => {
         isActive={isActive}
         currentElement={isHoverPaused ? pausedElement : currentElement}
         mousePosition={isHoverPaused ? pausedPosition : mousePosition}
+        touchPosition={touchPosition}
         overlayRef={overlayRef}
         onElementClick={handleElementClick}
       />
