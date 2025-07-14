@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 import { useToast } from '@/hooks/use-toast';
+import { useUsageTracking } from '@/hooks/useUsageTracking';
 import Header from './LogTrace/Header';
 import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
@@ -9,6 +10,9 @@ import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
 import TabbedTerminal from './LogTrace/TabbedTerminal';
 import MoreDetailsModal from './LogTrace/PinnedDetails';
+import OnboardingWalkthrough from './LogTrace/OnboardingWalkthrough';
+import SettingsDrawer from './LogTrace/SettingsDrawer';
+import UpgradeModal from './LogTrace/UpgradeModal';
 
 const LogTrace: React.FC = () => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
@@ -18,6 +22,20 @@ const LogTrace: React.FC = () => {
   const interactivePanelRef = useRef<HTMLDivElement>(null);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [detailsElement, setDetailsElement] = useState<any>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem('logtrace-onboarding-completed');
+  });
+
+  // Usage tracking
+  const {
+    remainingUses,
+    hasReachedLimit,
+    canUseAiDebug,
+    incrementAiDebugUsage,
+  } = useUsageTracking();
 
   const {
     isActive,
@@ -79,6 +97,21 @@ const LogTrace: React.FC = () => {
     }
   }, [hasErrors, errors, toast]);
 
+  // Onboarding handlers
+  const handleOnboardingNext = () => {
+    setOnboardingStep(prev => prev + 1);
+  };
+
+  const handleOnboardingSkip = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('logtrace-onboarding-completed', 'true');
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('logtrace-onboarding-completed', 'true');
+  };
+
   const handleElementClick = useCallback(() => {
     if (!currentElement) return;
     
@@ -100,6 +133,12 @@ const LogTrace: React.FC = () => {
   }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowTerminal]);
 
   const handleDebugFromPanel = useCallback(() => {
+    // Check usage limit before proceeding
+    if (!canUseAiDebug) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     // Ensure only one modal is visible at a time
     setShowInteractivePanel(false);
     setShowTerminal(false);
@@ -117,25 +156,44 @@ const LogTrace: React.FC = () => {
         },
       });
     }
-  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowTerminal]);
+  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowTerminal, canUseAiDebug]);
 
   const handleEscape = useCallback(() => {
     setShowInteractivePanel(false);
     setShowDebugModal(false);
     setIsHoverPaused(false);
+    setShowSettingsDrawer(false);
   }, [setShowDebugModal]);
 
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
+    // Check usage limit
+    if (!canUseAiDebug) {
+      setShowUpgradeModal(true);
+      return null;
+    }
+
     try {
       const response = await analyzeWithAI(prompt);
       addDebugResponse(prompt, response || 'No response received');
+      
+      // Increment usage after successful AI debug
+      incrementAiDebugUsage();
+      
       return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error occurred during analysis';
       addDebugResponse(prompt, errorMessage);
       return null;
     }
-  }, [analyzeWithAI, addDebugResponse]);
+  }, [analyzeWithAI, addDebugResponse, canUseAiDebug, incrementAiDebugUsage]);
+
+  const handleUpgradeClick = useCallback(() => {
+    setShowUpgradeModal(true);
+  }, []);
+
+  const handleSettingsClick = useCallback(() => {
+    setShowSettingsDrawer(true);
+  }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive || isHoverPaused) return;
@@ -190,6 +248,13 @@ const LogTrace: React.FC = () => {
       
       if (isActive && e.ctrlKey && e.key === 'd') {
         e.preventDefault();
+        
+        // Check usage limit before proceeding
+        if (!canUseAiDebug) {
+          setShowUpgradeModal(true);
+          return;
+        }
+
         // Ensure only one modal is visible at a time
         setShowInteractivePanel(false);
         setShowTerminal(false);
@@ -264,7 +329,8 @@ const LogTrace: React.FC = () => {
     showTerminal, 
     setShowTerminal, 
     setIsActive,
-    handleEscape
+    handleEscape,
+    canUseAiDebug
   ]);
 
   return (
@@ -288,6 +354,9 @@ const LogTrace: React.FC = () => {
           setIsActive={setIsActive}
           showTerminal={showTerminal}
           setShowTerminal={setShowTerminal}
+          remainingUses={remainingUses}
+          onSettingsClick={handleSettingsClick}
+          onUpgradeClick={handleUpgradeClick}
         />
 
         {hasErrors && (
@@ -302,6 +371,28 @@ const LogTrace: React.FC = () => {
         )}
         <InstructionsCard />
       </div>
+
+      {/* Settings Drawer */}
+      <SettingsDrawer 
+        isOpen={showSettingsDrawer}
+        onClose={() => setShowSettingsDrawer(false)}
+        onUpgradeClick={handleUpgradeClick}
+      />
+
+      {/* Onboarding Walkthrough */}
+      {showOnboarding && (
+        <OnboardingWalkthrough
+          step={onboardingStep}
+          onNext={handleOnboardingNext}
+          onSkip={handleOnboardingSkip}
+          onComplete={handleOnboardingComplete}
+          isActive={isActive}
+          currentElement={currentElement}
+          mousePosition={mousePosition}
+          showInteractivePanel={showInteractivePanel}
+          showTerminal={showTerminal}
+        />
+      )}
 
       <MouseOverlay 
         isActive={isActive}
@@ -345,6 +436,9 @@ const LogTrace: React.FC = () => {
       />
 
       <TabbedTerminal 
+        isVisible={showTerminal}
+        onToggle={() => setShowTerminal(!showTerminal)}
+        onClear={clearEvents}
         showTerminal={showTerminal}
         setShowTerminal={setShowTerminal}
         events={events}
@@ -352,11 +446,13 @@ const LogTrace: React.FC = () => {
         clearEvents={clearEvents}
         debugResponses={debugResponses}
         clearDebugResponses={clearDebugResponses}
-        currentElement={currentElement ? {
-          tag: currentElement.tag,
-          id: currentElement.id,
-          classes: currentElement.classes,
-        } : null}
+      />
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        remainingUses={remainingUses}
       />
     </div>
   );

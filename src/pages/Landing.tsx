@@ -1,227 +1,277 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Chrome, Code, Zap, Target, Sparkles, Play, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, Target, MousePointer, Zap, Shield, Code, Terminal, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 
-const Landing: React.FC = () => {
-  const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+const Landing = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
 
-  const handleGetStarted = () => {
-    if (user) {
-      navigate('/debug');
-    } else {
-      navigate('/auth');
-    }
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Check if Chrome extension is already installed
+  const isExtensionInstalled = () => {
+    // This would need to be implemented based on your extension's communication
+    // For now, we'll assume it's not installed
+    return false;
   };
 
-  const handleAuthAction = () => {
-    if (user) {
-      signOut();
+  const handleGetExtension = () => {
+    if (isExtensionInstalled()) {
+      // Extension is installed, go to demo
+      window.location.href = '/debug';
     } else {
-      navigate('/auth');
+      // Extension not installed, go to Chrome Web Store
+      // Replace with your actual Chrome Web Store URL
+      window.open('https://chrome.google.com/webstore/detail/YOUR_EXTENSION_ID', '_blank');
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-green-400">
-      {/* Header */}
-      <header className="border-b border-slate-800">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <Target className="h-8 w-8 text-green-400" />
-            <h1 className="text-2xl font-bold">LogTrace</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      {/* Fixed Header */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled ? 'bg-slate-900/95 backdrop-blur-sm border-b border-green-500/30' : ''
+      }`}>
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-2 rounded-lg">
+              <Target className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-xl font-bold">LogTrace</span>
           </div>
-          <div className="flex items-center space-x-4">
-            {user && (
-              <span className="text-slate-300">
-                Welcome, {user.email}
-              </span>
-            )}
-            <Button
-              variant="outline"
-              onClick={handleAuthAction}
-              className="border-green-400 text-green-400 hover:bg-green-400 hover:text-slate-900"
-            >
-              {user ? 'Sign Out' : 'Sign In'}
-            </Button>
-          </div>
+          
+          <Button
+            onClick={handleGetExtension}
+            className="bg-green-500 hover:bg-green-600 text-black font-semibold px-4 py-2"
+          >
+            <Chrome className="h-4 w-4 mr-2" />
+            Get Extension
+          </Button>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-6 py-20 text-center">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
-            Stop Describing Bugs. Start Showing Them.
-          </h1>
-          <p className="text-xl md:text-2xl text-slate-300 mb-8 leading-relaxed">
-            LogTracer captures pixel-perfect UI context so you get precise, actionable fixes—no more writing essays or pasting screenshots. Instantly show what’s broken, not just what you think is broken.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      {/* Hero Section - Above the fold */}
+      <section className="pt-24 pb-12 px-4">
+        <div className="container mx-auto text-center max-w-5xl">
+          {/* 5-second value prop */}
+          <div className="mb-8">
+            <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2 mb-6">
+              <Chrome className="h-4 w-4 text-green-400" />
+              <span className="text-green-400 text-sm font-medium">Chrome Extension</span>
+            </div>
+            
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              Stop Writing Essays to ChatGPT
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+              LogTrace captures pixel-perfect UI context so AI tools give you pixel-perfect fixes. 
+              <span className="text-green-400 font-semibold"> Hover, click, get instant AI insights.</span>
+            </p>
+          </div>
+
+          {/* Two CTAs: Primary + Secondary */}
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
             <Button
+              onClick={handleGetExtension}
               size="lg"
-              onClick={handleGetStarted}
-              className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg"
+              className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto"
             >
-              Start Debugging
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <Chrome className="h-5 w-5 mr-2" />
+              Install Chrome Extension
+              <ArrowRight className="h-5 w-5 ml-2" />
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => navigate('/debug')}
-              className="border-green-400 text-green-400 hover:bg-green-400 hover:text-slate-900 px-8 py-4 text-lg"
-            >
-              <Terminal className="mr-2 h-5 w-5" />
-              Try Demo
-            </Button>
+            
+            <Link to="/debug">
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-green-400 text-green-400 hover:bg-green-400 hover:text-black px-8 py-4 text-lg h-auto w-full sm:w-auto"
+              >
+                <Play className="h-5 w-5 mr-2" />
+                Watch Demo
+              </Button>
+            </Link>
+          </div>
+          
+          <div className="text-sm text-slate-400 flex items-center justify-center gap-4">
+            <span>✓ Free to install</span>
+            <span>✓ Works on any website</span>
+            <span>✓ 3 AI debugs included</span>
           </div>
         </div>
       </section>
 
-      {/* Hero Feature - LogTrace Halo */}
-      <section className="container mx-auto px-6 py-16">
-        <div className="max-w-6xl mx-auto">
-          <Card className="bg-gradient-to-r from-slate-800 to-slate-700 border-green-400/30 shadow-2xl">
-            <CardHeader className="text-center pb-8">
-              <div className="flex justify-center mb-4">
-                <div className="relative">
-                  <div className="w-20 h-20 bg-green-400/20 rounded-full flex items-center justify-center">
-                    <MousePointer className="h-10 w-10 text-green-400" />
-                  </div>
-                  <div className="absolute -inset-4 bg-green-400/10 rounded-full animate-pulse"></div>
-                  <div className="absolute -inset-8 bg-green-400/5 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-                </div>
+      {/* Interactive Demo Preview */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="bg-slate-800/50 border border-green-500/20 rounded-2xl p-8 text-center">
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Eye className="h-5 w-5 text-green-400" />
+              <span className="text-green-400 font-medium">See It In Action</span>
+            </div>
+            
+            <h2 className="text-3xl font-bold mb-4">
+              From Bug Description to AI Solution in Seconds
+            </h2>
+            
+            <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
+              Instead of writing long descriptions of what's broken, LogTrace captures the exact context 
+              your AI assistant needs to provide perfect solutions.
+            </p>
+            
+            <Link to="/debug">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4"
+              >
+                Try Interactive Demo
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Why Developers Love LogTrace</h2>
+            <p className="text-xl text-slate-300">
+              The missing link between you and AI-powered debugging
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-slate-800/50 p-8 rounded-xl border border-slate-700 text-center">
+              <div className="bg-green-500/20 p-4 rounded-lg w-fit mx-auto mb-6">
+                <Zap className="h-8 w-8 text-green-400" />
               </div>
-              <CardTitle className="text-3xl md:text-4xl text-green-400 mb-4">
-                The Context Engine for Modern Developers
-              </CardTitle>
-              <CardDescription className="text-xl text-slate-300 max-w-3xl mx-auto">
-                LogTrace bridges the gap between your workflow and the tools that help you build, debug, and learn faster. One-click context capture for agentic developers and learning builders.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-8">
-              <div className="space-y-6">
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-green-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Target className="h-6 w-6 text-green-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-green-400 mb-2">Precision Tracking</h3>
-                    <p className="text-slate-300">Track every mouse movement with pixel-perfect accuracy and see element boundaries in real-time.</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-green-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Code className="h-6 w-6 text-green-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-green-400 mb-2">Element Intelligence</h3>
-                    <p className="text-slate-300">Instantly see element properties, CSS classes, and DOM structure without opening DevTools.</p>
-                  </div>
-                </div>
+              <h3 className="text-xl font-semibold mb-4">Context Engineering</h3>
+              <p className="text-slate-300">
+                Stop describing bugs. Start showing them. One-click context capture 
+                that AI understands perfectly.
+              </p>
+            </div>
+            
+            <div className="bg-slate-800/50 p-8 rounded-xl border border-slate-700 text-center">
+              <div className="bg-cyan-500/20 p-4 rounded-lg w-fit mx-auto mb-6">
+                <Code className="h-8 w-8 text-cyan-400" />
               </div>
-              <div className="space-y-6">
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-green-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Zap className="h-6 w-6 text-green-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-green-400 mb-2">AI-Powered Analysis</h3>
-                    <p className="text-slate-300">Get intelligent suggestions and debugging insights powered by advanced AI analysis.</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-green-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Shield className="h-6 w-6 text-green-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-green-400 mb-2">Privacy First</h3>
-                    <p className="text-slate-300">All tracking stays local to your session. No data leaves your browser without permission.</p>
-                  </div>
-                </div>
+              <h3 className="text-xl font-semibold mb-4">Works Everywhere</h3>
+              <p className="text-slate-300">
+                Install once, debug everywhere. Works on any website, 
+                integrates with your existing AI workflow.
+              </p>
+            </div>
+            
+            <div className="bg-slate-800/50 p-8 rounded-xl border border-slate-700 text-center">
+              <div className="bg-purple-500/20 p-4 rounded-lg w-fit mx-auto mb-6">
+                <Target className="h-8 w-8 text-purple-400" />
               </div>
-            </CardContent>
-          </Card>
+              <h3 className="text-xl font-semibold mb-4">Instant Insights</h3>
+              <p className="text-slate-300">
+                Get immediate AI-powered debugging suggestions. 
+                No more guessing what's wrong.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* How It Works */}
-      <section className="container mx-auto px-6 py-16">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-green-400 mb-12">
-            How Context Engineering Works
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="space-y-4">
-              <div className="w-16 h-16 bg-green-400/20 rounded-full flex items-center justify-center mx-auto">
-                <span className="text-2xl font-bold text-green-400">1</span>
+      <section className="py-16 px-4 bg-slate-800/20">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Three Steps to Smarter Debugging</h2>
+          </div>
+          
+          <div className="space-y-12">
+            <div className="flex items-start gap-8">
+              <div className="bg-gradient-to-r from-green-500 to-cyan-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                1
               </div>
-              <h3 className="text-xl font-semibold text-green-400">Activate</h3>
-              <p className="text-slate-300">Press 'S' to start LogTrace and watch the halo appear around your cursor.</p>
+              <div>
+                <h3 className="text-2xl font-semibold mb-3">Install & Activate</h3>
+                <p className="text-slate-300 text-lg">
+                  Add LogTrace to Chrome and press 'S' on any webpage to start debugging. 
+                  It's that simple.
+                </p>
+              </div>
             </div>
-            <div className="space-y-4">
-              <div className="w-16 h-16 bg-green-400/20 rounded-full flex items-center justify-center mx-auto">
-                <span className="text-2xl font-bold text-green-400">2</span>
+            
+            <div className="flex items-start gap-8">
+              <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                2
               </div>
-              <h3 className="text-xl font-semibold text-green-400">Explore</h3>
-              <p className="text-slate-300">Move your mouse to inspect elements. Click to pin details and press 'D' to debug.</p>
+              <div>
+                <h3 className="text-2xl font-semibold mb-3">Hover & Click</h3>
+                <p className="text-slate-300 text-lg">
+                  Hover over any element to inspect it in real-time, then click for 
+                  detailed AI analysis and debugging suggestions.
+                </p>
+              </div>
             </div>
-            <div className="space-y-4">
-              <div className="w-16 h-16 bg-green-400/20 rounded-full flex items-center justify-center mx-auto">
-                <span className="text-2xl font-bold text-green-400">3</span>
+            
+            <div className="flex items-start gap-8">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                3
               </div>
-              <h3 className="text-xl font-semibold text-green-400">Debug</h3>
-              <p className="text-slate-300">Access the terminal with 'T' to see your complete interaction history and analysis.</p>
+              <div>
+                <h3 className="text-2xl font-semibold mb-3">Get Perfect Context</h3>
+                <p className="text-slate-300 text-lg">
+                  Copy the generated context to ChatGPT, Claude, or any AI assistant 
+                  for pixel-perfect debugging solutions.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Call to Action */}
-      <section className="container mx-auto px-6 py-20 text-center">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-green-400 mb-6">
-            Ready to Transform Your Debugging?
-          </h2>
-          <p className="text-xl text-slate-300 mb-8">
-            Join developers who've already discovered the power of visual debugging with LogTrace.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      {/* Final CTA */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-400/30 rounded-2xl p-12 text-center">
+            <div className="flex justify-center mb-6">
+              <Sparkles className="h-16 w-16 text-green-400" />
+            </div>
+            
+            <h2 className="text-4xl font-bold mb-4">
+              Ready to Debug Smarter?
+            </h2>
+            
+            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+              Join thousands of developers who stopped writing essays to AI 
+              and started showing their bugs instead.
+            </p>
+            
             <Button
+              onClick={handleGetExtension}
               size="lg"
-              onClick={handleGetStarted}
-              className="bg-green-600 hover:bg-green-700 text-white px-12 py-4 text-xl"
+              className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto"
             >
-              Get Started Now
-              <ArrowRight className="ml-2 h-6 w-6" />
+              <Chrome className="h-5 w-5 mr-2" />
+              Install LogTrace for Chrome
+              <ArrowRight className="h-5 w-5 ml-2" />
             </Button>
-            <Button
-              size="lg"
-              onClick={() => navigate('/context-transform')}
-              variant="outline"
-              className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 px-12 py-4 text-xl"
-            >
-              Try Context Engineering
-              <Sparkles className="ml-2 h-5 w-5" />
-            </Button>
+            
+            <div className="text-sm text-slate-400 mt-6">
+              Free forever • Works on any website • No account required
+            </div>
           </div>
-          <p className="text-sm text-slate-400 mt-4">
-            Test our Context Engineering Transformer - transform raw requests into optimized prompts
-          </p>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-800 py-8">
-        <div className="container mx-auto px-6 text-center text-slate-400">
-          <p>&copy; 2024 LogTrace. Built for developers, by developers.</p>
-        </div>
-      </footer>
     </div>
   );
 };
