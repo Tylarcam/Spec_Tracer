@@ -13,7 +13,10 @@ import MoreDetailsModal from './LogTrace/PinnedDetails';
 import OnboardingWalkthrough from './LogTrace/OnboardingWalkthrough';
 import SettingsDrawer from './LogTrace/SettingsDrawer';
 import UpgradeModal from './LogTrace/UpgradeModal';
+import { QuickActionModal } from './LogTrace/QuickActionModal';
 import { Button } from './ui/button';
+import html2canvas from 'html2canvas';
+import { Switch } from './ui/switch';
 
 const LogTrace: React.FC = () => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
@@ -33,6 +36,11 @@ const LogTrace: React.FC = () => {
   const terminalMinHeight = 200;
   const resizingRef = useRef(false);
   const [pillOn, setPillOn] = useState(false);
+  const [quickActionModalVisible, setQuickActionModalVisible] = useState(false);
+  const [quickActionModalX, setQuickActionModalX] = useState(0);
+  const [quickActionModalY, setQuickActionModalY] = useState(0);
+  const logTraceRef = useRef<HTMLDivElement>(null);
+  const [contextCaptureEnabled, setContextCaptureEnabled] = useState(false);
 
   // Usage tracking
   const {
@@ -243,6 +251,57 @@ const LogTrace: React.FC = () => {
     }
   }, [isActive, currentElement, addEvent]);
 
+  const handleQuickAction = async (action: 'screenshot' | 'context' | 'debug') => {
+    setQuickActionModalVisible(false);
+    if (action === 'screenshot') {
+      try {
+        // Wait for modal to hide
+        await new Promise(res => setTimeout(res, 100));
+        if (logTraceRef.current) {
+          const canvas = await html2canvas(logTraceRef.current);
+          const dataUrl = canvas.toDataURL('image/png');
+          // Download
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = 'logtrace-screenshot.png';
+          link.click();
+          // Copy to clipboard
+          try {
+            const blob = await (await fetch(dataUrl)).blob();
+            await navigator.clipboard.write([
+              new window.ClipboardItem({ 'image/png': blob })
+            ]);
+            toast({ title: 'Screenshot', description: 'Screenshot downloaded and copied to clipboard', variant: 'success' });
+          } catch (clipErr) {
+            toast({ title: 'Screenshot', description: 'Downloaded, but failed to copy to clipboard', variant: 'default' });
+          }
+        } else {
+          toast({ title: 'Screenshot', description: 'Could not find LogTrace area', variant: 'destructive' });
+        }
+      } catch (err) {
+        toast({ title: 'Screenshot', description: 'Screenshot failed', variant: 'destructive' });
+      }
+    } else if (action === 'context') {
+      try {
+        const prompt = generateAdvancedPrompt();
+        if (!prompt || prompt.trim() === '') {
+          toast({ title: 'No Element Selected', description: 'Please select an element to generate context.', variant: 'default' });
+          return;
+        }
+        await navigator.clipboard.writeText(prompt);
+        toast({ title: 'Context Prompt Copied', description: 'The generated context prompt has been copied to your clipboard.', variant: 'success' });
+      } catch (err) {
+        toast({ title: 'Copy Failed', description: 'Failed to copy context prompt.', variant: 'destructive' });
+      }
+    } else if (action === 'debug') {
+      if (!currentElement) {
+        toast({ title: 'No Element Selected', description: 'Please select an element to debug.', variant: 'default' });
+        return;
+      }
+      setShowDebugModal(true);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeElement = document.activeElement;
@@ -357,9 +416,25 @@ const LogTrace: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
-         onMouseMove={handleMouseMove}
-         onClick={handleClick}>
+    <div
+      ref={logTraceRef}
+      className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
+      onMouseMove={handleMouseMove}
+      onClick={handleClick}
+      onContextMenu={e => {
+        e.preventDefault();
+        setQuickActionModalX(e.clientX);
+        setQuickActionModalY(e.clientY);
+        setQuickActionModalVisible(true);
+      }}
+    >
+      <QuickActionModal
+        visible={quickActionModalVisible}
+        x={quickActionModalX}
+        y={quickActionModalY}
+        onClose={() => setQuickActionModalVisible(false)}
+        onAction={handleQuickAction}
+      />
       
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
@@ -381,8 +456,30 @@ const LogTrace: React.FC = () => {
           onSettingsClick={handleSettingsClick}
           onUpgradeClick={handleUpgradeClick}
         />
+        <div className="flex items-center gap-4 mt-2 mb-6">
+          <span className="text-cyan-300 font-medium">Enable Context Capture</span>
+          <Switch
+            checked={contextCaptureEnabled}
+            onCheckedChange={setContextCaptureEnabled}
+            aria-label="Enable Context Capture"
+          />
+        </div>
 
-        {/* Test Button and Pill Slider */}
+        {hasErrors && (
+          <div className="my-4 p-3 rounded bg-red-800/60 text-red-200 animate-pulse max-w-xl">
+            <h4 className="font-semibold text-red-300 mb-1">Errors Detected</h4>
+            <ul className="text-sm list-disc list-inside space-y-1">
+              {Object.entries(errors).map(([key, value]) => (
+                value ? <li key={key}>{value}</li> : null
+              ))}
+            </ul>
+          </div>
+        )}
+        <InstructionsCard />
+      </div>
+
+      <div className="p-6 mt-6 bg-slate-800/40 rounded-xl border border-cyan-500/20">
+        <h3 className="text-cyan-400 font-semibold mb-4">Test These Components</h3>
         <div className="flex items-center gap-6 mb-6">
           <button
             className="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
@@ -406,18 +503,6 @@ const LogTrace: React.FC = () => {
             <span className={`ml-2 text-sm font-semibold ${pillOn ? 'text-green-500' : 'text-gray-400'}`}>{pillOn ? 'ON' : 'OFF'}</span>
           </div>
         </div>
-
-        {hasErrors && (
-          <div className="my-4 p-3 rounded bg-red-800/60 text-red-200 animate-pulse max-w-xl">
-            <h4 className="font-semibold text-red-300 mb-1">Errors Detected</h4>
-            <ul className="text-sm list-disc list-inside space-y-1">
-              {Object.entries(errors).map(([key, value]) => (
-                value ? <li key={key}>{value}</li> : null
-              ))}
-            </ul>
-          </div>
-        )}
-        <InstructionsCard />
       </div>
 
       {/* Settings Drawer */}
