@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ElementInfo } from '@/shared/types';
 import { Badge } from '../ui/badge';
@@ -101,10 +100,6 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
                   "{sanitizeText(currentElement.text)}"
                 </div>
               )}
-              <div className="text-cyan-300 text-xs flex items-center justify-between">
-                <span>Click for details</span>
-                <span className="text-purple-300">Ctrl+D debug</span>
-              </div>
             </div>
           </Card>
         </div>
@@ -114,3 +109,4 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
 };
 
 export default MouseOverlay;
+

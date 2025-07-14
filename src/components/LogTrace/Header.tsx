@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface HeaderProps {
   isActive: boolean;
@@ -62,7 +63,7 @@ const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
-            LogTrace
+            LogTrace: Context Editing
           </h1>
           {isPremium && (
             <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">
@@ -165,6 +166,7 @@ const Header: React.FC<HeaderProps> = ({
             </Button>
           </div>
         )}
+        <ThemeToggle />
       </div>
     </div>
   );

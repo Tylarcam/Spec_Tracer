@@ -31,50 +31,50 @@ const Index: React.FC = () => {
     setIframeError(false);
   };
 
+  // If no site URL, show the search interface
+  if (!siteUrl) {
+    return <IframeDemoBar />;
+  }
+
   return (
     <div className="min-h-screen">
-      <IframeDemoBar />
-      
-      {siteUrl && (
-        <div className="relative">
-          <iframe
-            src={siteUrl}
-            className="w-full h-[calc(100vh-60px)] border-none"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-            onError={handleIframeError}
-            onLoad={handleIframeLoad}
-            title="Demo Website"
-          />
-          {iframeError && (
-            <div className="absolute inset-0 bg-slate-800 flex items-center justify-center">
-              <div className="text-center text-slate-300">
-                <h3 className="text-lg font-semibold mb-2">Unable to load website</h3>
-                <p className="text-sm">This site may block embedding. Try a different URL.</p>
-              </div>
-            </div>
-          )}
+      {/* Compact header when site is loaded */}
+      <div className="w-full bg-slate-900 border-b border-slate-700 p-3 flex gap-2 z-40 sticky top-0">
+        <div className="flex-1 flex items-center gap-3">
+          <h2 className="text-xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
+            LogTrace: Context Editing
+          </h2>
+          <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+          <span className="text-green-400 font-medium text-sm">Analyzing:</span>
+          <span className="text-white font-mono text-sm truncate">{siteUrl}</span>
         </div>
-      )}
+        <button 
+          onClick={() => window.location.href = '/debug'}
+          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-cyan-400 rounded-lg text-slate-300 hover:text-white text-sm transition-all duration-200"
+        >
+          Change URL
+        </button>
+      </div>
       
-      {/* Show modern search interface when no URL */}
-      {!siteUrl && (
-        <div className="flex items-center justify-center min-h-[calc(100vh-60px)] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-          <div className="text-center text-white max-w-4xl px-4">
-            <div className="mb-8">
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-3 rounded-2xl">
-                  <div className="w-8 h-8 flex items-center justify-center">⚡</div>
-                </div>
-                <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                  LogTrace
-                </h1>
-              </div>
-              <p className="text-xl text-slate-300 mb-4">Debug any website with AI-powered inspection</p>
-              <p className="text-slate-400">Enter a URL above to start debugging, or press 'S' to activate on any loaded page</p>
+      {/* Iframe */}
+      <div className="relative">
+        <iframe
+          src={siteUrl}
+          className="w-full h-[calc(100vh-60px)] border-none"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+          onError={handleIframeError}
+          onLoad={handleIframeLoad}
+          title="Demo Website"
+        />
+        {iframeError && (
+          <div className="absolute inset-0 bg-slate-800 flex items-center justify-center">
+            <div className="text-center text-slate-300">
+              <h3 className="text-lg font-semibold mb-2">Unable to load website</h3>
+              <p className="text-sm">This site may block embedding. Try a different URL.</p>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
       
       <Suspense fallback={<div className="flex justify-center items-center h-screen"><Spinner size={48} /></div>}>
         <LogTrace />
