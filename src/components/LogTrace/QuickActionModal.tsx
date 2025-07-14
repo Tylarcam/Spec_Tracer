@@ -18,7 +18,7 @@ const actions = [
 
 type ActionKey = typeof actions[number]['key'];
 
-export const QuickActionModal: React.FC<QuickActionModalProps> = ({ visible, x, y, onClose, onAction }) => {
+const QuickActionModal: React.FC<QuickActionModalProps> = ({ visible, x, y, onClose, onAction }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
