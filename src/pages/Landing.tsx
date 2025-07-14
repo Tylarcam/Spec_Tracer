@@ -110,6 +110,16 @@ const Landing = () => {
 
           {/* Two CTAs: Primary + Secondary */}
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+            <Link to="/debug?upgrade=1">
+              <Button
+                size="lg"
+                variant="secondary"
+                className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-8 py-4 text-lg h-auto w-full sm:w-auto"
+              >
+                <Zap className="h-5 w-5 mr-2" />
+                Upgrade to Pro
+              </Button>
+            </Link>
             <Link to="/debug">
               <Button
                 size="lg"
@@ -141,6 +151,14 @@ const Landing = () => {
               </Button>
             </div>
           </div>
+          
+          {/* Test Custom URL Link */}
+          <p className="text-sm text-slate-400 mt-2 text-center">
+            or test LogTrace on your own site:&nbsp;
+            <Link to="/debug" className="underline text-cyan-400 hover:text-cyan-300">
+              Paste any URL
+            </Link>
+          </p>
           {/* Privacy Assurance & Benefits */}
           <div className="text-sm text-slate-400 mb-6 text-center">
             <span className="text-cyan-400 font-medium">🎯 Early access to Chrome extension</span>
