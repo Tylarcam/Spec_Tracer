@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
@@ -261,7 +262,7 @@ const LogTrace: React.FC = () => {
     setShowSettingsDrawer(true);
   }, []);
 
-  // Mouse move handler
+  // Mouse move handler - adapted for iframe context
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive || isHoverPaused) return;
 
@@ -288,7 +289,7 @@ const LogTrace: React.FC = () => {
     }
   }, [isActive, isHoverPaused, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel, showDebugModal]);
 
-  // Click handler
+  // Click handler - adapted for iframe context
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isActive) return;
     
@@ -319,26 +320,23 @@ const LogTrace: React.FC = () => {
       try {
         // Wait for modal to hide
         await new Promise(res => setTimeout(res, 100));
-        if (logTraceRef.current) {
-          const canvas = await html2canvas(logTraceRef.current);
-          const dataUrl = canvas.toDataURL('image/png');
-          // Download
-          const link = document.createElement('a');
-          link.href = dataUrl;
-          link.download = 'logtrace-screenshot.png';
-          link.click();
-          // Copy to clipboard
-          try {
-            const blob = await (await fetch(dataUrl)).blob();
-            await navigator.clipboard.write([
-              new window.ClipboardItem({ 'image/png': blob })
-            ]);
-            toast({ title: 'Screenshot', description: 'Screenshot downloaded and copied to clipboard', variant: 'success' });
-          } catch (clipErr) {
-            toast({ title: 'Screenshot', description: 'Downloaded, but failed to copy to clipboard', variant: 'default' });
-          }
-        } else {
-          toast({ title: 'Screenshot', description: 'Could not find LogTrace area', variant: 'destructive' });
+        // Screenshot the entire iframe parent document
+        const canvas = await html2canvas(document.body);
+        const dataUrl = canvas.toDataURL('image/png');
+        // Download
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'logtrace-screenshot.png';
+        link.click();
+        // Copy to clipboard
+        try {
+          const blob = await (await fetch(dataUrl)).blob();
+          await navigator.clipboard.write([
+            new window.ClipboardItem({ 'image/png': blob })
+          ]);
+          toast({ title: 'Screenshot', description: 'Screenshot downloaded and copied to clipboard', variant: 'default' });
+        } catch (clipErr) {
+          toast({ title: 'Screenshot', description: 'Downloaded, but failed to copy to clipboard', variant: 'default' });
         }
       } catch (err) {
         toast({ title: 'Screenshot', description: 'Screenshot failed', variant: 'destructive' });
@@ -351,7 +349,7 @@ const LogTrace: React.FC = () => {
           return;
         }
         await navigator.clipboard.writeText(prompt);
-        toast({ title: 'Context Prompt Copied', description: 'The generated context prompt has been copied to your clipboard.', variant: 'success' });
+        toast({ title: 'Context Prompt Copied', description: 'The generated context prompt has been copied to your clipboard.', variant: 'default' });
       } catch (err) {
         toast({ title: 'Copy Failed', description: 'Failed to copy context prompt.', variant: 'destructive' });
       }
@@ -499,7 +497,7 @@ const LogTrace: React.FC = () => {
   return (
     <div
       ref={logTraceRef}
-      className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
+      className="min-h-screen bg-transparent text-green-400 font-mono relative overflow-hidden pointer-events-none"
       onMouseMove={handleMouseMove}
       onTouchMove={handleTouchMove}
       onClick={handleClick}
@@ -510,229 +508,194 @@ const LogTrace: React.FC = () => {
         setQuickActionModalVisible(true);
       }}
     >
-      <QuickActionModal
-        visible={quickActionModalVisible}
-        x={quickActionModalX}
-        y={quickActionModalY}
-        onClose={() => setQuickActionModalVisible(false)}
-        onAction={handleQuickAction}
-      />
-      
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `
-            linear-gradient(rgba(34, 197, 94, 0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(34, 197, 94, 0.1) 1px, transparent 1px)
-          `,
-          backgroundSize: '20px 20px'
-        }} />
-      </div>
-
-      <div className="relative z-10 p-6">
-        <Header 
-          isActive={isActive}
-          setIsActive={setIsActive}
-          showTerminal={showTerminal}
-          setShowTerminal={setShowTerminal}
-          remainingUses={remainingUses}
-          onSettingsClick={() => setShowSettingsDrawer(true)}
-          onUpgradeClick={() => setShowUpgradeModal(true)}
-          contextCaptureEnabled={contextCaptureEnabled}
-          onContextCaptureChange={(enabled) => {
-            setContextCaptureEnabled(enabled);
-            setIsActive(enabled);
-          }}
+      <div className="pointer-events-auto">
+        <QuickActionModal
+          visible={quickActionModalVisible}
+          x={quickActionModalX}
+          y={quickActionModalY}
+          onClose={() => setQuickActionModalVisible(false)}
+          onAction={handleQuickAction}
         />
+        
+        <div className="relative z-10 p-6">
+          <Header 
+            isActive={isActive}
+            setIsActive={setIsActive}
+            showTerminal={showTerminal}
+            setShowTerminal={setShowTerminal}
+            remainingUses={remainingUses}
+            onSettingsClick={() => setShowSettingsDrawer(true)}
+            onUpgradeClick={() => setShowUpgradeModal(true)}
+            contextCaptureEnabled={contextCaptureEnabled}
+            onContextCaptureChange={(enabled) => {
+              setContextCaptureEnabled(enabled);
+              setIsActive(enabled);
+            }}
+          />
 
-        {hasErrors && (
-          <div className="my-4 p-3 rounded bg-red-800/60 text-red-200 animate-pulse max-w-xl">
-            <h4 className="font-semibold text-red-300 mb-1">Errors Detected</h4>
-            <ul className="text-sm list-disc list-inside space-y-1">
-              {Object.entries(errors).map(([key, value]) => (
-                value ? <li key={key}>{value}</li> : null
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      {/* Test components section */}
-      <div className="p-6 mt-6 bg-slate-800/40 rounded-xl border border-cyan-500/20">
-        <h3 className="text-cyan-400 font-semibold mb-4">Test These Components</h3>
-        <div className="flex items-center gap-6 mb-6">
-          <button
-            className="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
-            onClick={() => alert('Test Button Clicked!')}
-          >
-            Test Button
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">Pill Slider:</span>
-            <button
-              type="button"
-              className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none ${pillOn ? 'bg-green-500' : 'bg-gray-400'}`}
-              onClick={() => setPillOn(v => !v)}
-              aria-pressed={pillOn}
-            >
-              <span
-                className={`absolute left-0 top-0 w-6 h-6 bg-white rounded-full shadow transform transition-transform duration-200 ${pillOn ? 'translate-x-6' : ''}`}
-                style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}
-              />
-            </button>
-            <span className={`ml-2 text-sm font-semibold ${pillOn ? 'text-green-500' : 'text-gray-400'}`}>{pillOn ? 'ON' : 'OFF'}</span>
-          </div>
-        </div>
-      </div>
-
-      <SettingsDrawer 
-        isOpen={showSettingsDrawer}
-        onClose={() => setShowSettingsDrawer(false)}
-      />
-
-      {showOnboarding && (
-        <OnboardingWalkthrough
-          step={onboardingStep}
-          onNext={handleOnboardingNext}
-          onSkip={handleOnboardingSkip}
-          onComplete={handleOnboardingComplete}
-          isActive={isActive}
-          currentElement={currentElement}
-          mousePosition={mousePosition}
-          showInteractivePanel={showInteractivePanel}
-          showTerminal={showTerminal}
-        />
-      )}
-
-      <MouseOverlay 
-        isActive={isActive}
-        currentElement={isHoverPaused ? pausedElement : currentElement}
-        mousePosition={isHoverPaused ? pausedPosition : mousePosition}
-        overlayRef={overlayRef}
-        onElementClick={handleElementClick}
-      />
-
-      <div data-interactive-panel>
-        <ElementInspector
-          isVisible={showInteractivePanel}
-          currentElement={currentElement}
-          mousePosition={mousePosition}
-          onDebug={handleDebugFromPanel}
-          onClose={() => setShowInteractivePanel(false)}
-          panelRef={interactivePanelRef}
-          onShowMoreDetails={() => {
-            setDetailsElement(currentElement);
-            setShowMoreDetails(true);
-            setShowInteractivePanel(false);
-          }}
-          currentDebugCount={5 - remainingUses}
-          maxDebugCount={5}
-        />
-      </div>
-
-      <DebugModal 
-        showDebugModal={showDebugModal}
-        setShowDebugModal={setShowDebugModal}
-        currentElement={currentElement}
-        mousePosition={mousePosition}
-        isAnalyzing={isAnalyzing}
-        analyzeWithAI={handleAnalyzeWithAI}
-        generateAdvancedPrompt={generateAdvancedPrompt}
-        modalRef={modalRef}
-        terminalHeight={showTerminal ? terminalHeight : 0}
-      />
-
-      <MoreDetailsModal 
-        element={detailsElement}
-        open={showMoreDetails}
-        onClose={() => setShowMoreDetails(false)}
-        terminalHeight={showTerminal ? terminalHeight : 0}
-      />
-
-      {!showTerminal && (
-        <Button
-          onClick={() => setShowTerminal(true)}
-          className={`fixed ${isMobile ? 'bottom-6 right-6 w-16 h-16' : 'bottom-4 right-4 w-12 h-12'} z-30 bg-green-600 hover:bg-green-700 text-white rounded-full p-0 shadow-lg`}
-        >
-          <span style={{ 
-            fontSize: isMobile ? 24 : 32, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center' 
-          }}>
-            {isMobile ? '⌨' : '>'}
-          </span>
-        </Button>
-      )}
-
-      {showTerminal && (
-        <div
-          style={{
-            position: 'fixed',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            top: isMobile ? 0 : 'auto',
-            zIndex: 100,
-            height: isMobile ? '100vh' : terminalHeight,
-            minHeight: terminalMinHeight,
-            display: 'flex',
-            flexDirection: 'column',
-            backgroundColor: isMobile ? 'rgba(15, 23, 42, 0.98)' : 'transparent',
-          }}
-        >
-          {/* Mobile: Add close button at top */}
-          {isMobile && (
-            <div className="flex items-center justify-between p-4 bg-slate-900 border-b border-green-500/30">
-              <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
-              <Button
-                onClick={() => setShowTerminal(false)}
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </Button>
+          {hasErrors && (
+            <div className="my-4 p-3 rounded bg-red-800/60 text-red-200 animate-pulse max-w-xl">
+              <h4 className="font-semibold text-red-300 mb-1">Errors Detected</h4>
+              <ul className="text-sm list-disc list-inside space-y-1">
+                {Object.entries(errors).map(([key, value]) => (
+                  value ? <li key={key}>{value}</li> : null
+                ))}
+              </ul>
             </div>
           )}
-          
-          {/* Desktop: Resize handle */}
-          {!isMobile && (
-            <div
-              style={{
-                height: 8,
-                cursor: 'ns-resize',
-                background: 'rgba(34,197,94,0.15)',
-                borderTopLeftRadius: 8,
-                borderTopRightRadius: 8,
-                zIndex: 101,
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                resizingRef.current = true;
-              }}
-            />
-          )}
-          
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-            <TabbedTerminal
-              showTerminal={showTerminal}
-              setShowTerminal={setShowTerminal}
-              events={events}
-              exportEvents={exportEvents}
-              clearEvents={clearEvents}
-              debugResponses={debugResponses}
-              clearDebugResponses={clearDebugResponses}
-              terminalHeight={isMobile ? undefined : terminalHeight}
-            />
-          </div>
         </div>
-      )}
 
-      <UpgradeModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        remainingUses={remainingUses}
-      />
+        <SettingsDrawer 
+          isOpen={showSettingsDrawer}
+          onClose={() => setShowSettingsDrawer(false)}
+        />
+
+        {showOnboarding && (
+          <OnboardingWalkthrough
+            step={onboardingStep}
+            onNext={handleOnboardingNext}
+            onSkip={handleOnboardingSkip}
+            onComplete={handleOnboardingComplete}
+            isActive={isActive}
+            currentElement={currentElement}
+            mousePosition={mousePosition}
+            showInteractivePanel={showInteractivePanel}
+            showTerminal={showTerminal}
+          />
+        )}
+
+        <MouseOverlay 
+          isActive={isActive}
+          currentElement={isHoverPaused ? pausedElement : currentElement}
+          mousePosition={isHoverPaused ? pausedPosition : mousePosition}
+          overlayRef={overlayRef}
+          onElementClick={handleElementClick}
+        />
+
+        <div data-interactive-panel>
+          <ElementInspector
+            isVisible={showInteractivePanel}
+            currentElement={currentElement}
+            mousePosition={mousePosition}
+            onDebug={handleDebugFromPanel}
+            onClose={() => setShowInteractivePanel(false)}
+            panelRef={interactivePanelRef}
+            onShowMoreDetails={() => {
+              setDetailsElement(currentElement);
+              setShowMoreDetails(true);
+              setShowInteractivePanel(false);
+            }}
+            currentDebugCount={5 - remainingUses}
+            maxDebugCount={5}
+          />
+        </div>
+
+        <DebugModal 
+          showDebugModal={showDebugModal}
+          setShowDebugModal={setShowDebugModal}
+          currentElement={currentElement}
+          mousePosition={mousePosition}
+          isAnalyzing={isAnalyzing}
+          analyzeWithAI={handleAnalyzeWithAI}
+          generateAdvancedPrompt={generateAdvancedPrompt}
+          modalRef={modalRef}
+          terminalHeight={showTerminal ? terminalHeight : 0}
+        />
+
+        <MoreDetailsModal 
+          element={detailsElement}
+          open={showMoreDetails}
+          onClose={() => setShowMoreDetails(false)}
+          terminalHeight={showTerminal ? terminalHeight : 0}
+        />
+
+        {!showTerminal && (
+          <Button
+            onClick={() => setShowTerminal(true)}
+            className={`fixed ${isMobile ? 'bottom-6 right-6 w-16 h-16' : 'bottom-4 right-4 w-12 h-12'} z-30 bg-green-600 hover:bg-green-700 text-white rounded-full p-0 shadow-lg pointer-events-auto`}
+          >
+            <span style={{ 
+              fontSize: isMobile ? 24 : 32, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center' 
+            }}>
+              {isMobile ? '⌨' : '>'}
+            </span>
+          </Button>
+        )}
+
+        {showTerminal && (
+          <div
+            style={{
+              position: 'fixed',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              top: isMobile ? 0 : 'auto',
+              zIndex: 100,
+              height: isMobile ? '100vh' : terminalHeight,
+              minHeight: terminalMinHeight,
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: isMobile ? 'rgba(15, 23, 42, 0.98)' : 'transparent',
+            }}
+            className="pointer-events-auto"
+          >
+            {/* Mobile: Add close button at top */}
+            {isMobile && (
+              <div className="flex items-center justify-between p-4 bg-slate-900 border-b border-green-500/30">
+                <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
+                <Button
+                  onClick={() => setShowTerminal(false)}
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-white"
+                >
+                  ✕
+                </Button>
+              </div>
+            )}
+            
+            {/* Desktop: Resize handle */}
+            {!isMobile && (
+              <div
+                style={{
+                  height: 8,
+                  cursor: 'ns-resize',
+                  background: 'rgba(34,197,94,0.15)',
+                  borderTopLeftRadius: 8,
+                  borderTopRightRadius: 8,
+                  zIndex: 101,
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  resizingRef.current = true;
+                }}
+              />
+            )}
+            
+            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              <TabbedTerminal
+                showTerminal={showTerminal}
+                setShowTerminal={setShowTerminal}
+                events={events}
+                exportEvents={exportEvents}
+                clearEvents={clearEvents}
+                debugResponses={debugResponses}
+                clearDebugResponses={clearDebugResponses}
+                terminalHeight={isMobile ? undefined : terminalHeight}
+              />
+            </div>
+          </div>
+        )}
+
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          remainingUses={remainingUses}
+        />
+      </div>
     </div>
   );
 };

@@ -4,14 +4,20 @@ import { useLocation } from 'react-router-dom';
 const LogTrace = React.lazy(() => import('@/components/LogTrace'));
 import Spinner from '@/components/ui/spinner';
 import IframeDemoBar from '@/components/IframeDemoBar';
+import UpgradeNotificationBanner from '@/components/LogTrace/UpgradeNotificationBanner';
 import { useToast } from '@/hooks/use-toast';
+import { useCreditsSystem } from '@/hooks/useCreditsSystem';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index: React.FC = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const siteUrl = params.get('site');
   const [iframeError, setIframeError] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { creditsStatus, loading } = useCreditsSystem();
 
   useEffect(() => {
     if (siteUrl && iframeError) {
@@ -36,10 +42,28 @@ const Index: React.FC = () => {
     return <IframeDemoBar />;
   }
 
+  const remainingCredits = creditsStatus?.creditsRemaining || 0;
+  const totalCredits = creditsStatus?.creditsLimit || 5;
+  const isPremium = creditsStatus?.isPremium || false;
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
+      {/* Upgrade Notification Banner - only show for authenticated users with low credits */}
+      {!bannerDismissed && !loading && creditsStatus && user && (
+        <UpgradeNotificationBanner
+          remainingCredits={remainingCredits}
+          totalCredits={totalCredits}
+          onUpgrade={() => {
+            // This will be handled by LogTrace component's upgrade modal
+            setBannerDismissed(true);
+          }}
+          onDismiss={() => setBannerDismissed(true)}
+          isPremium={isPremium}
+        />
+      )}
+
       {/* Compact header when site is loaded */}
-      <div className="w-full bg-slate-900 border-b border-slate-700 p-3 flex gap-2 z-40 sticky top-0">
+      <div className={`w-full bg-slate-900 border-b border-slate-700 p-3 flex gap-2 z-40 sticky ${!bannerDismissed && !loading && creditsStatus && user && (remainingCredits <= 2 && !isPremium) ? 'top-12' : 'top-0'}`}>
         <div className="flex-1 flex items-center gap-3">
           <h2 className="text-xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
             LogTrace: Context Editing
@@ -60,7 +84,7 @@ const Index: React.FC = () => {
       <div className="relative">
         <iframe
           src={siteUrl}
-          className="w-full h-[calc(100vh-60px)] border-none"
+          className={`w-full border-none ${!bannerDismissed && !loading && creditsStatus && user && (remainingCredits <= 2 && !isPremium) ? 'h-[calc(100vh-108px)]' : 'h-[calc(100vh-60px)]'}`}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
           onError={handleIframeError}
           onLoad={handleIframeLoad}
@@ -76,8 +100,13 @@ const Index: React.FC = () => {
         )}
       </div>
       
+      {/* LogTrace Component - This provides all the debugging functionality */}
       <Suspense fallback={<div className="flex justify-center items-center h-screen"><Spinner size={48} /></div>}>
-        <LogTrace />
+        <div className="fixed inset-0 pointer-events-none z-50">
+          <div className="pointer-events-auto">
+            <LogTrace />
+          </div>
+        </div>
       </Suspense>
     </div>
   );
