@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
@@ -13,10 +14,12 @@ import MoreDetailsModal from './LogTrace/PinnedDetails';
 import OnboardingWalkthrough from './LogTrace/OnboardingWalkthrough';
 import SettingsDrawer from './LogTrace/SettingsDrawer';
 import UpgradeModal from './LogTrace/UpgradeModal';
-import QuickActionModal from './LogTrace/QuickActionModal';
 import { Button } from './ui/button';
 import html2canvas from 'html2canvas';
 import { Switch } from './ui/switch';
+
+// Import QuickActionModal directly to avoid module resolution issues
+const QuickActionModal = React.lazy(() => import('./LogTrace/QuickActionModal'));
 
 const LogTrace: React.FC = () => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
@@ -436,13 +439,15 @@ const LogTrace: React.FC = () => {
         setQuickActionModalVisible(true);
       }}
     >
-      <QuickActionModal
-        visible={quickActionModalVisible}
-        x={quickActionModalX}
-        y={quickActionModalY}
-        onClose={() => setQuickActionModalVisible(false)}
-        onAction={handleQuickAction}
-      />
+      <React.Suspense fallback={<div>Loading...</div>}>
+        <QuickActionModal
+          visible={quickActionModalVisible}
+          x={quickActionModalX}
+          y={quickActionModalY}
+          onClose={() => setQuickActionModalVisible(false)}
+          onAction={handleQuickAction}
+        />
+      </React.Suspense>
       
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
@@ -593,7 +598,6 @@ const LogTrace: React.FC = () => {
             zIndex: 50,
             height: terminalHeight,
             minHeight: terminalMinHeight,
-            // Remove maxHeight
             display: 'flex',
             flexDirection: 'column',
           }}
