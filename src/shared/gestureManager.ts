@@ -14,6 +14,7 @@ interface GestureContextValue {
 }
 
 const GestureContext = createContext<GestureContextValue | undefined>(undefined);
+
 export const useGesture = () => {
   const ctx = useContext(GestureContext);
   if (!ctx) throw new Error("useGesture must be used within <GestureProvider>");
