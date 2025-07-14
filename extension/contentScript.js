@@ -1605,7 +1605,7 @@ function showSignInModal() {
 function checkUserAuthentication() {
   try {
     // Check if user has API key
-    const hasApiKey = apiKey && apiKey.trim() !== '';
+  const hasApiKey = apiKey && apiKey.trim() !== '';
     
     // Check for stored auth using new format
     const storedAuth = localStorage.getItem('logtrace_extension_auth');

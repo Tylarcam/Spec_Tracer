@@ -68,6 +68,9 @@ export const useLogTraceEventHandlers = ({
           id: currentElement.id,
           classes: currentElement.classes,
           text: currentElement.text,
+          parentPath: currentElement.parentPath,
+          attributes: currentElement.attributes,
+          size: currentElement.size,
         } : undefined,
       });
     }
@@ -93,6 +96,9 @@ export const useLogTraceEventHandlers = ({
             id: currentElement.id,
             classes: currentElement.classes,
             text: currentElement.text,
+            parentPath: currentElement.parentPath,
+            attributes: currentElement.attributes,
+            size: currentElement.size,
           },
         });
       }

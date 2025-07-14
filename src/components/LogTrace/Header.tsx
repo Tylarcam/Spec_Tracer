@@ -45,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-1 px-2 md:px-3 py-1 bg-slate-800 border border-green-500/30 rounded-full">
             <Zap className="h-3 w-3 md:h-4 md:w-4 text-green-400" />
             <span className="text-xs md:text-sm text-green-400 font-medium">
-              {remainingUses}/3
+              {remainingUses}/5
             </span>
           </div>
 

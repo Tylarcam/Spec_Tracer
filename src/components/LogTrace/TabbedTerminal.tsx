@@ -87,7 +87,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                   Clear Events
                 </button>
               </div>
-                <div className="absolute inset-x-0 bottom-0 top-6 font-mono text-sm space-y-1 overflow-auto scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
+                <div className="absolute inset-x-0 bottom-0 top-6 font-mono text-sm space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
                 {events.length === 0 ? (
                   <div className="text-gray-500">No events captured yet...</div>
                 ) : (
@@ -162,7 +162,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                     Clear AI Debug
                 </button>
               </div>
-              <div className="absolute inset-x-0 bottom-0 top-6 font-mono text-sm space-y-2 overflow-auto scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
+              <div className="absolute inset-x-0 bottom-0 top-6 font-mono text-sm space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
                   {debugResponses.length === 0 ? (
                     <div className="text-gray-500">No debug responses yet...</div>
                   ) : (
@@ -193,7 +193,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                   </button>
                 </div>
               </div>
-              <div className="absolute inset-x-0 bottom-0 top-6 overflow-auto bg-slate-800/50 rounded p-2 scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
+              <div className="absolute inset-x-0 bottom-0 top-6 overflow-y-auto overflow-x-hidden bg-slate-800/50 rounded p-2 scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
                 <div className="font-mono text-sm space-y-2">
                     <div className="text-gray-500">No console errors or warnings captured yet...</div>
                 </div>

@@ -17,7 +17,6 @@ import DebugModal from '@/components/LogTrace/DebugModal';
 import ExtensionControlPanel from './components/ExtensionControlPanel';
 import ExtensionAuthModal from './components/ExtensionAuthModal';
 import ExtensionMouseOverlay from './components/ExtensionMouseOverlay';
-import ExtensionTerminalWrapper from './components/ExtensionTerminalWrapper';
 import { useExtensionAuth } from './hooks/useExtensionAuth';
 
 const LogTraceExtension: React.FC = () => {
@@ -254,7 +253,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
 
   // Event handlers
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isActive) return;
+    if (!isActive || showDebugModal) return;
     
     const target = e.target as HTMLElement;
     if (target && !target.closest('#logtrace-overlay') && !target.closest('#logtrace-modal') && !target.closest('[data-element-inspector]')) {
@@ -277,7 +276,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
         },
       });
     }
-  }, [isActive, extractElementInfo, addEvent, setMousePosition, setCurrentElement, showElementInspector, inspectorIsPinned]);
+  }, [isActive, showDebugModal, extractElementInfo, addEvent, setMousePosition, setCurrentElement, showElementInspector, inspectorIsPinned]);
 
   const handleClick = useCallback((e: MouseEvent) => {
     if (!isActive) return;
@@ -411,6 +410,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
           user={user}
           guestDebugCount={guestDebugCount}
           maxGuestDebugs={5}
+          terminalHeight={showTerminal ? 384 : 0}
         />
       )}
 
@@ -433,12 +433,10 @@ Provide specific, actionable debugging steps and potential solutions.`;
         element={detailsElement}
         open={showMoreDetails}
         onClose={() => setShowMoreDetails(false)}
+        terminalHeight={showTerminal ? 384 : 0}
       />
 
-      <TabbedTerminal 
-        isVisible={showTerminal}
-        onToggle={() => setShowTerminal(!showTerminal)}
-        onClear={clearEvents}
+      <TabbedTerminal
         showTerminal={showTerminal}
         setShowTerminal={setShowTerminal}
         events={events}
@@ -446,14 +444,6 @@ Provide specific, actionable debugging steps and potential solutions.`;
         clearEvents={clearEvents}
         debugResponses={debugResponses}
         clearDebugResponses={clearDebugResponses}
-      />
-
-      <ExtensionTerminalWrapper
-        showTerminal={showTerminal}
-        onToggleTerminal={() => setShowTerminal(false)}
-        events={events}
-        onExportEvents={exportEvents}
-        onClearEvents={clearEvents}
       />
     </div>
   );

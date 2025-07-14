@@ -122,7 +122,6 @@ const LogTrace: React.FC = () => {
     
     // Ensure only one modal is visible at a time
     setShowDebugModal(false);
-    setShowTerminal(false);
     setShowInteractivePanel(true);
     
     addEvent({
@@ -135,7 +134,7 @@ const LogTrace: React.FC = () => {
         text: currentElement.text,
       },
     });
-  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowTerminal]);
+  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowInteractivePanel]);
 
   const handleDebugFromPanel = useCallback(() => {
     // Check usage limit before proceeding
@@ -146,7 +145,6 @@ const LogTrace: React.FC = () => {
 
     // Ensure only one modal is visible at a time
     setShowInteractivePanel(false);
-    setShowTerminal(false);
     setShowDebugModal(true);
     
     if (currentElement) {
@@ -161,7 +159,7 @@ const LogTrace: React.FC = () => {
         },
       });
     }
-  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowTerminal, canUseAiDebug]);
+  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowInteractivePanel, canUseAiDebug]);
 
   const handleEscape = useCallback(() => {
     setShowInteractivePanel(false);
@@ -202,7 +200,7 @@ const LogTrace: React.FC = () => {
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isActive || isHoverPaused) return;
+    if (!isActive || isHoverPaused || showDebugModal) return;
 
     const target = e.target as HTMLElement;
     if (target && 
@@ -263,7 +261,6 @@ const LogTrace: React.FC = () => {
 
         // Ensure only one modal is visible at a time
         setShowInteractivePanel(false);
-        setShowTerminal(false);
         setShowDebugModal(true);
         
         if (currentElement) {
@@ -480,12 +477,14 @@ const LogTrace: React.FC = () => {
         analyzeWithAI={handleAnalyzeWithAI}
         generateAdvancedPrompt={generateAdvancedPrompt}
         modalRef={modalRef}
+        terminalHeight={showTerminal ? terminalHeight : 0}
       />
 
       <MoreDetailsModal 
         element={detailsElement}
         open={showMoreDetails}
         onClose={() => setShowMoreDetails(false)}
+        terminalHeight={showTerminal ? terminalHeight : 0}
       />
 
       {/* Always render TabbedTerminal for the icon button when closed */}

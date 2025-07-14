@@ -13,6 +13,9 @@ export interface LogEvent {
     id: string;
     classes: string[];
     text: string;
+    parentPath?: string;
+    attributes?: { name: string; value: string }[];
+    size?: { width: number; height: number };
   };
   prompt?: string;
   response?: string;
@@ -25,6 +28,8 @@ export interface ElementInfo {
   text: string;
   element: HTMLElement;
   parentPath?: string; // DOM hierarchy path, e.g., 'form.checkout-form > div.flex > button.submit-btn'
+  attributes?: { name: string; value: string }[];
+  size?: { width: number; height: number };
 }
 
 export interface LogTraceSettings {

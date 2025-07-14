@@ -115,7 +115,7 @@ const Auth: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await signIn(email, password);
+    const { error } = await signIn(email, password);
       if (error) {
         if (isExtensionAuth && window.opener) {
           window.opener.postMessage({
@@ -124,8 +124,8 @@ const Auth: React.FC = () => {
           }, '*');
         }
       } else if (!isExtensionAuth) {
-        navigate('/');
-      }
+      navigate('/');
+    }
     } catch (error: any) {
       if (isExtensionAuth && window.opener) {
         window.opener.postMessage({
@@ -142,7 +142,7 @@ const Auth: React.FC = () => {
     setIsLoading(true);
     
     try {
-      await signInWithGitHub();
+    await signInWithGitHub();
     } catch (error: any) {
       if (isExtensionAuth && window.opener) {
         window.opener.postMessage({
@@ -159,14 +159,14 @@ const Auth: React.FC = () => {
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {!isExtensionAuth && (
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/')}
-            className="mb-6 text-green-400 hover:text-green-300"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to LogTrace
-          </Button>
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/')}
+          className="mb-6 text-green-400 hover:text-green-300"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to LogTrace
+        </Button>
         )}
 
         <Card className="bg-slate-800 border-slate-700">
