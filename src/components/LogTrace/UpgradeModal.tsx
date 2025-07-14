@@ -54,7 +54,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, remainingU
               <span className="text-red-400 font-semibold text-sm">Free Limit Reached</span>
             </div>
             <p className="text-gray-300 text-sm">
-              You've used all {3 - remainingUses} free AI debugging requests. 
+              You've used all {5 - remainingUses} free AI debugging requests. 
               Upgrade to continue with unlimited access.
             </p>
           </div>

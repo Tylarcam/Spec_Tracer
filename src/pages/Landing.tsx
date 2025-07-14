@@ -105,7 +105,7 @@ const Landing = () => {
           <div className="text-sm text-slate-400 flex items-center justify-center gap-4">
             <span>✓ Free to install</span>
             <span>✓ Works on any website</span>
-            <span>✓ 3 AI debugs included</span>
+            <span>✓ 5 AI debugs included</span>
           </div>
         </div>
       </section>

@@ -156,7 +156,8 @@ const LogTraceExtension: React.FC = () => {
       return;
     }
 
-    if (!user && guestDebugCount >= 3) {
+    // Change guest debug gating logic
+    if (!user && guestDebugCount >= 5) {
       setShowAuthModal(true);
       return;
     }
@@ -389,8 +390,10 @@ Provide specific, actionable debugging steps and potential solutions.`;
             setShowMoreDetails(true);
             setShowElementInspector(false);
           }}
+          currentDebugCount={guestDebugCount}
+          maxDebugCount={5}
         />
-      </div>
+        </div>
 
       {showDebugModal && (
         <DebugModal
@@ -407,7 +410,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
           setShowAuthModal={setShowAuthModal}
           user={user}
           guestDebugCount={guestDebugCount}
-          maxGuestDebugs={3}
+          maxGuestDebugs={5}
         />
       )}
 

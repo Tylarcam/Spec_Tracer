@@ -415,6 +415,8 @@ const LogTrace: React.FC = () => {
             setShowMoreDetails(true);
             setShowInteractivePanel(false);
           }}
+          currentDebugCount={5 - remainingUses}
+          maxDebugCount={5}
         />
       </div>
 

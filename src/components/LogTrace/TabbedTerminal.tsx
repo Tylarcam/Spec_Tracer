@@ -1,37 +1,22 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Terminal, History, Download, Trash2, ChevronDown, ChevronUp, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-interface LogEntry {
-  id: string;
-  timestamp: Date;
-  type: 'hover' | 'click' | 'ai-response' | 'system';
-  content: string;
-  element?: string;
-}
+import React, { useState } from 'react';
+import { Card, CardHeader, CardContent } from '../ui/card';
+import { Button } from '../ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { X, Download, Play, History } from 'lucide-react';
 
 interface TabbedTerminalProps {
-  logs?: LogEntry[];
-  isVisible: boolean;
-  onToggle: () => void;
-  onClear: () => void;
-  showTerminal?: boolean;
-  setShowTerminal?: (show: boolean) => void;
-  events?: any[];
-  exportEvents?: () => void;
-  clearEvents?: () => void;
-  debugResponses?: any[];
-  clearDebugResponses?: () => void;
+  showTerminal: boolean;
+  setShowTerminal: (show: boolean) => void;
+  events: any[];
+  exportEvents: () => void;
+  clearEvents: () => void;
+  debugResponses: any[];
+  clearDebugResponses: () => void;
   currentElement?: any;
 }
 
 const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
-  logs = [],
-  isVisible,
-  onToggle,
-  onClear,
   showTerminal,
   setShowTerminal,
   events = [],
@@ -39,218 +24,141 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   clearEvents,
   debugResponses = [],
   clearDebugResponses,
+  currentElement,
 }) => {
-  const [activeTab, setActiveTab] = useState('terminal');
-  const [isExpanded, setIsExpanded] = useState(false);
-  const terminalRef = useRef<HTMLDivElement>(null);
-  const isMobile = window.innerWidth < 768;
+  const [activeTab, setActiveTab] = useState<'events' | 'debug' | 'console'>('events');
 
-  // Use showTerminal prop if provided, otherwise use isVisible
-  const terminalVisible = showTerminal !== undefined ? showTerminal : isVisible;
-  const handleToggle = () => {
-    if (setShowTerminal) {
-      setShowTerminal(!terminalVisible);
-    } else {
-      onToggle();
-    }
-  };
-
-  // Auto-scroll to bottom when new logs arrive
-  useEffect(() => {
-    if (terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-    }
-  }, [logs, events]);
-
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
-  const getLogIcon = (type: string) => {
-    switch (type) {
-      case 'hover': return '👆';
-      case 'click': return '🖱️';
-      case 'ai-response': return '🤖';
-      case 'system': return '⚙️';
-      default: return '•';
-    }
-  };
-
-  const exportLogs = () => {
-    const allLogs = [...logs, ...events];
-    const content = allLogs.map(log => 
-      `[${log.timestamp ? formatTimestamp(new Date(log.timestamp)) : new Date().toLocaleTimeString()}] ${(log.type || 'event').toUpperCase()}: ${log.content || log.prompt || JSON.stringify(log)}`
-    ).join('\n');
-    
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `logtrace-session-${new Date().toISOString().split('T')[0]}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleClear = () => {
-    onClear();
-    if (clearEvents) clearEvents();
-    if (clearDebugResponses) clearDebugResponses();
-  };
-
-  const handleExport = () => {
-    if (exportEvents) {
-      exportEvents();
-    } else {
-      exportLogs();
-    }
-  };
-
-  if (!terminalVisible) {
+  if (!showTerminal) {
     return (
       <Button
-        onClick={handleToggle}
+        onClick={() => setShowTerminal(true)}
         className="fixed bottom-4 right-4 z-30 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
       >
-        <Terminal className="h-5 w-5" />
+        {/* Keep the green circle terminal icon */}
+        <span style={{ fontSize: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{'>'}</span>
       </Button>
     );
   }
 
-  const allLogs = [...logs, ...events];
-
   return (
-    <div className={`
-      fixed bottom-0 left-0 right-0 z-30 bg-slate-900 border-t border-green-500/30 shadow-2xl
-      transition-all duration-300 ease-out
-      ${isExpanded ? 'h-3/4' : 'h-64'}
-      ${isMobile ? 'h-1/2' : ''}
-    `}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-slate-800 border-b border-green-500/20">
-        <div className="flex items-center gap-2">
-          <Terminal className="h-4 w-4 text-green-400" />
-          <span className="text-green-400 font-semibold text-sm">Debug Terminal</span>
-          <span className="text-xs text-gray-400">({allLogs.length} entries)</span>
-        </div>
-        
-        <div className="flex items-center gap-1">
-          {/* Mobile expand/collapse */}
-          {isMobile && (
-            <Button
-              onClick={() => setIsExpanded(!isExpanded)}
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white h-7 w-7 p-0"
-            >
-              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-            </Button>
-          )}
-          
-          <Button
-            onClick={handleExport}
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-white h-7 w-7 p-0"
-            disabled={allLogs.length === 0}
-          >
-            <Download className="h-3 w-3" />
-          </Button>
-          
-          <Button
-            onClick={handleClear}
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-red-400 h-7 w-7 p-0"
-            disabled={allLogs.length === 0}
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-          
-          <Button
-            onClick={handleToggle}
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-white h-7 w-7 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-        <TabsList className="bg-slate-800 border-b border-green-500/20 rounded-none w-full justify-start p-0">
-          <TabsTrigger 
-            value="terminal" 
-            className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 text-gray-400 px-4 py-2 text-sm"
-          >
-            Terminal
-          </TabsTrigger>
-          <TabsTrigger 
-            value="history" 
-            className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 text-gray-400 px-4 py-2 text-sm"
-          >
-            History
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="terminal" className="flex-1 m-0 p-0">
-          <div 
-            ref={terminalRef}
-            className="h-full overflow-y-auto p-3 space-y-2 font-mono text-sm"
-          >
-            {allLogs.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                <div className="text-center">
-                  <Terminal className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Start tracing to see debug logs</p>
-                </div>
-              </div>
-            ) : (
-              allLogs.map((log, index) => (
-                <div key={log.id || index} className="flex gap-2 text-xs">
-                  <span className="text-gray-500 shrink-0">
-                    {log.timestamp ? formatTimestamp(new Date(log.timestamp)) : new Date().toLocaleTimeString()}
-                  </span>
-                  <span className="shrink-0">{getLogIcon(log.type || 'system')}</span>
-                  <span className="text-gray-300 break-all">{log.content || log.prompt || JSON.stringify(log)}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="history" className="flex-1 m-0 p-0">
-          <div className="h-full overflow-y-auto p-3">
-            <div className="space-y-3">
-              {debugResponses.filter(log => log.type === 'ai-response' || log.response).map((log, index) => (
-                <div key={log.id || index} className="bg-slate-800 rounded-lg p-3 border border-green-500/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs text-gray-500">
-                      {log.timestamp ? formatTimestamp(new Date(log.timestamp)) : new Date().toLocaleTimeString()}
-                    </span>
-                    <span className="text-xs text-green-400 font-medium">AI Response</span>
-                  </div>
-                  <p className="text-sm text-gray-300 leading-relaxed">{log.content || log.response}</p>
-                </div>
-              ))}
-              {debugResponses.filter(log => log.type === 'ai-response' || log.response).length === 0 && (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  <div className="text-center">
-                    <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>No AI responses yet</p>
-                  </div>
-                </div>
-              )}
+    <div className="fixed bottom-0 left-0 right-0 z-50">
+      <Card className="bg-slate-900/95 border-green-500/50 rounded-t-lg border-b-0">
+        <div className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
+            <div className="flex gap-2">
+              <Button
+                onClick={exportEvents}
+                variant="outline"
+                size="sm"
+                className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
+              >
+                Export
+              </Button>
+              <Button
+                onClick={() => setShowTerminal(false)}
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-        </TabsContent>
-      </Tabs>
+          <Tabs value={activeTab} onValueChange={setActiveTab as any} className="w-full">
+            <TabsList className="h-10 items-center justify-center rounded-md p-1 text-muted-foreground grid w-full grid-cols-3 bg-slate-800/50">
+              <TabsTrigger value="events" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">Events ({events.length})</TabsTrigger>
+              <TabsTrigger value="debug" className="data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-400">AI Debug ({debugResponses.length})</TabsTrigger>
+              <TabsTrigger value="console" className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400">Console (0)</TabsTrigger>
+            </TabsList>
+            <TabsContent value="events" className="mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-400">Interaction Events</span>
+                <button
+                  className="bg-red-500/10 text-red-400 border border-red-500/50 rounded px-3 py-1 text-xs hover:bg-red-500/20 transition"
+                  onClick={clearEvents}
+                >
+                  Clear Events
+                </button>
+              </div>
+              <div className="font-mono text-sm space-y-1">
+                {events.length === 0 ? (
+                  <div className="text-gray-500">No events captured yet...</div>
+                ) : (
+                  events.map((event, idx) => {
+                    let color = '';
+                    if (event.type === 'CLICK') color = 'text-green-400';
+                    else if (event.type === 'DEBUG') color = 'text-yellow-400';
+                    else if (event.type === 'INSPECT') color = 'text-cyan-400';
+                    // Compose element info string
+                    const tag = event.elementTag || 'div';
+                    const id = event.elementId ? `#${event.elementId}` : '';
+                    const classes = event.elementClasses ? `.${event.elementClasses.replace(/\s+/g, '.')}` : '';
+                    const text = event.elementText ? `"${event.elementText}"` : '';
+                    const position = event.position ? `@${event.position.x},${event.position.y}` : '';
+                    // Compose copy string
+                    const copyString = `[${event.timestamp}] ${event.type} ${tag}${id}${classes} ${text} ${position}`;
+                    return (
+                      <div key={idx} className="flex gap-2 items-center group">
+                        <div className="flex gap-2 flex-1 min-w-0">
+                          <span className="text-gray-500 min-w-[100px] text-xs">[{event.timestamp}]</span>
+                          <span className={`${color} font-semibold`}>{event.type}</span>
+                          <span className="text-gray-300 truncate max-w-[120px]">{tag}{id}{classes}</span>
+                          {text && <span className="italic text-gray-400 truncate max-w-[120px]">{text}</span>}
+                          {position && <span className="text-gray-400 text-xs">{position}</span>}
+                        </div>
+                        <button
+                          className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground rounded-md h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Copy event details"
+                          onClick={() => navigator.clipboard.writeText(copyString)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy w-3 h-3 text-gray-400"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </TabsContent>
+            <TabsContent value="debug" className="mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-400">AI Debug Conversations</span>
+                <button
+                  className="bg-red-500/10 text-red-400 border border-red-500/50 rounded px-3 py-1 text-xs hover:bg-red-500/20 transition"
+                  onClick={clearDebugResponses}
+                >
+                  Clear AI Debug
+                </button>
+              </div>
+              <div className="font-mono text-sm space-y-2">
+                {debugResponses.length === 0 ? (
+                  <div className="text-gray-500">No debug responses yet...</div>
+                ) : (
+                  debugResponses.map((resp, idx) => (
+                    <div key={idx} className="text-gray-300">{JSON.stringify(resp)}</div>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+            <TabsContent value="console" className="mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-400">Console Errors & Warnings</span>
+                <button
+                  className="bg-red-500/10 text-red-400 border border-red-500/50 rounded px-3 py-1 text-xs hover:bg-red-500/20 transition"
+                  onClick={clearEvents}
+                >
+                  Clear Console
+                </button>
+              </div>
+              <div className="relative overflow-hidden h-64 bg-slate-800/50 rounded p-2">
+                <div className="font-mono text-sm space-y-2">
+                  <div className="text-gray-500">No console errors or warnings captured yet...</div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </Card>
     </div>
   );
 };

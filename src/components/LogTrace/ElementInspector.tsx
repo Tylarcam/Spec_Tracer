@@ -21,6 +21,9 @@ interface ElementInspectorProps {
   isPinned?: boolean;
   onPin?: () => void;
   onShowMoreDetails: () => void;
+  // NEW: AI debug usage
+  currentDebugCount?: number;
+  maxDebugCount?: number;
 }
 
 const ElementInspector: React.FC<ElementInspectorProps> = ({
@@ -35,6 +38,8 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   isPinned = false,
   onPin,
   onShowMoreDetails,
+  currentDebugCount,
+  maxDebugCount,
 }) => {
   const [expandedSections, setExpandedSections] = useState<string[]>(['basic']);
 
@@ -165,7 +170,14 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                 </Badge>
               )}
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 items-center">
+              {/* AI debug usage badge */}
+              {(typeof currentDebugCount === 'number' && typeof maxDebugCount === 'number') && (
+                <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs flex items-center gap-1">
+                  <Zap className="w-3 h-3 mr-1" />
+                  {currentDebugCount}/{maxDebugCount}
+                </Badge>
+              )}
               {onPin && isDraggable && (
                 <Button
                   onClick={onPin}

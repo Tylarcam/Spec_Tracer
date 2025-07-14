@@ -66,3 +66,14 @@ It's also missing the context enginnering modal update that is in the main app.
 
 
 2. Also we need to improve the landing copy once and for all. 
+
+
+--WIP
+1. Just pulled down the correct lovable data. 
+2. Corected the Terminal descreprcy  created yesterday. 
+3. Change the daily debug limit from 3 to upgrade to a freemium model where a user gets 5 a day or upgrade to pro.
+4. Fix the sign in user flow on chrome extension
+5. update the final panel ui edits for chrome.
+6. chrome ui modal updates
+    a. enhance the copy selector ( this is not that helpful it oly copies tha class) 
+7. Add quick screenshot features of the Element inspector information and the halo over the element that will provide all the context needed along side agenerated prompt. ( the is the final aim, one click full context and prompt with user modification intent )

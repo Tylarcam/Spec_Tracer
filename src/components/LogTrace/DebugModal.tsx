@@ -46,7 +46,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
   setShowAuthModal,
   user,
   guestDebugCount = 0,
-  maxGuestDebugs = 3,
+  maxGuestDebugs = 5,
 }) => {
   const [userIntent, setUserIntent] = useState('');
   const [advancedPrompt, setAdvancedPrompt] = useState('');
