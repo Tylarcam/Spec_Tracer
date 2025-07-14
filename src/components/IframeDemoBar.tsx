@@ -4,6 +4,7 @@ import { Globe, Search, Zap, Crown, Settings, User, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import SettingsDrawer from '@/components/LogTrace/SettingsDrawer';
 
 const popularSites = [
   'github.com',
@@ -15,6 +16,7 @@ const popularSites = [
 
 const IframeDemoBar: React.FC = () => {
   const [url, setUrl] = useState('');
+  const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -29,6 +31,15 @@ const IframeDemoBar: React.FC = () => {
 
   const handleSignIn = () => {
     navigate('/auth');
+  };
+
+  const handleSettingsClick = () => {
+    setShowSettingsDrawer(true);
+  };
+
+  const handleUpgrade = () => {
+    // Navigate to upgrade or handle upgrade logic
+    navigate('/auth'); // For now, redirect to auth page
   };
 
   return (
@@ -49,6 +60,7 @@ const IframeDemoBar: React.FC = () => {
         
         {/* Settings */}
         <Button
+          onClick={handleSettingsClick}
           variant="ghost"
           size="sm"
           className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-slate-700/50"
@@ -133,6 +145,13 @@ const IframeDemoBar: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Settings Drawer */}
+      <SettingsDrawer
+        isOpen={showSettingsDrawer}
+        onClose={() => setShowSettingsDrawer(false)}
+        onUpgradeClick={handleUpgrade}
+      />
     </div>
   );
 };
