@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,7 +58,7 @@ const Landing: React.FC = () => {
             Stop Describing Bugs. Start Showing Them.
           </h1>
           <p className="text-xl md:text-2xl text-slate-300 mb-8 leading-relaxed">
-            LogTracer captures pixel-perfect UI context so you get precise, actionable fixes—no more writing essays or pasting screenshots. Instantly show what’s broken, not just what you think is broken.
+            LogTracer captures pixel-perfect UI context so you get precise, actionable fixes—no more writing essays or pasting screenshots. Instantly show what's broken, not just what you think is broken.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
@@ -86,7 +85,7 @@ const Landing: React.FC = () => {
       {/* Hero Feature - LogTrace Halo */}
       <section className="container mx-auto px-6 py-16">
         <div className="max-w-6xl mx-auto">
-          <Card className="bg-gradient-to-r from-slate-800 to-slate-700 border-green-400/30 shadow-2xl">
+          <Card className="bg-black border-green-400/30 shadow-2xl">
             <CardHeader className="text-center pb-8">
               <div className="flex justify-center mb-4">
                 <div className="relative">
