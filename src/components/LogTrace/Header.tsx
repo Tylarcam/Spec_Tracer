@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface HeaderProps {
   isActive: boolean;
@@ -57,19 +59,37 @@ const Header: React.FC<HeaderProps> = ({
     });
   };
 
+  const handleChangeUrl = () => {
+    // Navigate to the main page without query params to show the URL input
+    window.location.href = '/debug';
+  };
+
   return (
     <div className="flex items-center justify-between mb-8">
       <div className="flex items-center gap-4">
+        {/* User info moved to left */}
+        {user && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/50 border border-slate-700/50">
+              <User className="h-4 w-4 text-gray-400" />
+              <span className="text-sm text-gray-300">{user.email}</span>
+            </div>
+            <Button
+              onClick={handleSignOut}
+              variant="ghost"
+              size="sm"
+              className="text-gray-400 hover:text-white"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
             LogTrace
           </h1>
-          {isPremium && (
-            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">
-              <Crown className="h-3 w-3 mr-1" />
-              Pro
-            </Badge>
-          )}
+          <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
         </div>
         
         <div className="flex items-center gap-6">
@@ -111,6 +131,7 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
+      {/* Right side - Credits, Pro badge, Settings, Theme, Change URL */}
       <div className="flex items-center gap-4">
         {!isPremium && (
           <div className="flex items-center gap-2">
@@ -130,15 +151,31 @@ const Header: React.FC<HeaderProps> = ({
         )}
 
         {isPremium && (
-          <Button
-            onClick={openCustomerPortal}
-            variant="outline"
-            size="sm"
-            className="border-green-500/30 text-green-400 hover:bg-green-500/10"
-          >
-            Manage Subscription
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">
+              <Crown className="h-3 w-3 mr-1" />
+              Pro
+            </Badge>
+            <Button
+              onClick={openCustomerPortal}
+              variant="outline"
+              size="sm"
+              className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+            >
+              Manage Subscription
+            </Button>
+          </div>
         )}
+
+        {/* Change URL Button */}
+        <Button 
+          onClick={handleChangeUrl}
+          variant="outline"
+          size="sm"
+          className="border-slate-600 hover:border-cyan-400 text-slate-300 hover:text-white"
+        >
+          Change URL
+        </Button>
 
         <Button
           onClick={onSettingsClick}
@@ -149,22 +186,7 @@ const Header: React.FC<HeaderProps> = ({
           <Settings className="h-4 w-4" />
         </Button>
 
-        {user && (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/50 border border-slate-700/50">
-              <User className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-300">{user.email}</span>
-            </div>
-            <Button
-              onClick={handleSignOut}
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+        <ThemeToggle />
       </div>
     </div>
   );

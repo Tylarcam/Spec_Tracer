@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,60 +36,62 @@ export const useCreditsSystem = (): UseCreditsSystemReturn => {
 
     try {
       setError(null);
-      // Check if user has a subscription
-      const { data: subscriber } = await supabase
-        .from('subscribers')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      
+      // Call the database function to get user credits status
+      const { data, error } = await supabase.rpc('get_user_credits_status', {
+        user_uuid: user.id
+      });
 
-      // Set default credits status
-      const defaultCredits = {
-        creditsRemaining: 5,
-        creditsLimit: 5,
-        resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        isPremium: subscriber?.subscribed || false,
-        waitlistBonusRemaining: 5
-      };
+      if (error) {
+        console.error('Error fetching credits status:', error);
+        setError(error.message);
+        return;
+      }
 
-      setCreditsStatus(defaultCredits);
+      if (data && data.length > 0) {
+        const statusData = data[0];
+        setCreditsStatus({
+          creditsRemaining: statusData.credits_remaining,
+          creditsLimit: statusData.credits_limit,
+          resetTime: statusData.reset_time,
+          isPremium: statusData.is_premium,
+          waitlistBonusRemaining: statusData.waitlist_bonus_remaining
+        });
+      }
     } catch (err: any) {
       console.error('Error fetching credits status:', err);
       setError(err.message || 'Failed to fetch credits status');
-      // Set fallback credits status
-      setCreditsStatus({
-        creditsRemaining: 5,
-        creditsLimit: 5,
-        resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        isPremium: false,
-        waitlistBonusRemaining: 5
-      });
     } finally {
       setLoading(false);
     }
   }, [user]);
 
   const useCredit = useCallback(async (): Promise<boolean> => {
-    if (!user || !creditsStatus) {
+    if (!user) {
       return false;
     }
 
     try {
-      if (creditsStatus.creditsRemaining > 0) {
-        // Simulate using a credit
-        setCreditsStatus(prev => prev ? {
-          ...prev,
-          creditsRemaining: prev.creditsRemaining - 1
-        } : null);
-        return true;
+      const { data, error } = await supabase.rpc('use_credit', {
+        user_uuid: user.id
+      });
+
+      if (error) {
+        console.error('Error using credit:', error);
+        setError(error.message);
+        return false;
       }
-      return false;
+
+      // Refresh status after using credit
+      await refreshStatus();
+      
+      return data || false;
     } catch (err: any) {
       console.error('Error using credit:', err);
       setError(err.message || 'Failed to use credit');
       return false;
     }
-  }, [user, creditsStatus]);
+  }, [user, refreshStatus]);
 
   const grantWaitlistCredits = useCallback(async (email: string): Promise<boolean> => {
     if (!user) {
@@ -96,30 +99,29 @@ export const useCreditsSystem = (): UseCreditsSystemReturn => {
     }
 
     try {
-      // Check if user is on waitlist
-      const { data: waitlistEntry } = await supabase
-        .from('waitlist')
-        .select('*')
-        .eq('email', email.toLowerCase())
-        .single();
+      const { data, error } = await supabase.rpc('grant_waitlist_credits', {
+        user_uuid: user.id,
+        user_email: email
+      });
 
-      if (waitlistEntry) {
-        // Grant bonus credits for waitlist users
-        setCreditsStatus(prev => prev ? {
-          ...prev,
-          creditsRemaining: prev.creditsRemaining + 5,
-          waitlistBonusRemaining: 5
-        } : null);
-        return true;
+      if (error) {
+        console.error('Error granting waitlist credits:', error);
+        setError(error.message);
+        return false;
       }
 
-      return false;
+      // Refresh status after granting credits
+      if (data) {
+        await refreshStatus();
+      }
+      
+      return data || false;
     } catch (err: any) {
       console.error('Error granting waitlist credits:', err);
       setError(err.message || 'Failed to grant waitlist credits');
       return false;
     }
-  }, [user]);
+  }, [user, refreshStatus]);
 
   // Load credits status on mount and when user changes
   useEffect(() => {
