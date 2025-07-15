@@ -88,15 +88,15 @@ const Landing = () => {
                 className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-4 py-2"
               >
                 <Play className="h-4 w-4 mr-2" />
-                Try Web Demo
+                Try Interactive Demo
               </Button>
             </Link>
             <Button
               className="bg-green-500 hover:bg-green-600 text-black font-semibold px-4 py-2"
-              disabled
+              onClick={() => document.getElementById('waitlist-section')?.scrollIntoView({ behavior: 'smooth' })}
             >
               <Chrome className="h-4 w-4 mr-2" />
-              Coming Soon
+              Get Extension
             </Button>
           </div>
         </div>
@@ -111,79 +111,195 @@ const Landing = () => {
               <span className="text-green-400 text-sm font-medium">Chrome Extension Coming Soon</span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
-              Inspect Any Element
-              <br />
-              Debug with AI
+            <h1 className="text-5xl md:text-7xl font-bold mb-6">
+              Stop Writing Essays to{" "}
+              <span className="bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                ChatGPT
+              </span>
             </h1>
             
             <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              The ultimate debugging companion that captures pixel-perfect UI context and transforms it into 
-              <span className="text-green-400 font-semibold"> actionable AI insights</span> for any website.
+              LogTrace captures pixel-perfect UI context so AI tools know exactly what you want - 
+              perfect focus, hover, click, get instant AI insights.
             </p>
           </div>
 
           {/* Primary CTA */}
           <div className="flex flex-col items-center gap-6 mb-12">
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <div className="flex gap-2 w-full sm:w-auto">
-                <input
-                  type="email"
-                  placeholder="Enter your email for early access"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-green-400 flex-1 min-w-[280px]"
-                />
-                <Button
-                  onClick={handleJoinWaitlist}
-                  disabled={!email.trim() || isJoiningWaitlist}
-                  className="bg-green-500 hover:bg-green-600 text-black font-bold px-6 py-4 text-lg h-auto whitespace-nowrap"
-                >
-                  <Download className="h-5 w-5 mr-2" />
-                  {isJoiningWaitlist ? 'Joining...' : 'Get Extension'}
-                </Button>
-              </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Button
+                size="lg"
+                className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-8 py-4 text-lg h-auto"
+                onClick={() => document.getElementById('waitlist-section')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                Upgrade to Pro
+              </Button>
+              
               <Link to="/debug">
                 <Button
                   size="lg"
                   variant="outline"
                   className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4 text-lg h-auto w-full sm:w-auto"
                 >
-                  <Play className="h-5 w-5 mr-2" />
-                  Try Web Preview
+                  Try Interactive Demo
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
               </Link>
-              
-              <Button
-                onClick={() => navigate('/context-transform')}
-                size="lg"
-                variant="outline"
-                className="border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-black px-8 py-4 text-lg h-auto w-full sm:w-auto"
-              >
-                <Sparkles className="h-5 w-5 mr-2" />
-                Context Transformer
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
+            </div>
+            
+            <div className="flex items-center gap-4 text-sm text-slate-400">
+              <span className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                Fully online and optimized
+              </span>
+              <span>•</span>
+              <span>No spam, unsubscribe anytime</span>
+              <span>•</span>
+              <span>It's 100% reliable</span>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* From Bug Description Section */}
+      <section className="py-16 px-4 bg-slate-800/20">
+        <div className="container mx-auto max-w-4xl">
+          <Card className="bg-slate-800/50 border-green-400/30">
+            <CardContent className="p-12 text-center">
+              <div className="flex justify-center mb-6">
+                <div className="bg-green-500/20 p-4 rounded-lg">
+                  <Target className="h-12 w-12 text-green-400" />
+                </div>
+              </div>
+              
+              <h2 className="text-3xl font-bold mb-4 text-white">
+                From Bug Description to AI Solution in Seconds
+              </h2>
+              
+              <p className="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
+                Instead of writing long descriptions of bugs, context, websites or ideas, just point and click to get instant AI 
+                analysis and debugging suggestions.
+              </p>
+              
+              <Link to="/debug">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4"
+                >
+                  Try Interactive Demo
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Why Developers Love LogTrace */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Why Developers Love LogTrace</h2>
+            <p className="text-xl text-slate-300">The missing link between you and AI-powered debugging</p>
+          </div>
           
-          {/* Benefits Row */}
-          <div className="text-sm text-slate-400 mb-6 text-center">
-            <span className="text-green-400 font-medium">🎯 Early access to Chrome extension</span>
-            <span className="mx-2">•</span>
-            <span>No spam, unsubscribe anytime</span>
-            <span className="mx-2">•</span>
-            <span>Works on any website</span>
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader className="text-center">
+                <div className="bg-green-500/20 p-4 rounded-lg w-fit mx-auto mb-4">
+                  <Code className="h-8 w-8 text-green-400" />
+                </div>
+                <CardTitle className="text-white">Context Debugging</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-slate-300 text-center">
+                  Stop writing detailed issue descriptions. One click captures all technical context with visual highlighting.
+                </CardDescription>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader className="text-center">
+                <div className="bg-cyan-500/20 p-4 rounded-lg w-fit mx-auto mb-4">
+                  <Eye className="h-8 w-8 text-cyan-400" />
+                </div>
+                <CardTitle className="text-white">Whole Ecosystems</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-slate-300 text-center">
+                  See into the styling, events and computed styles. Equivalent with optimizing at the professional level.
+                </CardDescription>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader className="text-center">
+                <div className="bg-purple-500/20 p-4 rounded-lg w-fit mx-auto mb-4">
+                  <Sparkles className="h-8 w-8 text-purple-400" />
+                </div>
+                <CardTitle className="text-white">ChatGPT + Claude</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-slate-300 text-center">
+                  Get context optimized for ChatGPT and Claude with minimal prompting for more debugging success.
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Three Steps Section */}
+      <section className="py-16 px-4 bg-slate-800/20">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Three Steps to Smarter Debugging</h2>
+          </div>
+          
+          <div className="space-y-12">
+            <div className="flex items-start gap-8">
+              <div className="bg-gradient-to-r from-green-500 to-cyan-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                1
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold mb-3 text-white">Try the Demo</h3>
+                <p className="text-slate-300 text-lg">
+                  Experience LogTrace on our interactive demo. Press "S" to start debugging any element on the 
+                  demo page.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-8">
+              <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                2
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold mb-3 text-white">Hover & Click</h3>
+                <p className="text-slate-300 text-lg">
+                  Hover over any element to get instant details. Then click for detailed analysis and 
+                  debugging suggestions.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-8">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                3
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold mb-3 text-white">Get Perfect Context</h3>
+                <p className="text-slate-300 text-lg">
+                  Copy the optimized context to ChatGPT, Claude, or any AI assistant for pixel-perfect debugging solutions.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Why Chrome Extension Section */}
-      <section className="py-16 px-4 bg-slate-800/20">
+      <section className="py-16 px-4">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Why a Chrome Extension?</h2>
@@ -241,209 +357,25 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Features Overview */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto max-w-5xl">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Powerful Features</h2>
-            <p className="text-xl text-slate-300">Everything you need for efficient debugging</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <div className="bg-green-500/20 p-3 rounded-lg w-fit mb-4">
-                  <Target className="h-6 w-6 text-green-400" />
-                </div>
-                <CardTitle className="text-white">Smart Element Selection</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-slate-300">
-                  Hover to inspect, click to analyze. Get comprehensive element context with visual highlighting.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <div className="bg-cyan-500/20 p-3 rounded-lg w-fit mb-4">
-                  <Code className="h-6 w-6 text-cyan-400" />
-                </div>
-                <CardTitle className="text-white">AI-Powered Analysis</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-slate-300">
-                  Get instant AI insights, code suggestions, and debugging solutions tailored to your specific element.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <div className="bg-purple-500/20 p-3 rounded-lg w-fit mb-4">
-                  <Terminal className="h-6 w-6 text-purple-400" />
-                </div>
-                <CardTitle className="text-white">Context Export</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-slate-300">
-                  Copy perfect context for ChatGPT, Claude, or any AI assistant. Share debugging sessions with your team.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <div className="bg-orange-500/20 p-3 rounded-lg w-fit mb-4">
-                  <Eye className="h-6 w-6 text-orange-400" />
-                </div>
-                <CardTitle className="text-white">Visual Debugging</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-slate-300">
-                  See element boundaries, spacing, and hierarchy with advanced visual overlays and measurements.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <div className="bg-pink-500/20 p-3 rounded-lg w-fit mb-4">
-                  <Zap className="h-6 w-6 text-pink-400" />
-                </div>
-                <CardTitle className="text-white">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-slate-300">
-                  Keyboard shortcuts, right-click context menus, and instant access to debugging tools.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <div className="bg-blue-500/20 p-3 rounded-lg w-fit mb-4">
-                  <Users className="h-6 w-6 text-blue-400" />
-                </div>
-                <CardTitle className="text-white">Team Collaboration</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-slate-300">
-                  Share debugging sessions, export reports, and collaborate with your team on complex issues.
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Web Demo Preview */}
-      <section className="py-16 px-4 bg-slate-800/20">
-        <div className="container mx-auto max-w-4xl">
-          <Card className="bg-slate-800/50 border-cyan-500/20">
-            <CardHeader className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <Eye className="h-5 w-5 text-cyan-400" />
-                <span className="text-cyan-400 font-medium">Preview the Experience</span>
-              </div>
-              <CardTitle className="text-3xl font-bold text-white mb-4">
-                Try LogTrace in Your Browser
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-center">
-              <CardDescription className="text-slate-300 mb-8 max-w-2xl mx-auto text-lg">
-                While you wait for the Chrome extension, experience LogTrace's core functionality 
-                with our web demo. Limited to iframe-compatible sites, but showcases the full AI debugging power.
-              </CardDescription>
-              
-              <Link to="/debug">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4 mb-4"
-                >
-                  Launch Web Demo
-                  <ArrowRight className="h-5 w-5 ml-2" />
-                </Button>
-              </Link>
-              
-              <p className="text-xs text-slate-500">
-                Web demo works best with embedding-friendly sites. 
-                Full functionality coming with the Chrome extension.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">How LogTrace Extension Works</h2>
-            <p className="text-xl text-slate-300">Simple, powerful, and instant</p>
-          </div>
-          
-          <div className="space-y-12">
-            <div className="flex items-start gap-8">
-              <div className="bg-gradient-to-r from-green-500 to-cyan-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
-                1
-              </div>
-              <div>
-                <h3 className="text-2xl font-semibold mb-3 text-white">Install & Activate</h3>
-                <p className="text-slate-300 text-lg">
-                  One-click install from Chrome Web Store. Activate LogTrace on any website 
-                  with a simple keyboard shortcut or toolbar click.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-8">
-              <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
-                2
-              </div>
-              <div>
-                <h3 className="text-2xl font-semibold mb-3 text-white">Hover & Click</h3>
-                <p className="text-slate-300 text-lg">
-                  Hover over any element to inspect it in real-time, then click for 
-                  detailed AI analysis. Works on any website without restrictions.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-8">
-              <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
-                3
-              </div>
-              <div>
-                <h3 className="text-2xl font-semibold mb-3 text-white">Get AI Solutions</h3>
-                <p className="text-slate-300 text-lg">
-                  Copy the generated context to ChatGPT, Claude, or any AI assistant 
-                  for pixel-perfect debugging solutions. Or use built-in AI features.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="py-20 px-4">
+      {/* Final CTA Section */}
+      <section id="waitlist-section" className="py-20 px-4">
         <div className="container mx-auto max-w-4xl">
           <Card className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border-green-400/30">
             <CardContent className="p-12 text-center">
               <div className="flex justify-center mb-6">
-                <Chrome className="h-16 w-16 text-green-400" />
+                <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-4 rounded-full">
+                  <Chrome className="h-16 w-16 text-white" />
+                </div>
               </div>
               
-              <CardTitle className="text-4xl font-bold mb-4 text-white">
+              <h2 className="text-4xl font-bold mb-4 text-white">
                 Ready for the Ultimate Debugging Experience?
-              </CardTitle>
+              </h2>
               
-              <CardDescription className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+              <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
                 Join the waitlist for early access to the LogTrace Chrome Extension. 
                 Debug any website without limitations.
-              </CardDescription>
+              </p>
               
               <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
                 <div className="flex gap-2 w-full sm:w-auto">

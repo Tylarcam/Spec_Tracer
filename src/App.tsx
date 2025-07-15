@@ -24,9 +24,9 @@ const App = () => (
         <BrowserRouter>
           <ErrorBoundary>
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/debug" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/landing" element={<Landing />} />
               <Route path="/context-transform" element={<ContextTransform />} />
               <Route path="/testdemo" element={<TestDemo />} />
               <Route path="*" element={<NotFound />} />
