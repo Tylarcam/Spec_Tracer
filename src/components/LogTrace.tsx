@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
@@ -199,7 +198,6 @@ const LogTrace: React.FC = () => {
     if (showTerminal) setShowTerminal(false);
   }, [setShowDebugModal, showTerminal]);
 
-  // Analyze with AI handler
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
     // Check usage limit for premium users
     if (isPremium) {
