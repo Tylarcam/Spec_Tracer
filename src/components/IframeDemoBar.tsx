@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { useCreditsSystem } from '@/hooks/useCreditsSystem';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import UpgradeNotificationBanner from '@/components/LogTrace/UpgradeNotificationBanner';
 import UpgradeModal from '@/components/LogTrace/UpgradeModal';
 
@@ -22,7 +22,7 @@ const IframeDemoBar: React.FC = () => {
   const [url, setUrl] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const navigate = useNavigate();
-  const { user, signOut } = useAuthContext();
+  const { user, signOut } = useAuth();
   const { creditsStatus } = useCreditsSystem();
 
   const handleAnalyze = () => {
@@ -69,7 +69,6 @@ const IframeDemoBar: React.FC = () => {
       {/* Upgrade Notification Banner */}
       {!isPremium && (
         <UpgradeNotificationBanner 
-          onUpgradeClick={handleUpgrade}
           remainingUses={remainingCredits}
         />
       )}
