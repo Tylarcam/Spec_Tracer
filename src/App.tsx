@@ -10,7 +10,6 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
-import IndexUserinputIframe from "./pages/Index_Userinput_iframe";
 import ContextTransform from "./pages/ContextTransform";
 import NotFound from "./pages/NotFound";
 
@@ -35,7 +34,6 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/debug" element={<Index />} />
-              <Route path="/web-test" element={<IndexUserinputIframe />} />
               <Route path="/context-transform" element={<ContextTransform />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

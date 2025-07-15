@@ -437,13 +437,13 @@ Provide specific, actionable debugging steps and potential solutions.`;
       />
 
       <TabbedTerminal
-        showTerminal={showTerminal}
-        setShowTerminal={setShowTerminal}
         events={events}
         exportEvents={exportEvents}
         clearEvents={clearEvents}
         debugResponses={debugResponses}
         clearDebugResponses={clearDebugResponses}
+        showTerminal={showTerminal}
+        setShowTerminal={setShowTerminal}
       />
     </div>
   );

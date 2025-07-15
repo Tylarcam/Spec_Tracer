@@ -1,65 +1,85 @@
 
-import { useState, useEffect } from 'react';
+import { useCreditsSystem } from './useCreditsSystem';
+import { useAuth } from '@/contexts/AuthContext';
 
-const STORAGE_KEY = 'logtrace-usage';
-const FREE_LIMIT = 3;
-
-interface UsageData {
-  aiDebugCount: number;
-  lastReset: string;
-}
-
+// Legacy hook that wraps the new credits system for backward compatibility
 export const useUsageTracking = () => {
-  const [usageData, setUsageData] = useState<UsageData>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      const today = new Date().toDateString();
-      
-      // Reset daily (optional - you can remove this for lifetime limits)
-      if (parsed.lastReset !== today) {
-        const resetData = { aiDebugCount: 0, lastReset: today };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(resetData));
-        return resetData;
-      }
-      
-      return parsed;
-    }
-    
-    const initialData = { aiDebugCount: 0, lastReset: new Date().toDateString() };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
-    return initialData;
-  });
+  const { user } = useAuth();
+  const { 
+    creditsStatus, 
+    loading, 
+    canUseCredit, 
+    useCredit 
+  } = useCreditsSystem();
 
-  const incrementAiDebugUsage = () => {
-    const newUsageData = {
-      ...usageData,
-      aiDebugCount: usageData.aiDebugCount + 1,
-    };
+  // For non-authenticated users, use guest tracking (5 credits max)
+  const getGuestCredits = () => {
+    if (user) return { used: 0, remaining: 0 }; // Authenticated users use database
     
-    setUsageData(newUsageData);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newUsageData));
+    const guestUsed = parseInt(localStorage.getItem('logtrace_guest_debug_count') || '0', 10);
+    return {
+      used: guestUsed,
+      remaining: Math.max(0, 5 - guestUsed)
+    };
+  };
+
+  const guestCredits = getGuestCredits();
+
+  const incrementAiDebugUsage = async () => {
+    if (user) {
+      // Use database credits for authenticated users
+      return await useCredit();
+    } else {
+      // Use localStorage for guest users
+      const currentCount = parseInt(localStorage.getItem('logtrace_guest_debug_count') || '0', 10);
+      localStorage.setItem('logtrace_guest_debug_count', (currentCount + 1).toString());
+      return true;
+    }
   };
 
   const getRemainingUses = () => {
-    return Math.max(0, FREE_LIMIT - usageData.aiDebugCount);
+    if (loading) return 0;
+    
+    if (user) {
+      return creditsStatus?.creditsRemaining || 0;
+    } else {
+      return guestCredits.remaining;
+    }
   };
 
   const hasReachedLimit = () => {
-    return usageData.aiDebugCount >= FREE_LIMIT;
+    if (loading) return false;
+    
+    if (user) {
+      return !canUseCredit;
+    } else {
+      return guestCredits.remaining <= 0;
+    }
   };
 
   const canUseAiDebug = () => {
     return !hasReachedLimit();
   };
 
+  const getUsedCount = () => {
+    if (loading) return 0;
+    
+    if (user) {
+      return creditsStatus ? (creditsStatus.creditsLimit - creditsStatus.creditsRemaining) : 0;
+    } else {
+      return guestCredits.used;
+    }
+  };
+
   return {
-    aiDebugCount: usageData.aiDebugCount,
+    aiDebugCount: getUsedCount(),
     remainingUses: getRemainingUses(),
     hasReachedLimit: hasReachedLimit(),
     canUseAiDebug: canUseAiDebug(),
     incrementAiDebugUsage,
-    isPremium: false, // Add missing property
-    waitlistBonusRemaining: 0, // Add missing property
+    isPremium: creditsStatus?.isPremium || false,
+    resetTime: creditsStatus?.resetTime,
+    waitlistBonusRemaining: creditsStatus?.waitlistBonusRemaining || 0,
+    loading,
   };
 };
