@@ -1,10 +1,12 @@
+
 import React, { useState } from 'react';
 import { Globe, Search, Zap, Crown, Settings, User, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { useCreditsSystem } from '@/hooks/useCreditsSystem';
-import SettingsDrawer from '@/components/LogTrace/SettingsDrawer';
+import { useAuthContext } from '@/contexts/AuthContext';
 import UpgradeNotificationBanner from '@/components/LogTrace/UpgradeNotificationBanner';
 import UpgradeModal from '@/components/LogTrace/UpgradeModal';
 
@@ -18,32 +20,44 @@ const popularSites = [
 
 const IframeDemoBar: React.FC = () => {
   const [url, setUrl] = useState('');
-  const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { creditsStatus, loading } = useCreditsSystem();
+  const { user, signOut } = useAuthContext();
+  const { creditsStatus } = useCreditsSystem();
 
   const handleAnalyze = () => {
     if (!url.trim()) return;
-    let fullUrl = url.trim();
-    if (!/^https?:\/\//.test(fullUrl)) {
-      fullUrl = 'https://' + fullUrl;
+    
+    // Ensure URL has protocol
+    let formattedUrl = url.trim();
+    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+      formattedUrl = 'https://' + formattedUrl;
     }
-    window.location.href = `/debug?site=${encodeURIComponent(fullUrl)}`;
+    
+    // Navigate to the main Index page with the URL parameter and enable LogTrace
+    navigate(`/?site=${encodeURIComponent(formattedUrl)}&demo=true`);
   };
 
-  const handleSignIn = () => {
-    navigate('/auth');
-  };
-
-  const handleSettingsClick = () => {
-    setShowSettingsDrawer(true);
+  const handleQuickSite = (site: string) => {
+    setUrl(site);
+    // Auto-analyze when clicking a popular site
+    setTimeout(() => {
+      const formattedUrl = site.startsWith('http') ? site : 'https://' + site;
+      navigate(`/?site=${encodeURIComponent(formattedUrl)}&demo=true`);
+    }, 100);
   };
 
   const handleUpgrade = () => {
     setShowUpgradeModal(true);
+  };
+
+  const handleAuth = () => {
+    navigate('/auth');
+  };
+
+  const handleSettings = () => {
+    // Could navigate to settings page or open a modal
+    console.log('Settings clicked');
   };
 
   const remainingCredits = creditsStatus?.creditsRemaining || 0;
@@ -53,104 +67,128 @@ const IframeDemoBar: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 relative">
       {/* Upgrade Notification Banner */}
-      {!bannerDismissed && !loading && creditsStatus && (
-        <UpgradeNotificationBanner
-          remainingCredits={remainingCredits}
-          totalCredits={totalCredits}
-          onUpgrade={handleUpgrade}
-          onDismiss={() => setBannerDismissed(true)}
-          isPremium={isPremium}
+      {!isPremium && (
+        <UpgradeNotificationBanner 
+          onUpgradeClick={handleUpgrade}
+          remainingUses={remainingCredits}
         />
       )}
 
-      {/* Header with rearranged layout */}
-      <div className="absolute top-4 left-4 flex items-center gap-3">
-        {/* User info moved to left */}
+      {/* Header with Auth/Settings */}
+      <div className="absolute top-6 right-6 flex items-center gap-3">
+        {/* Credits Display */}
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="border-green-500/30 text-green-400">
+            <Zap className="w-3 h-3 mr-1" />
+            {remainingCredits}/{totalCredits}
+          </Badge>
+          {isPremium && (
+            <Badge variant="outline" className="border-yellow-500/30 text-yellow-400">
+              <Crown className="w-3 h-3 mr-1" />
+              Premium
+            </Badge>
+          )}
+        </div>
+
+        {/* User Menu */}
         {user ? (
-          <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/80 border border-slate-700/50">
-            <User className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-300">{user.email}</span>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleSettings}
+              variant="ghost"
+              size="sm"
+              className="text-slate-400 hover:text-white"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+            <Button
+              onClick={signOut}
+              variant="ghost"
+              size="sm"
+              className="text-slate-400 hover:text-white"
+            >
+              <User className="w-4 h-4 mr-1" />
+              Sign Out
+            </Button>
           </div>
         ) : (
           <Button
-            onClick={handleSignIn}
-            variant="outline"
+            onClick={handleAuth}
+            variant="ghost"
             size="sm"
-            className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+            className="text-slate-400 hover:text-white"
           >
-            <LogIn className="w-4 h-4 mr-2" />
+            <LogIn className="w-4 h-4 mr-1" />
             Sign In
           </Button>
         )}
       </div>
 
-      {/* Right side - Credits, Pro badge, Settings */}
-      <div className="absolute top-4 right-4 flex items-center gap-3">
-        {/* Credits indicator */}
-        {!loading && creditsStatus && !isPremium && (
-          <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-slate-800/80 border border-green-500/30 text-green-400">
-            <Zap className="w-4 h-4" />
-            <span className="text-sm font-medium">{remainingCredits}/{totalCredits}</span>
-          </div>
-        )}
-        
-        {/* Pro badge */}
-        {isPremium && (
-          <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-orange-500/20 border border-orange-500/30 text-orange-400">
-            <Crown className="w-4 h-4" />
-            <span className="text-sm font-medium">Pro</span>
-          </div>
-        )}
-        
-        {/* Settings */}
-        <Button
-          onClick={handleSettingsClick}
-          variant="ghost"
-          size="sm"
-          className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-slate-700/50"
-        >
-          <Settings className="w-4 h-4" />
-        </Button>
-      </div>
-
-      {/* Main content - centered */}
-      <div className="flex flex-col items-center mt-16">
+      {/* Main Content */}
+      <div className="flex flex-col items-center justify-center px-6 py-12 max-w-4xl mx-auto text-center">
         {/* Logo and Title */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-400 to-cyan-400 flex items-center justify-center shadow-lg">
-              <Zap className="w-6 h-6 text-white" />
+        <div className="mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-green-400 rounded-xl flex items-center justify-center">
+              <Search className="w-8 h-8 text-slate-900" />
             </div>
-            <span className="text-3xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
+          </div>
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
+            <span className="bg-gradient-to-r from-cyan-400 to-green-400 bg-clip-text text-transparent">
               LogTrace
             </span>
-          </div>
-          <div className="text-xl text-white font-medium mb-1">
-            Debug any website with AI-powered inspection
-          </div>
-          <div className="text-slate-400 text-base mb-6">
-            Enter any URL below to start debugging with LogTrace
-          </div>
+          </h1>
+          <p className="text-xl text-slate-300 mb-2">
+            Interactive Website Element Inspector & Debugger
+          </p>
+          <p className="text-slate-400 max-w-2xl mx-auto">
+            Test our interactive demo with iframe-friendly websites. Click on any element to inspect its properties, 
+            debug with AI, and see real-time element information with mouse tracking.
+          </p>
         </div>
 
-        {/* Input Card */}
-        <div className="w-full max-w-2xl flex items-center bg-slate-800/80 border border-cyan-400/20 rounded-2xl shadow-lg px-6 py-4 mb-8 backdrop-blur-md">
-          <Globe className="w-6 h-6 text-cyan-400 mr-3" />
-          <input
-            className="flex-1 bg-transparent border-none outline-none text-lg text-white placeholder-slate-400 font-medium"
-            placeholder="example.com, httpbin.org, your-website.com..."
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
-            autoFocus
-          />
-          <Button
-            onClick={handleAnalyze}
-            className="ml-4 flex items-center gap-2 px-6 py-2 rounded-xl bg-gradient-to-r from-green-400 to-cyan-400 text-white font-semibold shadow hover:from-green-500 hover:to-cyan-500 transition"
-          >
-            <Search className="w-5 h-5" />
-            Analyze
-          </Button>
+        {/* Demo Features Preview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-3xl">
+          <Card className="bg-slate-800/50 border-cyan-500/20 p-4">
+            <div className="text-cyan-400 mb-2">🎯 Mouse Tracking</div>
+            <div className="text-sm text-slate-300">
+              Real-time element highlighting and position tracking as you move your mouse
+            </div>
+          </Card>
+          <Card className="bg-slate-800/50 border-green-500/20 p-4">
+            <div className="text-green-400 mb-2">🔍 Element Inspector</div>
+            <div className="text-sm text-slate-300">
+              Click any element to see detailed properties, attributes, and computed styles
+            </div>
+          </Card>
+          <Card className="bg-slate-800/50 border-purple-500/20 p-4">
+            <div className="text-purple-400 mb-2">🤖 AI Debug</div>
+            <div className="text-sm text-slate-300">
+              Get AI-powered insights and debugging suggestions for any element
+            </div>
+          </Card>
+        </div>
+
+        {/* URL Input */}
+        <div className="w-full max-w-2xl mb-6">
+          <div className="flex items-center bg-slate-800/50 border border-cyan-500/30 rounded-xl p-4 shadow-lg shadow-cyan-500/10">
+            <Globe className="w-6 h-6 text-cyan-400 mr-3" />
+            <input
+              className="flex-1 bg-transparent border-none outline-none text-lg text-white placeholder-slate-400 font-medium"
+              placeholder="example.com, httpbin.org, your-website.com..."
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
+            />
+            <Button
+              onClick={handleAnalyze}
+              className="bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-600 hover:to-green-600 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+              disabled={!url.trim()}
+            >
+              <Search className="w-4 h-4 mr-2" />
+              Start Demo
+            </Button>
+          </div>
         </div>
 
         {/* Popular Examples */}
@@ -160,22 +198,61 @@ const IframeDemoBar: React.FC = () => {
             {popularSites.map((site) => (
               <button
                 key={site}
-                onClick={() => setUrl(site)}
-                className="px-5 py-2 rounded-lg bg-slate-700/60 border border-slate-600 text-slate-200 hover:bg-slate-600 hover:text-white transition"
+                onClick={() => handleQuickSite(site)}
+                className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white rounded-lg border border-slate-600/50 hover:border-cyan-500/50 transition-all duration-200 text-sm"
               >
                 {site}
               </button>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Modals */}
-      <SettingsDrawer 
-        isOpen={showSettingsDrawer}
-        onClose={() => setShowSettingsDrawer(false)}
-        onUpgradeClick={handleUpgrade}
-      />
+        {/* Demo Instructions */}
+        <div className="mt-8 max-w-2xl">
+          <Card className="bg-slate-800/30 border-slate-700/50 p-6">
+            <h3 className="text-lg font-semibold text-white mb-3">How to use the demo:</h3>
+            <div className="space-y-2 text-sm text-slate-300 text-left">
+              <div className="flex items-start gap-2">
+                <span className="text-cyan-400 font-mono">1.</span>
+                <span>Enter a URL or click one of the iframe-friendly examples above</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-cyan-400 font-mono">2.</span>
+                <span>Press <kbd className="bg-slate-700 px-1 rounded">S</kbd> to activate LogTrace inspection mode</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-cyan-400 font-mono">3.</span>
+                <span>Move your mouse over elements to see real-time highlighting</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-cyan-400 font-mono">4.</span>
+                <span>Click any element to open the detailed inspector panel</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-cyan-400 font-mono">5.</span>
+                <span>Press <kbd className="bg-slate-700 px-1 rounded">Ctrl+D</kbd> to debug with AI</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-cyan-400 font-mono">6.</span>
+                <span>Press <kbd className="bg-slate-700 px-1 rounded">T</kbd> to open the terminal for event history</span>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Upgrade CTA */}
+        {!isPremium && (
+          <div className="mt-8">
+            <Button
+              onClick={handleUpgrade}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Upgrade for Unlimited Usage
+            </Button>
+          </div>
+        )}
+      </div>
 
       <UpgradeModal
         isOpen={showUpgradeModal}
