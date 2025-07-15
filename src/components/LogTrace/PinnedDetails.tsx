@@ -11,13 +11,20 @@ interface MoreDetailsModalProps {
   element: ElementInfo | null;
   open: boolean;
   onClose: () => void;
+  terminalHeight?: number;
 }
 
-const MoreDetailsModal: React.FC<MoreDetailsModalProps> = ({ element, open, onClose }) => {
+const MoreDetailsModal: React.FC<MoreDetailsModalProps> = ({ element, open, onClose, terminalHeight = 0 }) => {
   if (!open || !element) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <Card className="bg-slate-900/95 border-purple-500/50 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl shadow-purple-500/20">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      style={{ bottom: terminalHeight }}
+    >
+      <Card
+        className="bg-slate-900/95 border-purple-500/50 w-full max-w-2xl overflow-y-auto shadow-xl shadow-purple-500/20"
+        style={{ maxHeight: `calc(90vh - ${terminalHeight}px)` }}
+      >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">

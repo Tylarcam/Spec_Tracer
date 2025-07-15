@@ -95,10 +95,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGitHub = async () => {
+    // Check if this is an extension authentication flow
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnUrl = urlParams.get('return');
+    const isExtensionAuth = returnUrl && returnUrl.includes('auth=extension');
+    
+    // Set redirect URL based on context
+    const redirectTo = isExtensionAuth 
+      ? `${window.location.origin}/auth?return=${returnUrl}`
+      : `${window.location.origin}/`;
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: `${window.location.origin}/`
+        redirectTo
       }
     });
 
