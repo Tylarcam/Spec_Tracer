@@ -1,12 +1,12 @@
-
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Code, Zap, Target, Sparkles, Play, Eye, Mail, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const Landing = () => {
+  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [email, setEmail] = useState('');
   const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
@@ -20,6 +20,10 @@ const Landing = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleTryDemo = () => {
+    navigate('/debug?onboarding=true');
+  };
 
   const handleJoinWaitlist = async () => {
     if (!email.trim()) return;
@@ -77,14 +81,13 @@ const Landing = () => {
             <span className="text-xl font-bold">LogTrace</span>
           </div>
           
-          <Link to="/debug">
-            <Button
-              className="bg-green-500 hover:bg-green-600 text-black font-semibold px-4 py-2"
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Try Demo
-            </Button>
-          </Link>
+          <Button
+            onClick={handleTryDemo}
+            className="bg-green-500 hover:bg-green-600 text-black font-semibold px-4 py-2"
+          >
+            <Play className="h-4 w-4 mr-2" />
+            Try Demo
+          </Button>
         </div>
       </header>
 
@@ -110,16 +113,15 @@ const Landing = () => {
 
           {/* Two CTAs: Primary + Secondary */}
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-            <Link to="/debug">
-              <Button
-                size="lg"
-                className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto w-full sm:w-auto"
-              >
-                <Play className="h-5 w-5 mr-2" />
-                Try Interactive Demo
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
-            </Link>
+            <Button
+              onClick={handleTryDemo}
+              size="lg"
+              className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto w-full sm:w-auto"
+            >
+              <Play className="h-5 w-5 mr-2" />
+              Try Interactive Demo
+              <ArrowRight className="h-5 w-5 ml-2" />
+            </Button>
             
             <div className="flex gap-2 w-full sm:w-auto">
               <input
@@ -173,16 +175,15 @@ const Landing = () => {
               your AI assistant needs to provide perfect solutions.
             </p>
             
-            <Link to="/debug">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4"
-              >
-                Try Interactive Demo
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
-            </Link>
+            <Button
+              onClick={handleTryDemo}
+              size="lg"
+              variant="outline"
+              className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4"
+            >
+              Try Interactive Demo
+              <ArrowRight className="h-5 w-5 ml-2" />
+            </Button>
           </div>
         </div>
       </section>
@@ -302,16 +303,15 @@ const Landing = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link to="/debug">
-                <Button
-                  size="lg"
-                  className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto w-full sm:w-auto"
-                >
-                  <Play className="h-5 w-5 mr-2" />
-                  Try Interactive Demo
-                  <ArrowRight className="h-5 w-5 ml-2" />
-                </Button>
-              </Link>
+              <Button
+                onClick={handleTryDemo}
+                size="lg"
+                className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto w-full sm:w-auto"
+              >
+                <Play className="h-5 w-5 mr-2" />
+                Try Interactive Demo
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
               
               <div className="flex gap-2 w-full sm:w-auto">
                 <input
