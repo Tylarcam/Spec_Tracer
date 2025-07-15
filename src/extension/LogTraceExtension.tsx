@@ -442,8 +442,6 @@ Provide specific, actionable debugging steps and potential solutions.`;
         clearEvents={clearEvents}
         debugResponses={debugResponses}
         clearDebugResponses={clearDebugResponses}
-        showTerminal={showTerminal}
-        setShowTerminal={setShowTerminal}
       />
     </div>
   );

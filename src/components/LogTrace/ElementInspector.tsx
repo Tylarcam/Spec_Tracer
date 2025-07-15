@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -42,21 +42,6 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   maxDebugCount,
 }) => {
   const [expandedSections, setExpandedSections] = useState<string[]>(['basic']);
-  const yDown = useRef<number | null>(null);
-
-  // Handle swipe-down to close gesture
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) yDown.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!yDown.current) return;
-    const yDiff = e.touches[0].clientY - yDown.current;
-    if (yDiff > 120) {          // 120px threshold
-      onClose();                // existing close prop
-      yDown.current = null;
-    }
-  };
 
   // Get computed styles
   const computedStyles = useMemo(() => {
@@ -170,11 +155,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
       className={`fixed pointer-events-auto z-50 w-full max-w-md max-h-[80vh] overflow-y-auto ${isExtensionMode ? 'z-[10001]' : 'z-50'}`}
       style={positionStyle}
     >
-      <Card 
-        className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-      >
+      <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20">
         <div className="p-4">
           {/* Header */}
           <div className="flex items-center justify-between mb-3">

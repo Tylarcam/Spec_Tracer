@@ -155,7 +155,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
   if (!showDebugModal) return null;
 
-  // Add guest gating logic for extension  
+  // Add guest gating logic for extension
   const handleDebugSubmit = async (prompt: string) => {
     if (!prompt.trim()) {
       toast({
@@ -165,8 +165,8 @@ const DebugModal: React.FC<DebugModalProps> = ({
       });
       return;
     }
-    // Extension guest gating - increased to 5 credits
-    if (isExtensionMode && !user && guestDebugCount >= 5) {
+    // Extension guest gating
+    if (isExtensionMode && !user && guestDebugCount >= maxGuestDebugs) {
       setShowAuthModal && setShowAuthModal(true);
       return;
     }
