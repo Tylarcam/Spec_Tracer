@@ -3,16 +3,16 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Globe, Github, MessageSquare } from 'lucide-react';
+import { ArrowRight, Globe, Github, MessageSquare, Target } from 'lucide-react';
 
 const IframeDemoBar: React.FC = () => {
   const [url, setUrl] = useState('');
   const navigate = useNavigate();
 
   const popularSites = [
-    { name: 'GitHub', url: 'https://github.com', icon: Github },
-    { name: 'Reddit', url: 'https://reddit.com', icon: MessageSquare },
-    { name: 'Example Site', url: 'https://example.com', icon: Globe },
+    { name: 'github.com', url: 'https://github.com' },
+    { name: 'reddit.com', url: 'https://reddit.com' },
+    { name: 'example.com', url: 'https://example.com' },
   ];
 
   const handleAnalyze = () => {
@@ -27,44 +27,61 @@ const IframeDemoBar: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-800 border-b border-green-500/30 p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-green-400 mb-2">LogTrace Interactive Demo</h1>
-          <p className="text-slate-300">Enter any website URL to start debugging with AI-powered insights</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white px-4">
+      <div className="max-w-2xl w-full text-center space-y-8">
+        {/* Logo and Brand */}
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-3 rounded-xl">
+            <Target className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
+            LogTrace
+          </h1>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <Input
-            type="url"
-            placeholder="Enter website URL (e.g., https://github.com)"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="flex-1 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-            onKeyPress={(e) => e.key === 'Enter' && handleAnalyze()}
-          />
+        {/* Tagline */}
+        <h2 className="text-xl text-slate-300 mb-8">
+          Debug any website with AI-powered inspection
+        </h2>
+        
+        {/* Instruction */}
+        <p className="text-slate-400 mb-8">
+          Enter any URL below to start debugging with LogTrace
+        </p>
+        
+        {/* URL Input */}
+        <div className="flex gap-3 mb-8">
+          <div className="flex-1 relative">
+            <Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Input
+              type="url"
+              placeholder="github.com, reddit.com, your-website.com..."
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="pl-12 py-6 text-lg bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-green-400 focus:ring-green-400/20"
+              onKeyPress={(e) => e.key === 'Enter' && handleAnalyze()}
+            />
+          </div>
           <Button
             onClick={handleAnalyze}
             disabled={!url.trim()}
-            className="bg-green-500 hover:bg-green-600 text-black font-semibold px-6"
+            className="bg-green-500 hover:bg-green-600 text-black font-semibold px-8 py-6 text-lg"
           >
             Analyze
-            <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
 
-        <div className="text-center">
-          <p className="text-slate-400 text-sm mb-3">Try these popular sites:</p>
-          <div className="flex flex-wrap justify-center gap-2">
+        {/* Popular Examples */}
+        <div className="space-y-4">
+          <p className="text-slate-400 text-sm">Popular examples:</p>
+          <div className="flex flex-wrap justify-center gap-3">
             {popularSites.map((site) => (
               <Button
                 key={site.name}
                 variant="outline"
-                size="sm"
                 onClick={() => handlePopularSite(site.url)}
-                className="border-cyan-400/50 text-cyan-400 hover:bg-cyan-400/10"
+                className="bg-slate-800/30 border-slate-600 text-slate-300 hover:bg-slate-700/50 hover:border-slate-500 px-6 py-2"
               >
-                <site.icon className="h-4 w-4 mr-2" />
                 {site.name}
               </Button>
             ))}
