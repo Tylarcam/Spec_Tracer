@@ -19,7 +19,15 @@ import { Button } from './ui/button';
 import html2canvas from 'html2canvas';
 import { Switch } from './ui/switch';
 
-const LogTrace: React.FC = () => {
+interface LogTraceProps {
+  showOnboarding?: boolean;
+  onOnboardingComplete?: () => void;
+}
+
+const LogTrace: React.FC<LogTraceProps> = ({ 
+  showOnboarding: externalShowOnboarding, 
+  onOnboardingComplete: externalOnboardingComplete 
+}) => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
   const [isHoverPaused, setIsHoverPaused] = useState(false);
   const [pausedPosition, setPausedPosition] = useState({ x: 0, y: 0 });
@@ -30,9 +38,13 @@ const LogTrace: React.FC = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
-  const [showOnboarding, setShowOnboarding] = useState(() => {
+  
+  // Use external onboarding state if provided, otherwise use local state
+  const [localShowOnboarding, setLocalShowOnboarding] = useState(() => {
     return !localStorage.getItem('logtrace-onboarding-completed');
   });
+  
+  const showOnboarding = externalShowOnboarding !== undefined ? externalShowOnboarding : localShowOnboarding;
   
   // Mobile detection
   const isMobile = useIsMobile();
@@ -134,13 +146,21 @@ const LogTrace: React.FC = () => {
   };
 
   const handleOnboardingSkip = () => {
-    setShowOnboarding(false);
-    localStorage.setItem('logtrace-onboarding-completed', 'true');
+    if (externalOnboardingComplete) {
+      externalOnboardingComplete();
+    } else {
+      setLocalShowOnboarding(false);
+      localStorage.setItem('logtrace-onboarding-completed', 'true');
+    }
   };
 
   const handleOnboardingComplete = () => {
-    setShowOnboarding(false);
-    localStorage.setItem('logtrace-onboarding-completed', 'true');
+    if (externalOnboardingComplete) {
+      externalOnboardingComplete();
+    } else {
+      setLocalShowOnboarding(false);
+      localStorage.setItem('logtrace-onboarding-completed', 'true');
+    }
   };
 
   // Element click handler
