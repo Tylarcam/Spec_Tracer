@@ -195,9 +195,9 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
                 </div>
               )}
               {/* Action instructions for user */}
+              <span className="text-purple-300"> Press D to pause details</span>
               <div className="text-cyan-300 text-xs flex items-center justify-between">
-                <span>Click for details</span>
-                <span className="text-purple-300">Ctrl+D debug</span>
+                <span> Click for details</span>            
               </div>
             </div>
           </Card>
