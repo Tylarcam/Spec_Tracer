@@ -59,6 +59,11 @@ const Header: React.FC<HeaderProps> = ({
     });
   };
 
+  const handleChangeUrl = () => {
+    // Navigate to the main page without query params to show the URL input
+    window.location.href = '/debug';
+  };
+
   return (
     <div className="flex items-center justify-between mb-8">
       <div className="flex items-center gap-4">
@@ -82,8 +87,9 @@ const Header: React.FC<HeaderProps> = ({
 
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
-            LogTrace: Context Editing
+            LogTrace
           </h1>
+          <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
         </div>
         
         <div className="flex items-center gap-6">
@@ -125,7 +131,7 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Right side - Credits, Pro badge, Settings, Theme moved here */}
+      {/* Right side - Credits, Pro badge, Settings, Theme, Change URL */}
       <div className="flex items-center gap-4">
         {!isPremium && (
           <div className="flex items-center gap-2">
@@ -160,6 +166,16 @@ const Header: React.FC<HeaderProps> = ({
             </Button>
           </div>
         )}
+
+        {/* Change URL Button */}
+        <Button 
+          onClick={handleChangeUrl}
+          variant="outline"
+          size="sm"
+          className="border-slate-600 hover:border-cyan-400 text-slate-300 hover:text-white"
+        >
+          Change URL
+        </Button>
 
         <Button
           onClick={onSettingsClick}
