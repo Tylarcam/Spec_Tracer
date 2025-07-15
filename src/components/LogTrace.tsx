@@ -1,7 +1,7 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
+import { useIframeBridge } from '@/shared/hooks/useIframeBridge';
 import { useToast } from '@/hooks/use-toast';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -17,7 +17,11 @@ import QuickActionModal from './LogTrace/QuickActionModal';
 import { Button } from './ui/button';
 import html2canvas from 'html2canvas';
 
-const LogTrace: React.FC = () => {
+interface LogTraceProps {
+  iframeRef?: React.RefObject<HTMLIFrameElement>;
+}
+
+const LogTrace: React.FC<LogTraceProps> = ({ iframeRef }) => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
   const [isHoverPaused, setIsHoverPaused] = useState(false);
   const [pausedPosition, setPausedPosition] = useState({ x: 0, y: 0 });
@@ -51,6 +55,7 @@ const LogTrace: React.FC = () => {
     isPremium,
   } = useUsageTracking();
 
+  // Main LogTrace functionality
   const {
     isActive,
     setIsActive,
@@ -76,6 +81,16 @@ const LogTrace: React.FC = () => {
     errors,
   } = useLogTrace();
 
+  // Iframe bridge functionality
+  const {
+    isIframeReady,
+    isSameOrigin,
+    iframeElement,
+    iframeMousePosition,
+    activateIframe,
+    deactivateIframe
+  } = useIframeBridge(iframeRef || { current: null });
+
   const {
     debugResponses,
     addDebugResponse,
@@ -83,6 +98,21 @@ const LogTrace: React.FC = () => {
   } = useDebugResponses();
 
   const { toast } = useToast();
+
+  // Determine which element and position to use (iframe or direct)
+  const effectiveElement = iframeElement || currentElement;
+  const effectivePosition = iframeRef && iframeElement ? iframeMousePosition : mousePosition;
+
+  // Handle iframe activation/deactivation
+  useEffect(() => {
+    if (iframeRef?.current) {
+      if (isActive) {
+        activateIframe();
+      } else {
+        deactivateIframe();
+      }
+    }
+  }, [isActive, activateIframe, deactivateIframe, iframeRef]);
 
   // Auto-open upgrade modal when landing page sends ?upgrade=1
   useEffect(() => {
@@ -121,22 +151,22 @@ const LogTrace: React.FC = () => {
 
   // Element click handler
   const handleElementClick = useCallback(() => {
-    if (!currentElement) return;
+    if (!effectiveElement) return;
     
     setShowDebugModal(false);
     setShowInteractivePanel(true);
     
     addEvent({
       type: 'inspect',
-      position: mousePosition,
+      position: effectivePosition,
       element: {
-        tag: currentElement.tag,
-        id: currentElement.id,
-        classes: currentElement.classes,
-        text: currentElement.text,
+        tag: effectiveElement.tag,
+        id: effectiveElement.id,
+        classes: effectiveElement.classes,
+        text: effectiveElement.text,
       },
     });
-  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowInteractivePanel]);
+  }, [effectiveElement, effectivePosition, addEvent, setShowDebugModal, setShowInteractivePanel]);
 
   // Debug from panel handler
   const handleDebugFromPanel = useCallback(() => {
@@ -148,19 +178,19 @@ const LogTrace: React.FC = () => {
     setShowInteractivePanel(false);
     setShowDebugModal(true);
     
-    if (currentElement) {
+    if (effectiveElement) {
       addEvent({
         type: 'debug',
-        position: mousePosition,
+        position: effectivePosition,
         element: {
-          tag: currentElement.tag,
-          id: currentElement.id,
-          classes: currentElement.classes,
-          text: currentElement.text,
+          tag: effectiveElement.tag,
+          id: effectiveElement.id,
+          classes: effectiveElement.classes,
+          text: effectiveElement.text,
         },
       });
     }
-  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowInteractivePanel, canUseAiDebug]);
+  }, [effectiveElement, effectivePosition, addEvent, setShowDebugModal, setShowInteractivePanel, canUseAiDebug]);
 
   // Escape handler
   const handleEscape = useCallback(() => {
@@ -201,9 +231,9 @@ const LogTrace: React.FC = () => {
     }
   }, [analyzeWithAI, addDebugResponse, canUseAiDebug, isPremium]);
 
-  // Mouse move handler - simplified back to original logic
+  // Mouse move handler - only for direct DOM when no iframe
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isActive || isHoverPaused) return;
+    if (!isActive || isHoverPaused || iframeRef?.current) return;
 
     setMousePosition({ x: e.clientX, y: e.clientY });
 
@@ -222,11 +252,11 @@ const LogTrace: React.FC = () => {
         setShowInteractivePanel(false);
       }
     }
-  }, [isActive, isHoverPaused, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel, showDebugModal]);
+  }, [isActive, isHoverPaused, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel, showDebugModal, iframeRef]);
 
-  // Click handler
+  // Click handler - only for direct DOM when no iframe
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isActive) return;
+    if (!isActive || iframeRef?.current) return;
     
     const target = e.target as HTMLElement;
     if (target && 
@@ -246,7 +276,7 @@ const LogTrace: React.FC = () => {
         } : undefined,
       });
     }
-  }, [isActive, currentElement, addEvent]);
+  }, [isActive, currentElement, addEvent, iframeRef]);
 
   // Quick action handler
   const handleQuickAction = async (action: 'screenshot' | 'context' | 'debug') => {
@@ -285,7 +315,7 @@ const LogTrace: React.FC = () => {
         toast({ title: 'Copy Failed', description: 'Failed to copy context prompt.', variant: 'destructive' });
       }
     } else if (action === 'debug') {
-      if (!currentElement) {
+      if (!effectiveElement) {
         toast({ title: 'No Element Selected', description: 'Please select an element to debug.', variant: 'default' });
         return;
       }
@@ -312,15 +342,15 @@ const LogTrace: React.FC = () => {
         setShowInteractivePanel(false);
         setShowDebugModal(true);
         
-        if (currentElement) {
+        if (effectiveElement) {
           addEvent({
             type: 'debug',
-            position: mousePosition,
+            position: effectivePosition,
             element: {
-              tag: currentElement.tag,
-              id: currentElement.id,
-              classes: currentElement.classes,
-              text: currentElement.text,
+              tag: effectiveElement.tag,
+              id: effectiveElement.id,
+              classes: effectiveElement.classes,
+              text: effectiveElement.text,
             },
           });
         }
@@ -329,8 +359,8 @@ const LogTrace: React.FC = () => {
       if (isActive && e.key === 'd' && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         if (!isHoverPaused) {
-          setPausedPosition(mousePosition);
-          setPausedElement(currentElement);
+          setPausedPosition(effectivePosition);
+          setPausedElement(effectiveElement);
           setIsHoverPaused(true);
         } else {
           setIsHoverPaused(false);
@@ -372,8 +402,8 @@ const LogTrace: React.FC = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [
     isActive, 
-    mousePosition, 
-    currentElement, 
+    effectivePosition, 
+    effectiveElement, 
     addEvent, 
     setShowDebugModal, 
     isHoverPaused, 
@@ -457,8 +487,8 @@ const LogTrace: React.FC = () => {
 
         <MouseOverlay 
           isActive={isActive}
-          currentElement={isHoverPaused ? pausedElement : currentElement}
-          mousePosition={isHoverPaused ? pausedPosition : mousePosition}
+          currentElement={isHoverPaused ? pausedElement : effectiveElement}
+          mousePosition={isHoverPaused ? pausedPosition : effectivePosition}
           overlayRef={overlayRef}
           onElementClick={handleElementClick}
         />
@@ -466,13 +496,13 @@ const LogTrace: React.FC = () => {
         <div data-interactive-panel>
           <ElementInspector
             isVisible={showInteractivePanel}
-            currentElement={currentElement}
-            mousePosition={mousePosition}
+            currentElement={effectiveElement}
+            mousePosition={effectivePosition}
             onDebug={handleDebugFromPanel}
             onClose={() => setShowInteractivePanel(false)}
             panelRef={interactivePanelRef}
             onShowMoreDetails={() => {
-              setDetailsElement(currentElement);
+              setDetailsElement(effectiveElement);
               setShowMoreDetails(true);
               setShowInteractivePanel(false);
             }}
@@ -484,8 +514,8 @@ const LogTrace: React.FC = () => {
         <DebugModal 
           showDebugModal={showDebugModal}
           setShowDebugModal={setShowDebugModal}
-          currentElement={currentElement}
-          mousePosition={mousePosition}
+          currentElement={effectiveElement}
+          mousePosition={effectivePosition}
           isAnalyzing={isAnalyzing}
           analyzeWithAI={handleAnalyzeWithAI}
           generateAdvancedPrompt={generateAdvancedPrompt}

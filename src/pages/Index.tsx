@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import IframeDemoBar from '@/components/IframeDemoBar';
 import LogTrace from '@/components/LogTrace';
@@ -11,6 +11,7 @@ const Index: React.FC = () => {
   const siteUrl = params.get('site');
   const [iframeError, setIframeError] = useState(false);
   const { toast } = useToast();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     if (siteUrl && iframeError) {
@@ -40,6 +41,7 @@ const Index: React.FC = () => {
       {/* Main content area with iframe */}
       <div className="relative">
         <iframe
+          ref={iframeRef}
           src={siteUrl}
           className="w-full h-screen border-none"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
@@ -57,9 +59,9 @@ const Index: React.FC = () => {
         )}
       </div>
       
-      {/* LogTrace overlay - this handles everything */}
+      {/* LogTrace overlay with iframe integration */}
       <div className="absolute inset-0 pointer-events-none">
-        <LogTrace />
+        <LogTrace iframeRef={iframeRef} />
       </div>
     </div>
   );
