@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { useCreditsSystem } from '@/hooks/useCreditsSystem';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import UpgradeNotificationBanner from '@/components/LogTrace/UpgradeNotificationBanner';
 import UpgradeModal from '@/components/LogTrace/UpgradeModal';
 
@@ -21,9 +21,8 @@ const popularSites = [
 const IframeDemoBar: React.FC = () => {
   const [url, setUrl] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useAuthContext();
   const { creditsStatus } = useCreditsSystem();
 
   const handleAnalyze = () => {
@@ -61,10 +60,6 @@ const IframeDemoBar: React.FC = () => {
     console.log('Settings clicked');
   };
 
-  const handleDismissBanner = () => {
-    setBannerDismissed(true);
-  };
-
   const remainingCredits = creditsStatus?.creditsRemaining || 0;
   const totalCredits = creditsStatus?.creditsLimit || 5;
   const isPremium = creditsStatus?.isPremium || false;
@@ -72,13 +67,10 @@ const IframeDemoBar: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 relative">
       {/* Upgrade Notification Banner */}
-      {!isPremium && !bannerDismissed && (
+      {!isPremium && (
         <UpgradeNotificationBanner 
-          remainingCredits={remainingCredits}
-          totalCredits={totalCredits}
-          onUpgrade={handleUpgrade}
-          onDismiss={handleDismissBanner}
-          isPremium={isPremium}
+          onUpgradeClick={handleUpgrade}
+          remainingUses={remainingCredits}
         />
       )}
 
