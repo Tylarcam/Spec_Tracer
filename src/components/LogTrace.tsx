@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
@@ -14,8 +13,8 @@ import TabbedTerminal from './LogTrace/TabbedTerminal';
 import MoreDetailsModal from './LogTrace/PinnedDetails';
 import OnboardingWalkthrough from './LogTrace/OnboardingWalkthrough';
 import SettingsDrawer from './LogTrace/SettingsDrawer';
-import UpgradeModal from './LogTrace/UpgradeModal';
-import QuickActionModal from './LogTrace/QuickActionModal';
+import UpgradeModal from './UpgradeModal';
+import QuickActionModal from './QuickActionModal';
 import { Button } from './ui/button';
 import html2canvas from 'html2canvas';
 import { Switch } from './ui/switch';

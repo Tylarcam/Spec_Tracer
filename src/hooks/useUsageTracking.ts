@@ -59,5 +59,7 @@ export const useUsageTracking = () => {
     hasReachedLimit: hasReachedLimit(),
     canUseAiDebug: canUseAiDebug(),
     incrementAiDebugUsage,
+    isPremium: false, // Add this property
+    waitlistBonusRemaining: 0, // Add this property
   };
 };
