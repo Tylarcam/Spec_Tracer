@@ -12,18 +12,23 @@ const IframeDemoBar: React.FC = () => {
   const popularSites = [
     { name: 'github.com', url: 'https://github.com' },
     { name: 'reddit.com', url: 'https://reddit.com' },
-    { name: 'example.com', url: 'https://example.com' },
+    { name: 'yoursite.com', url: 'https://yoursite.com' },
   ];
 
   const handleAnalyze = () => {
     if (url.trim()) {
-      const encodedUrl = encodeURIComponent(url.trim());
-      navigate(`/debug?site=${encodedUrl}`);
+      let formattedUrl = url.trim();
+      if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+        formattedUrl = 'https://' + formattedUrl;
+      }
+      const encodedUrl = encodeURIComponent(formattedUrl);
+      navigate(`/interactive-demo?site=${encodedUrl}`);
     }
   };
 
   const handlePopularSite = (siteUrl: string) => {
-    setUrl(siteUrl);
+    const encodedUrl = encodeURIComponent(siteUrl);
+    navigate(`/interactive-demo?site=${encodedUrl}`);
   };
 
   return (
@@ -55,7 +60,7 @@ const IframeDemoBar: React.FC = () => {
             <Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
             <Input
               type="url"
-              placeholder="github.com, reddit.com, your-website.com..."
+              placeholder="github.com, reddit.com, yoursite.com..."
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="pl-12 py-6 text-lg bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-green-400 focus:ring-green-400/20"
@@ -86,6 +91,14 @@ const IframeDemoBar: React.FC = () => {
               </Button>
             ))}
           </div>
+        </div>
+
+        {/* Note about iframe compatibility */}
+        <div className="mt-8 p-4 bg-slate-800/30 rounded-lg border border-slate-600/30">
+          <p className="text-slate-400 text-sm">
+            <strong className="text-slate-300">Note:</strong> Some websites may not load due to security restrictions. 
+            The suggested sites above are known to work well with LogTrace.
+          </p>
         </div>
       </div>
     </div>
