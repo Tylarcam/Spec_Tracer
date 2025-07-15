@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Globe, Search, Zap, Crown, Settings, User, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,11 +9,11 @@ import UpgradeNotificationBanner from '@/components/LogTrace/UpgradeNotification
 import UpgradeModal from '@/components/LogTrace/UpgradeModal';
 
 const popularSites = [
-  'github.com',
-  'reddit.com',
-  'stackoverflow.com',
-  'stripe.com',
-  'vercel.com',
+  'example.com',
+  'httpbin.org',
+  'jsonplaceholder.typicode.com',
+  'httpstat.us',
+  'postman-echo.com',
 ];
 
 const IframeDemoBar: React.FC = () => {
@@ -50,7 +49,7 @@ const IframeDemoBar: React.FC = () => {
   const remainingCredits = creditsStatus?.creditsRemaining || 0;
   const totalCredits = creditsStatus?.creditsLimit || 5;
   const isPremium = creditsStatus?.isPremium || false;
-
+  
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 relative">
       {/* Upgrade Notification Banner */}
@@ -139,7 +138,7 @@ const IframeDemoBar: React.FC = () => {
           <Globe className="w-6 h-6 text-cyan-400 mr-3" />
           <input
             className="flex-1 bg-transparent border-none outline-none text-lg text-white placeholder-slate-400 font-medium"
-            placeholder="github.com, reddit.com, your-website.com..."
+            placeholder="example.com, httpbin.org, your-website.com..."
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
@@ -156,7 +155,7 @@ const IframeDemoBar: React.FC = () => {
 
         {/* Popular Examples */}
         <div className="w-full max-w-2xl flex flex-col items-center">
-          <div className="text-slate-400 mb-2">Popular examples:</div>
+          <div className="text-slate-400 mb-2">iframe-friendly examples:</div>
           <div className="flex flex-wrap gap-3 justify-center">
             {popularSites.map((site) => (
               <button
