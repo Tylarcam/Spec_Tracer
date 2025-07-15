@@ -1,3 +1,4 @@
+
 import { sanitizeText, validatePrompt, debugRateLimiter } from '@/utils/sanitization';
 import { ElementInfo } from './types';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,8 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 export const callAIDebugFunction = async (
   prompt: string,
   currentElement: ElementInfo | null,
-  mousePosition: { x: number; y: number },
-  useCredit?: () => Promise<boolean>
+  mousePosition: { x: number; y: number }
 ) => {
   if (!validatePrompt(prompt)) {
     throw new Error('Invalid prompt format');
@@ -20,23 +20,6 @@ export const callAIDebugFunction = async (
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     throw new Error('Authentication required for AI debugging features. Please sign in to continue.');
-  }
-
-  // Check if user has premium subscription
-  const { data: subscription } = await supabase
-    .from('subscribers')
-    .select('subscribed')
-    .eq('user_id', user.id)
-    .single();
-
-  const isPremium = subscription?.subscribed || false;
-
-  // If not premium, check and use credits
-  if (!isPremium && useCredit) {
-    const creditUsed = await useCredit();
-    if (!creditUsed) {
-      throw new Error('Insufficient credits. Please upgrade to continue or wait for daily reset.');
-    }
   }
 
   try {

@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { useIsMobile } from '@/hooks/use-mobile';
 import Header from './LogTrace/Header';
-
+import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
 import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
@@ -518,6 +518,7 @@ const LogTrace: React.FC = () => {
             </ul>
           </div>
         )}
+        <InstructionsCard />
       </div>
 
       {/* Test components section */}

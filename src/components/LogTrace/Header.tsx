@@ -1,12 +1,8 @@
-import React, { useEffect, useState } from 'react';
+
+import React from 'react';
+import { Settings, Zap, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Settings, Crown, Zap, Play, Square, Terminal, User, LogOut } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { useSubscription } from '@/hooks/useSubscription';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 interface HeaderProps {
   isActive: boolean;
@@ -14,13 +10,13 @@ interface HeaderProps {
   showTerminal: boolean;
   setShowTerminal: (show: boolean) => void;
   remainingUses: number;
-  onSettingsClick: () => void;
-  onUpgradeClick: () => void;
-  contextCaptureEnabled: boolean;
-  onContextCaptureChange: (enabled: boolean) => void;
+  onSettingsClick?: () => void;
+  onUpgradeClick?: () => void;
+  contextCaptureEnabled?: boolean;
+  onContextCaptureChange?: (enabled: boolean) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({
+const Header: React.FC<HeaderProps> = ({ 
   isActive,
   setIsActive,
   showTerminal,
@@ -28,144 +24,81 @@ const Header: React.FC<HeaderProps> = ({
   remainingUses,
   onSettingsClick,
   onUpgradeClick,
-  contextCaptureEnabled,
-  onContextCaptureChange,
+  contextCaptureEnabled = false,
+  onContextCaptureChange
 }) => {
-  const { subscribed, subscription_tier, openCustomerPortal, isPremium } = useSubscription();
-  const [user, setUser] = useState<any>(null);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: 'Signed Out',
-      description: 'You have been successfully signed out.',
-    });
-  };
-
   return (
-    <div className="flex items-center justify-between mb-8">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
-            LogTrace
-          </h1>
-          {isPremium && (
-            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">
-              <Crown className="h-3 w-3 mr-1" />
-              Pro
-            </Badge>
+    <div className="fixed top-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-sm border-b border-green-500/30">
+      <div className="flex items-center justify-between p-3 md:p-4">
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-r from-green-500 to-cyan-500 rounded-lg flex items-center justify-center">
+            <Zap className="h-3 w-3 md:h-4 md:w-4 text-white" />
+          </div>
+          <h1 className="text-lg md:text-xl font-bold text-white">LogTrace</h1>
+          {(isActive || contextCaptureEnabled) && (
+            <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-xs text-green-400 font-medium">
+                {contextCaptureEnabled ? 'Capturing' : 'Active'}
+              </span>
+            </div>
           )}
         </div>
-        
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="context-capture" className="text-sm text-gray-300">
-              Context Capture
-            </Label>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          {/* Context Capture Toggle - compact for mobile */}
+          <div className="flex items-center gap-1 md:gap-2">
+            <span className="text-xs text-cyan-300 font-medium hidden sm:block">Capture</span>
             <Switch
-              id="context-capture"
               checked={contextCaptureEnabled}
               onCheckedChange={onContextCaptureChange}
-              className="data-[state=checked]:bg-green-600"
+              className="scale-75 md:scale-100"
+              aria-label="Enable Context Capture"
             />
           </div>
 
+          {/* Usage Counter - Mobile optimized */}
+          <div className="flex items-center gap-1 px-2 md:px-3 py-1 bg-slate-800 border border-green-500/30 rounded-full">
+            <Zap className="h-3 w-3 md:h-4 md:w-4 text-green-400" />            <span className="text-xs md:text-sm text-green-400 font-medium">
+              {remainingUses}/5
+            </span>
+          </div>
+
+          {/* Upgrade Button - Responsive */}
           <Button
-            onClick={() => setIsActive(!isActive)}
-            variant={isActive ? "default" : "outline"}
+            onClick={onUpgradeClick}
             size="sm"
-            className={`flex items-center gap-2 ${
-              isActive 
-                ? "bg-green-600 hover:bg-green-700 text-white" 
-                : "border-green-500/30 text-green-400 hover:bg-green-500/10"
-            }`}
+            className="bg-yellow-600 hover:bg-yellow-700 text-black px-2 md:px-3 h-8 md:h-9"
           >
-            {isActive ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-            {isActive ? "Stop" : "Start"}
+            <Crown className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
+            <span className="hidden sm:inline">Pro</span>
           </Button>
 
+          {/* Settings Button */}
           <Button
-            onClick={() => setShowTerminal(!showTerminal)}
-            variant="outline"
+            onClick={onSettingsClick}
+            variant="ghost"
             size="sm"
-            className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+            className="text-gray-400 hover:text-white h-8 md:h-9 w-8 md:w-9 p-0"
           >
-            <Terminal className="h-4 w-4 mr-2" />
-            Terminal
+            <Settings className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        {!isPremium && (
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="border-orange-500/30 text-orange-400">
-              <Zap className="h-3 w-3 mr-1" />
-              {remainingUses}/5 Free
-            </Badge>
-            <Button
-              onClick={onUpgradeClick}
-              size="sm"
-              className="bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700 text-white"
-            >
-              <Crown className="h-4 w-4 mr-2" />
-              Upgrade
-            </Button>
+      {/* Mobile Status Bar */}
+      {(isActive || contextCaptureEnabled) && (
+        <div className="sm:hidden px-3 pb-2">
+          <div className="flex items-center justify-center gap-2 py-1 bg-green-500/10 rounded-full">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="text-xs text-green-400 font-medium">
+              {contextCaptureEnabled ? 'Context Capture Active' : 'LogTrace Active'}
+            </span>
           </div>
-        )}
-
-        {isPremium && (
-          <Button
-            onClick={openCustomerPortal}
-            variant="outline"
-            size="sm"
-            className="border-green-500/30 text-green-400 hover:bg-green-500/10"
-          >
-            Manage Subscription
-          </Button>
-        )}
-
-        <Button
-          onClick={onSettingsClick}
-          variant="ghost"
-          size="sm"
-          className="text-gray-400 hover:text-white"
-        >
-          <Settings className="h-4 w-4" />
-        </Button>
-
-        {user && (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/50 border border-slate-700/50">
-              <User className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-300">{user.email}</span>
-            </div>
-            <Button
-              onClick={handleSignOut}
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

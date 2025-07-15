@@ -1,9 +1,7 @@
 
-import React, { useState } from 'react';
-import { X, Crown, Check, Zap, Loader2 } from 'lucide-react';
+import React from 'react';
+import { X, Crown, Check, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -12,54 +10,9 @@ interface UpgradeModalProps {
 }
 
 const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, remainingUses }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-
-  const handleUpgrade = async () => {
-    setIsLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: 'Authentication Required',
-          description: 'Please sign in to upgrade to Pro.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke('create-checkout');
-      
-      if (error) {
-        console.error('Checkout error:', error);
-        toast({
-          title: 'Checkout Error',
-          description: 'Failed to create checkout session. Please try again.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      if (data?.url) {
-        // Open Stripe checkout in a new tab
-        window.open(data.url, '_blank');
-      } else {
-        toast({
-          title: 'Error',
-          description: 'No checkout URL received.',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Upgrade error:', error);
-      toast({
-        title: 'Error',
-        description: 'Something went wrong. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleUpgrade = () => {
+    // Replace with your actual Stripe checkout URL
+    window.open('https://buy.stripe.com/test_your_checkout_link', '_blank');
   };
 
   if (!isOpen) return null;
@@ -87,7 +40,6 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, remainingU
             variant="ghost"
             size="sm"
             className="text-gray-400 hover:text-white h-8 w-8 p-0"
-            disabled={isLoading}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -102,7 +54,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, remainingU
               <span className="text-red-400 font-semibold text-sm">Free Limit Reached</span>
             </div>
             <p className="text-gray-300 text-sm">
-              You've used all {5 - remainingUses} of your free daily AI debugging requests. 
+              You've used all {5 - remainingUses} free AI debugging requests. 
               Upgrade to continue with unlimited access.
             </p>
           </div>
@@ -129,25 +81,14 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, remainingU
           <div className="space-y-3">
             <Button
               onClick={handleUpgrade}
-              disabled={isLoading}
-              className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-base font-semibold disabled:opacity-50"
+              className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-base font-semibold"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating Checkout...
-                </>
-              ) : (
-                <>
-                  <Crown className="h-4 w-4 mr-2" />
-                  Upgrade Now
-                </>
-              )}
+              <Crown className="h-4 w-4 mr-2" />
+              Upgrade Now
             </Button>
             <Button
               onClick={onClose}
               variant="outline"
-              disabled={isLoading}
               className="w-full border-gray-600 text-gray-300 hover:bg-gray-800 h-10"
             >
               Maybe Later
