@@ -1,16 +1,20 @@
 
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Code, Zap, Target, Sparkles, Play, Eye, Mail, Users, Download, Chrome, Shield, MousePointer } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Code, Zap, Target, Sparkles, Play, Eye, Mail, Users, Download, Chrome, Shield, MousePointer, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Landing = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [email, setEmail] = useState('');
   const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -98,10 +102,9 @@ const Landing = () => {
         </div>
       </header>
 
-      {/* Hero Section - Chrome Extension Focus */}
-      <section className="pt-24 pb-12 px-4">
+      {/* Hero Section */}
+      <section className="pt-24 pb-16 px-4">
         <div className="container mx-auto text-center max-w-5xl">
-          {/* Extension Coming Soon Badge */}
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2 mb-6">
               <Chrome className="h-4 w-4 text-green-400" />
@@ -109,17 +112,19 @@ const Landing = () => {
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
-              Debug Any Website with AI
+              Inspect Any Element
+              <br />
+              Debug with AI
             </h1>
             
             <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              The Chrome extension that captures pixel-perfect UI context for AI debugging. 
-              <span className="text-green-400 font-semibold"> Hover, click, get instant AI insights.</span>
+              The ultimate debugging companion that captures pixel-perfect UI context and transforms it into 
+              <span className="text-green-400 font-semibold"> actionable AI insights</span> for any website.
             </p>
           </div>
 
-          {/* Primary CTA: Extension Waitlist + Demo */}
-          <div className="flex flex-col items-center gap-6 mb-8">
+          {/* Primary CTA */}
+          <div className="flex flex-col items-center gap-6 mb-12">
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <div className="flex gap-2 w-full sm:w-auto">
                 <input
@@ -135,7 +140,7 @@ const Landing = () => {
                   className="bg-green-500 hover:bg-green-600 text-black font-bold px-6 py-4 text-lg h-auto whitespace-nowrap"
                 >
                   <Download className="h-5 w-5 mr-2" />
-                  {isJoiningWaitlist ? 'Joining...' : 'Get Early Access'}
+                  {isJoiningWaitlist ? 'Joining...' : 'Get Extension'}
                 </Button>
               </div>
             </div>
@@ -152,6 +157,17 @@ const Landing = () => {
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
               </Link>
+              
+              <Button
+                onClick={() => navigate('/context-transform')}
+                size="lg"
+                variant="outline"
+                className="border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-black px-8 py-4 text-lg h-auto w-full sm:w-auto"
+              >
+                <Sparkles className="h-5 w-5 mr-2" />
+                Context Transformer
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
             </div>
           </div>
           
@@ -177,84 +193,195 @@ const Landing = () => {
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-slate-800/50 p-8 rounded-xl border border-slate-700 text-center">
-              <div className="bg-green-500/20 p-4 rounded-lg w-fit mx-auto mb-6">
-                <Shield className="h-8 w-8 text-green-400" />
-              </div>
-              <h3 className="text-xl font-semibold mb-4">No Website Restrictions</h3>
-              <p className="text-slate-300">
-                Work with any website including those that block embedding. 
-                Full access to protected sites and web apps.
-              </p>
-            </div>
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader className="text-center">
+                <div className="bg-green-500/20 p-4 rounded-lg w-fit mx-auto mb-4">
+                  <Shield className="h-8 w-8 text-green-400" />
+                </div>
+                <CardTitle className="text-white">No Website Restrictions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-slate-300 text-center">
+                  Work with any website including those that block embedding. 
+                  Full access to protected sites and web apps.
+                </CardDescription>
+              </CardContent>
+            </Card>
             
-            <div className="bg-slate-800/50 p-8 rounded-xl border border-slate-700 text-center">
-              <div className="bg-cyan-500/20 p-4 rounded-lg w-fit mx-auto mb-6">
-                <MousePointer className="h-8 w-8 text-cyan-400" />
-              </div>
-              <h3 className="text-xl font-semibold mb-4">Native Performance</h3>
-              <p className="text-slate-300">
-                Direct DOM access means perfect element highlighting, 
-                accurate positioning, and zero cross-origin issues.
-              </p>
-            </div>
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader className="text-center">
+                <div className="bg-cyan-500/20 p-4 rounded-lg w-fit mx-auto mb-4">
+                  <MousePointer className="h-8 w-8 text-cyan-400" />
+                </div>
+                <CardTitle className="text-white">Native Performance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-slate-300 text-center">
+                  Direct DOM access means perfect element highlighting, 
+                  accurate positioning, and zero cross-origin issues.
+                </CardDescription>
+              </CardContent>
+            </Card>
             
-            <div className="bg-slate-800/50 p-8 rounded-xl border border-slate-700 text-center">
-              <div className="bg-purple-500/20 p-4 rounded-lg w-fit mx-auto mb-6">
-                <Zap className="h-8 w-8 text-purple-400" />
-              </div>
-              <h3 className="text-xl font-semibold mb-4">Always Available</h3>
-              <p className="text-slate-300">
-                One-click activation on any tab. Debug production sites, 
-                private dashboards, and local development environments.
-              </p>
-            </div>
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader className="text-center">
+                <div className="bg-purple-500/20 p-4 rounded-lg w-fit mx-auto mb-4">
+                  <Zap className="h-8 w-8 text-purple-400" />
+                </div>
+                <CardTitle className="text-white">Always Available</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-slate-300 text-center">
+                  One-click activation on any tab. Debug production sites, 
+                  private dashboards, and local development environments.
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Overview */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Powerful Features</h2>
+            <p className="text-xl text-slate-300">Everything you need for efficient debugging</p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <div className="bg-green-500/20 p-3 rounded-lg w-fit mb-4">
+                  <Target className="h-6 w-6 text-green-400" />
+                </div>
+                <CardTitle className="text-white">Smart Element Selection</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-slate-300">
+                  Hover to inspect, click to analyze. Get comprehensive element context with visual highlighting.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <div className="bg-cyan-500/20 p-3 rounded-lg w-fit mb-4">
+                  <Code className="h-6 w-6 text-cyan-400" />
+                </div>
+                <CardTitle className="text-white">AI-Powered Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-slate-300">
+                  Get instant AI insights, code suggestions, and debugging solutions tailored to your specific element.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <div className="bg-purple-500/20 p-3 rounded-lg w-fit mb-4">
+                  <Terminal className="h-6 w-6 text-purple-400" />
+                </div>
+                <CardTitle className="text-white">Context Export</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-slate-300">
+                  Copy perfect context for ChatGPT, Claude, or any AI assistant. Share debugging sessions with your team.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <div className="bg-orange-500/20 p-3 rounded-lg w-fit mb-4">
+                  <Eye className="h-6 w-6 text-orange-400" />
+                </div>
+                <CardTitle className="text-white">Visual Debugging</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-slate-300">
+                  See element boundaries, spacing, and hierarchy with advanced visual overlays and measurements.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <div className="bg-pink-500/20 p-3 rounded-lg w-fit mb-4">
+                  <Zap className="h-6 w-6 text-pink-400" />
+                </div>
+                <CardTitle className="text-white">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-slate-300">
+                  Keyboard shortcuts, right-click context menus, and instant access to debugging tools.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <div className="bg-blue-500/20 p-3 rounded-lg w-fit mb-4">
+                  <Users className="h-6 w-6 text-blue-400" />
+                </div>
+                <CardTitle className="text-white">Team Collaboration</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-slate-300">
+                  Share debugging sessions, export reports, and collaborate with your team on complex issues.
+                </CardDescription>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
       {/* Web Demo Preview */}
-      <section className="py-16 px-4">
+      <section className="py-16 px-4 bg-slate-800/20">
         <div className="container mx-auto max-w-4xl">
-          <div className="bg-slate-800/50 border border-cyan-500/20 rounded-2xl p-8 text-center">
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <Eye className="h-5 w-5 text-cyan-400" />
-              <span className="text-cyan-400 font-medium">Preview the Experience</span>
-            </div>
-            
-            <h2 className="text-3xl font-bold mb-4">
-              Try LogTrace in Your Browser
-            </h2>
-            
-            <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
-              While you wait for the Chrome extension, experience LogTrace's core functionality 
-              with our web demo. Limited to iframe-compatible sites, but showcases the full AI debugging power.
-            </p>
-            
-            <Link to="/debug">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4"
-              >
-                Launch Web Demo
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
-            </Link>
-            
-            <p className="text-xs text-slate-500 mt-4">
-              Web demo works best with embedding-friendly sites. 
-              Full functionality coming with the Chrome extension.
-            </p>
-          </div>
+          <Card className="bg-slate-800/50 border-cyan-500/20">
+            <CardHeader className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Eye className="h-5 w-5 text-cyan-400" />
+                <span className="text-cyan-400 font-medium">Preview the Experience</span>
+              </div>
+              <CardTitle className="text-3xl font-bold text-white mb-4">
+                Try LogTrace in Your Browser
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <CardDescription className="text-slate-300 mb-8 max-w-2xl mx-auto text-lg">
+                While you wait for the Chrome extension, experience LogTrace's core functionality 
+                with our web demo. Limited to iframe-compatible sites, but showcases the full AI debugging power.
+              </CardDescription>
+              
+              <Link to="/debug">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4 mb-4"
+                >
+                  Launch Web Demo
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </Button>
+              </Link>
+              
+              <p className="text-xs text-slate-500">
+                Web demo works best with embedding-friendly sites. 
+                Full functionality coming with the Chrome extension.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
-      {/* How It Works - Extension Focus */}
-      <section className="py-16 px-4 bg-slate-800/20">
+      {/* How It Works */}
+      <section className="py-16 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">How LogTrace Extension Works</h2>
+            <p className="text-xl text-slate-300">Simple, powerful, and instant</p>
           </div>
           
           <div className="space-y-12">
@@ -263,7 +390,7 @@ const Landing = () => {
                 1
               </div>
               <div>
-                <h3 className="text-2xl font-semibold mb-3">Install & Activate</h3>
+                <h3 className="text-2xl font-semibold mb-3 text-white">Install & Activate</h3>
                 <p className="text-slate-300 text-lg">
                   One-click install from Chrome Web Store. Activate LogTrace on any website 
                   with a simple keyboard shortcut or toolbar click.
@@ -276,7 +403,7 @@ const Landing = () => {
                 2
               </div>
               <div>
-                <h3 className="text-2xl font-semibold mb-3">Hover & Click</h3>
+                <h3 className="text-2xl font-semibold mb-3 text-white">Hover & Click</h3>
                 <p className="text-slate-300 text-lg">
                   Hover over any element to inspect it in real-time, then click for 
                   detailed AI analysis. Works on any website without restrictions.
@@ -289,7 +416,7 @@ const Landing = () => {
                 3
               </div>
               <div>
-                <h3 className="text-2xl font-semibold mb-3">Get AI Solutions</h3>
+                <h3 className="text-2xl font-semibold mb-3 text-white">Get AI Solutions</h3>
                 <p className="text-slate-300 text-lg">
                   Copy the generated context to ChatGPT, Claude, or any AI assistant 
                   for pixel-perfect debugging solutions. Or use built-in AI features.
@@ -300,63 +427,65 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Final CTA - Extension Focus */}
+      {/* Final CTA */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-4xl">
-          <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-400/30 rounded-2xl p-12 text-center">
-            <div className="flex justify-center mb-6">
-              <Chrome className="h-16 w-16 text-green-400" />
-            </div>
-            
-            <h2 className="text-4xl font-bold mb-4">
-              Ready for the Ultimate Debugging Experience?
-            </h2>
-            
-            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Join the waitlist for early access to the LogTrace Chrome Extension. 
-              Debug any website without limitations.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
-              <div className="flex gap-2 w-full sm:w-auto">
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-green-400 flex-1 min-w-0"
-                />
-                <Button
-                  onClick={handleJoinWaitlist}
-                  disabled={!email.trim() || isJoiningWaitlist}
-                  className="bg-green-500 hover:bg-green-600 text-black font-bold px-6 py-4 text-lg h-auto whitespace-nowrap"
-                >
-                  <Mail className="h-5 w-5 mr-2" />
-                  Join Waitlist
-                </Button>
+          <Card className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border-green-400/30">
+            <CardContent className="p-12 text-center">
+              <div className="flex justify-center mb-6">
+                <Chrome className="h-16 w-16 text-green-400" />
               </div>
               
-              <Link to="/debug">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4 text-lg h-auto w-full sm:w-auto"
-                >
-                  <Play className="h-5 w-5 mr-2" />
-                  Try Web Preview
-                  <ArrowRight className="h-5 w-5 ml-2" />
-                </Button>
-              </Link>
-            </div>
-            
-            <div className="text-sm text-slate-400 text-center">
-              <span className="text-green-400 font-medium">🎯 Early access to Chrome extension</span>
-              <span className="mx-2">•</span>
-              <span>No spam, unsubscribe anytime</span>
-              <span className="mx-2">•</span>
-              <span>Web preview available now</span>
-            </div>
-          </div>
+              <CardTitle className="text-4xl font-bold mb-4 text-white">
+                Ready for the Ultimate Debugging Experience?
+              </CardTitle>
+              
+              <CardDescription className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+                Join the waitlist for early access to the LogTrace Chrome Extension. 
+                Debug any website without limitations.
+              </CardDescription>
+              
+              <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-green-400 flex-1 min-w-0"
+                  />
+                  <Button
+                    onClick={handleJoinWaitlist}
+                    disabled={!email.trim() || isJoiningWaitlist}
+                    className="bg-green-500 hover:bg-green-600 text-black font-bold px-6 py-4 text-lg h-auto whitespace-nowrap"
+                  >
+                    <Mail className="h-5 w-5 mr-2" />
+                    Join Waitlist
+                  </Button>
+                </div>
+                
+                <Link to="/debug">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4 text-lg h-auto w-full sm:w-auto"
+                  >
+                    <Play className="h-5 w-5 mr-2" />
+                    Try Web Preview
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </Button>
+                </Link>
+              </div>
+              
+              <div className="text-sm text-slate-400 text-center">
+                <span className="text-green-400 font-medium">🎯 Early access to Chrome extension</span>
+                <span className="mx-2">•</span>
+                <span>No spam, unsubscribe anytime</span>
+                <span className="mx-2">•</span>
+                <span>Web preview available now</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
     </div>
