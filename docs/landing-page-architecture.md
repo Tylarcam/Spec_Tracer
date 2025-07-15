@@ -1,15 +1,17 @@
-
 # Landing Page Architecture Documentation
 
 ## Overview
 
-The landing page ("/") serves as the main entry point for LogTrace, providing users with a clean interface to input website URLs for debugging and analysis. This document outlines the architecture, components, and connections that make this page functional.
+The landing page ("/interactive-demo") serves as the interactive demo entry point for LogTrace, providing users with a clean interface to input website URLs for debugging and analysis. This document outlines the architecture, components, and connections that make this page functional.
+
+**Note**: This page was moved from the root route ("/") to "/interactive-demo". The root route now serves a general homepage at "/".
 
 ## File Structure & Components
 
 ### Core Landing Page
-- **`src/pages/Landing.tsx`** - Main landing page component
-- **`src/App.tsx`** - Routing configuration that maps "/" to Landing component
+- **`src/pages/Landing.tsx`** - Main interactive demo landing page component
+- **`src/pages/Home.tsx`** - New homepage component for root route
+- **`src/App.tsx`** - Routing configuration that maps "/interactive-demo" to Landing component
 
 ### UI Components Used
 - **`@/components/ui/button`** - Primary CTA button for analysis
@@ -64,7 +66,7 @@ User types URL → handleAnalyze() → URL validation → Navigate to /debug
 
 ### 2. Navigation Flow
 ```
-Landing Page (/) → Debug Page (/debug?site=encodedURL)
+Landing Page (/interactive-demo) → Debug Page (/debug?site=encodedURL)
 ```
 
 ### 3. Example Selection Flow
@@ -96,9 +98,15 @@ navigate(`/debug?site=${encodeURIComponent(parsed.href)}`);
 
 ## Routing Connections
 
-### Current Route: "/"
+### Current Route: "/interactive-demo"
 - **Component**: `Landing`
-- **Purpose**: Main entry point and URL input interface
+- **Purpose**: Interactive demo entry point and URL input interface
+- **Previous Route**: This component was previously at "/" but has been moved
+
+### Root Route: "/"
+- **Component**: `Home` (from `src/pages/Home.tsx`)
+- **Purpose**: Main homepage with overview and CTA to interactive demo
+- **Navigation**: Links to "/interactive-demo" for the main functionality
 
 ### Navigation Target: "/debug"
 - **Component**: `Index` (from `src/pages/Index.tsx`)
@@ -233,4 +241,3 @@ useEffect(() => {
 - Only navigates to internal routes
 - No direct external URL redirection from user input
 - Debug page handles external site loading safely within iframe
-

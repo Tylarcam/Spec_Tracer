@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import ContextTransform from "./pages/ContextTransform";
 import NotFound from "./pages/NotFound";
+import Home from "./pages/Home";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,7 +32,8 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Landing />} />
+              <Route path="/" element={<Home />} />
+              <Route path="/interactive-demo" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/debug" element={<Index />} />
               <Route path="/context-transform" element={<ContextTransform />} />
