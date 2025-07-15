@@ -3,7 +3,7 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
-import { Copy, Sparkles, ArrowRight, RotateCcw, AlertCircle, Lightbulb } from 'lucide-react';
+import { Copy, Sparkles, ArrowRight, RotateCcw, AlertCircle } from 'lucide-react';
 import { transformContextRequest } from '@/shared/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -332,9 +332,8 @@ IMPLEMENTATION PREFERENCE:
       {/* Tips */}
       <Card className="bg-slate-900/95 border-yellow-500/50">
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-yellow-400 mb-3 flex items-center gap-2">
-            <Lightbulb className="h-5 w-5" />
-            How to Use Your Enhanced Prompt
+          <h3 className="text-lg font-semibold text-yellow-400 mb-3">
+            💡 How to Use Your Enhanced Prompt
           </h3>
           <div className="space-y-2 text-sm text-gray-300">
             <div>1. <strong>Copy the enhanced prompt</strong> above</div>

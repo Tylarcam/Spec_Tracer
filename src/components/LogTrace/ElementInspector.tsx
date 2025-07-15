@@ -1,10 +1,10 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { Eye, Settings, Code, Zap, X, Hash, Type, Lock, Unlock, Copy } from 'lucide-react';
+import { Eye, Settings, Code, Zap, X, Hash, Type, Pin, Copy } from 'lucide-react';
 import { ElementInfo } from '@/shared/types';
 import { sanitizeText } from '@/utils/sanitization';
 
@@ -21,9 +21,6 @@ interface ElementInspectorProps {
   isPinned?: boolean;
   onPin?: () => void;
   onShowMoreDetails: () => void;
-  // NEW: AI debug usage
-  currentDebugCount?: number;
-  maxDebugCount?: number;
 }
 
 const ElementInspector: React.FC<ElementInspectorProps> = ({
@@ -38,25 +35,8 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   isPinned = false,
   onPin,
   onShowMoreDetails,
-  currentDebugCount,
-  maxDebugCount,
 }) => {
   const [expandedSections, setExpandedSections] = useState<string[]>(['basic']);
-  const yDown = useRef<number | null>(null);
-
-  // Handle swipe-down to close gesture
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) yDown.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!yDown.current) return;
-    const yDiff = e.touches[0].clientY - yDown.current;
-    if (yDiff > 120) {          // 120px threshold
-      onClose();                // existing close prop
-      yDown.current = null;
-    }
-  };
 
   // Get computed styles
   const computedStyles = useMemo(() => {
@@ -170,11 +150,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
       className={`fixed pointer-events-auto z-50 w-full max-w-md max-h-[80vh] overflow-y-auto ${isExtensionMode ? 'z-[10001]' : 'z-50'}`}
       style={positionStyle}
     >
-      <Card 
-        className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-      >
+      <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20">
         <div className="p-4">
           {/* Header */}
           <div className="flex items-center justify-between mb-3">
@@ -189,14 +165,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                 </Badge>
               )}
             </div>
-            <div className="flex gap-1 items-center">
-              {/* AI debug usage badge */}
-              {(typeof currentDebugCount === 'number' && typeof maxDebugCount === 'number') && (
-                <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs flex items-center gap-1">
-                  <Zap className="w-3 h-3 mr-1" />
-                  {currentDebugCount}/{maxDebugCount}
-                </Badge>
-              )}
+            <div className="flex gap-1">
               {onPin && isDraggable && (
                 <Button
                   onClick={onPin}
@@ -205,7 +174,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                   className={`h-6 w-6 p-0 ${isPinned ? 'text-green-400' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10`}
                   title={isPinned ? 'Unpin panel' : 'Pin panel'}
                 >
-                  {isPinned ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                  <Pin className="w-3 h-3" fill={isPinned ? 'currentColor' : 'none'} />
                 </Button>
               )}
               <Button

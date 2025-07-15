@@ -1,233 +1,302 @@
-
 import React, { useState } from 'react';
-import { Card, CardHeader, CardContent } from '../ui/card';
+import { Card } from '../ui/card';
 import { Button } from '../ui/button';
+import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { X, Download, Play, History } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Copy, Check, AlertCircle, AlertTriangle } from 'lucide-react';
+import { LogEvent } from '@/shared/types';
+import { useToast } from '@/hooks/use-toast';
+import { useNotification } from '@/hooks/useNotification';
+import { useConsoleLogs } from '@/shared/hooks/useConsoleLogs';
 
 interface TabbedTerminalProps {
   showTerminal: boolean;
   setShowTerminal: (show: boolean) => void;
-  events: any[];
+  events: LogEvent[];
   exportEvents: () => void;
   clearEvents: () => void;
-  debugResponses: any[];
-  clearDebugResponses: () => void;
-  currentElement?: any;
-  terminalHeight?: number;
+  debugResponses: Array<{ id: string; prompt: string; response: string; timestamp: string }>;
+  clearDebugResponses?: () => void;
+  currentElement?: {
+    tag: string;
+    id: string;
+    classes: string[];
+  } | null;
 }
 
 const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   showTerminal,
   setShowTerminal,
-  events = [],
+  events,
   exportEvents,
   clearEvents,
-  debugResponses = [],
+  debugResponses,
   clearDebugResponses,
   currentElement,
-  terminalHeight,
 }) => {
-  const [activeTab, setActiveTab] = useState<'events' | 'debug' | 'console'>('events');
-  const [associateWithElement, setAssociateWithElement] = useState(false);
-  const isMobile = useIsMobile();
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('events');
+  const { success, error } = useNotification();
 
-  if (!showTerminal) {
-    return (
-      <Button
-        onClick={() => setShowTerminal(true)}
-        className="fixed bottom-4 right-4 z-30 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
-      >
-        {/* Keep the green circle terminal icon */}
-        <span style={{ fontSize: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{'>'}</span>
-      </Button>
-    );
-  }
+  // Build a selector string for the current element
+  const currentElementSelector = currentElement
+    ? `${currentElement.tag}${currentElement.id ? `#${currentElement.id}` : ''}${currentElement.classes.length > 0 ? '.' + currentElement.classes.join('.') : ''}`
+    : undefined;
+
+  // Console logs hook
+  const { logs: consoleLogs, clearLogs: clearConsoleLogs, associateWithElement, setAssociateWithElement } = useConsoleLogs(currentElementSelector);
+
+  if (!showTerminal) return null;
+
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString();
+  };
+
+  const getEventColor = (type: string) => {
+    switch (type) {
+      case 'click': return 'text-green-400';
+      case 'debug': return 'text-yellow-400';
+      case 'inspect': return 'text-cyan-400';
+      case 'llm_response': return 'text-purple-400';
+      default: return 'text-gray-400';
+    }
+  };
+
+  const copyEventToClipboard = async (event: LogEvent) => {
+    try {
+      const eventText = `[${formatTime(event.timestamp)}] ${event.type.toUpperCase()} ${
+        event.element ? `${event.element.tag}${event.element.id ? `#${event.element.id}` : ''}${
+          event.element.classes.length > 0 ? `.${event.element.classes.join('.')}` : ''
+        }` : ''
+      } ${event.position ? `@${event.position.x},${event.position.y}` : ''}`;
+      
+      await navigator.clipboard.writeText(eventText);
+      setCopiedId(event.id);
+      setTimeout(() => setCopiedId(null), 1000);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      
+      // Fallback: try to select text if clipboard API fails
+      try {
+        const textElement = document.createElement('textarea');
+        textElement.value = `[${formatTime(event.timestamp)}] ${event.type.toUpperCase()}`;
+        document.body.appendChild(textElement);
+        textElement.select();
+        document.execCommand('copy');
+        document.body.removeChild(textElement);
+        
+        setCopiedId(event.id);
+        setTimeout(() => setCopiedId(null), 1000);
+      } catch (fallbackError) {
+        console.error('Fallback copy failed:', fallbackError);
+        // Show user-friendly error message
+        if (typeof window !== 'undefined') {
+          alert('Unable to copy to clipboard. Please manually select and copy the text.');
+        }
+      }
+    }
+  };
+
+  const handleExport = () => {
+    try {
+      exportEvents();
+      success({ title: 'Exported', description: 'Events exported successfully' });
+    } catch (err: any) {
+      error({ title: 'Export failed', description: err?.message });
+    }
+  };
+
+  const handleClear = async () => {
+    try {
+      await clearEvents();
+      success({ title: 'Events Cleared' });
+    } catch (err: any) {
+      error({ title: 'Clear failed', description: err?.message });
+    }
+  };
+
+  const clickEvents = events.filter(e => ['click', 'debug', 'inspect'].includes(e.type));
 
   return (
-    <div
-      className={`fixed bottom-0 left-0 right-0 ${isMobile ? 'z-100' : 'z-50'}`}
-      style={terminalHeight ? { height: terminalHeight, minHeight: 0 } : {}}
-    >
-      <Card className={`bg-slate-900/95 border-green-500/50 ${isMobile ? 'rounded-none border-x-0 border-b-0' : 'rounded-t-lg border-b-0'}`} style={terminalHeight ? { height: '100%' } : {}}>
-        <div className={`${isMobile ? 'p-2' : 'p-4'}`} style={terminalHeight ? { height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 } : {}}>
-          {!isMobile && (
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
-              <div className="flex gap-2">
-                <Button
-                  onClick={exportEvents}
-                  variant="outline"
-                  size="sm"
-                  className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
-                >
-                  Export
-                </Button>
-                <Button
-                  onClick={() => setShowTerminal(false)}
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-400 hover:text-white"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+    <div className="fixed bottom-0 left-0 right-0 z-50">
+      <Card className="bg-slate-900/95 border-green-500/50 rounded-t-lg border-b-0">
+        <div className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleExport}
+                variant="outline"
+                size="sm"
+                className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
+              >
+                Export
+              </Button>
+              <Button
+                onClick={() => setShowTerminal(false)}
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </Button>
             </div>
-          )}
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab as any} className="w-full flex-1 flex flex-col min-h-0">
-            <TabsList className={`${isMobile ? 'h-12' : 'h-10'} items-center justify-center rounded-md p-1 text-muted-foreground grid w-full grid-cols-3 bg-slate-800/50`}>
-              <TabsTrigger 
-                value="events" 
-                className={`data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 ${isMobile ? 'text-xs p-2' : ''}`}
-              >
-                Events ({events.length})
+          </div>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 bg-slate-800/50">
+              <TabsTrigger value="events" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">
+                Events ({clickEvents.length})
               </TabsTrigger>
-              <TabsTrigger 
-                value="debug" 
-                className={`data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-400 ${isMobile ? 'text-xs p-2' : ''}`}
-              >
+              <TabsTrigger value="debug" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
                 AI Debug ({debugResponses.length})
               </TabsTrigger>
-              <TabsTrigger 
-                value="console" 
-                className={`data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 ${isMobile ? 'text-xs p-2' : ''}`}
-              >
-                Console (0)
+              <TabsTrigger value="console" className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400">
+                Console ({consoleLogs.length})
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="events" className="mt-4 relative flex-1 min-h-0">
-              <div className="flex justify-between items-center shrink-0 h-6">
-                <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400`}>Interaction Events</span>
-                <div className="flex gap-2">
-                  {isMobile && (
-                    <button
-                      className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/50 rounded px-2 py-1 text-xs hover:bg-cyan-500/20 transition"
-                      onClick={exportEvents}
-                    >
-                      Export
-                    </button>
-                  )}
-                  <button
-                    className={`bg-red-500/10 text-red-400 border border-red-500/50 rounded ${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-xs'} hover:bg-red-500/20 transition`}
-                    onClick={clearEvents}
-                  >
-                    Clear
-                  </button>
-                </div>
+
+            <TabsContent value="events" className="mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-400">Interaction Events</span>
+                <Button
+                  onClick={handleClear}
+                  variant="outline"
+                  size="sm"
+                  className="border-red-500/50 text-red-400 hover:bg-red-500/10 h-7 px-2 text-xs"
+                >
+                  Clear Events
+                </Button>
               </div>
-                <div className="absolute inset-x-0 bottom-0 top-6 font-mono text-sm space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
-                {events.length === 0 ? (
-                  <div className="text-gray-500">No events captured yet...</div>
-                ) : (
-                  <div className="grid grid-cols-9 gap-2 items-center text-xs font-mono w-full">
-                    {/* Header Row */}
-                    <div className="font-bold text-gray-400">Timestamp</div>
-                    <div className="font-bold text-gray-400">Type</div>
-                    <div className="font-bold text-gray-400">Tag/ID/Classes</div>
-                    <div className="font-bold text-gray-400">Text</div>
-                    <div className="font-bold text-gray-400">Hierarchy</div>
-                    <div className="font-bold text-gray-400">Attributes</div>
-                    <div className="font-bold text-gray-400">Interactive</div>
-                    <div className="font-bold text-gray-400">Position</div>
-                    <div className="font-bold text-gray-400">Size</div>
-                    {/* Data Rows */}
-                    {events.map((event, idx) => {
-                      let color = '';
-                      const type = String(event.type).toUpperCase();
-                      if (type === 'CLICK') color = 'text-green-400';
-                      else if (type === 'DEBUG') color = 'text-yellow-400';
-                      else if (type === 'INSPECT') color = 'text-cyan-400';
-                      // Compose element info
-                      const el = event.element || {};
-                      const tag = el.tag || 'div';
-                      const id = el.id ? `#${el.id}` : '';
-                      const classes = el.classes && el.classes.length > 0 ? `.${el.classes.join('.')}` : '';
-                      const text = el.text ? `"${el.text}"` : '';
-                      const parentPath = el.parentPath ? el.parentPath : '';
-                      const attributes = el.attributes && el.attributes.length > 0
-                        ? el.attributes.map(a => `${a.name}="${a.value}"`).join(', ')
-                        : '';
-                      const size = el.size ? `${el.size.width}×${el.size.height}` : '';
-                      const position = event.position ? `@${event.position.x},${event.position.y}` : '';
-                      const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(tag) || (el && el.classes && el.classes.includes('interactive'));
-                      const copyString = `[${event.timestamp}] ${type} ${tag}${id}${classes} ${text} ${position} ${parentPath} ${attributes} ${size}`;
-                      return (
-                        <div key={idx} className="contents">
-                          <div className="text-gray-500 break-all min-w-0 max-w-full" title={event.timestamp}>[{event.timestamp}]</div>
-                          <div className={`${color} font-semibold break-all min-w-0 max-w-full`}>{type}</div>
-                          <div className="text-cyan-300 font-mono break-all min-w-0 max-w-full" title={`${tag}${id}${classes}`}>{tag}{id}{classes}</div>
-                          <div className="italic text-blue-300 break-all min-w-0 max-w-full" title={text}>{text}</div>
-                          <div className="text-purple-300 text-xs break-all min-w-0 max-w-full" title={parentPath && `${parentPath} > ${tag}`}>{parentPath && `${parentPath} > ${tag}`}</div>
-                          <div className="text-orange-300 text-xs break-all min-w-0 max-w-full" title={attributes}>{attributes.length > 40 ? attributes.slice(0, 40) + '…' : attributes}</div>
-                          <div className="min-w-0 max-w-full">
-                            {isInteractive && <span className="px-2 py-0.5 rounded bg-green-500/10 text-green-400 text-xs font-bold">INTERACTIVE</span>}
-                          </div>
-                          <div className="text-orange-300 text-xs break-all min-w-0 max-w-full" title={position}>{position}</div>
-                          <div className="text-gray-400 text-xs min-w-0 max-w-full" title={size}>{size}</div>
-                          <div className="flex justify-end items-center col-span-9">
-                            <button
-                              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground rounded-md h-6 w-6 p-0 ml-2"
-                              title="Copy event details"
-                              onClick={() => navigator.clipboard.writeText(copyString)}
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy w-3 h-3 text-gray-400"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                      </div>
-                  )}
-                </div>
-            </TabsContent>
-            <TabsContent value="debug" className="mt-4 relative flex-1 min-h-0">
-              <div className="flex justify-between items-center h-6 shrink-0">
-                <span className="text-sm text-gray-400">AI Debug Conversations</span>
-                <button
-                  className="bg-red-500/10 text-red-400 border border-red-500/50 rounded px-3 py-1 text-xs hover:bg-red-500/20 transition"
-                    onClick={clearDebugResponses}
-                  >
-                    Clear AI Debug
-                </button>
-              </div>
-              <div className="absolute inset-x-0 bottom-0 top-6 font-mono text-sm space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
-                  {debugResponses.length === 0 ? (
-                    <div className="text-gray-500">No debug responses yet...</div>
+              <ScrollArea className="h-64 bg-slate-800/50 rounded p-2">
+                <div className="font-mono text-sm space-y-1">
+                  {clickEvents.length === 0 ? (
+                    <div className="text-gray-500">No click events logged yet...</div>
                   ) : (
-                  debugResponses.map((resp, idx) => (
-                    <div key={idx} className="text-gray-300">{JSON.stringify(resp)}</div>
+                    clickEvents.map((event) => (
+                      <div key={event.id} className="flex gap-2 items-center group">
+                        <div className="flex gap-2 flex-1">
+                          <span className="text-gray-500">[{formatTime(event.timestamp)}]</span>
+                          <span className={getEventColor(event.type)}>{event.type.toUpperCase()}</span>
+                          {event.element && (
+                            <span className="text-gray-300">
+                              {event.element.tag}
+                              {event.element.id && `#${event.element.id}`}
+                              {event.element.classes.length > 0 && `.${event.element.classes.join('.')}`}
+                            </span>
+                          )}
+                          {event.position && (
+                            <span className="text-gray-400">
+                              @{event.position.x},{event.position.y}
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          onClick={() => copyEventToClipboard(event)}
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          {copiedId === event.id ? (
+                            <Check className="w-3 h-3 text-green-400" />
+                          ) : (
+                            <Copy className="w-3 h-3 text-gray-400" />
+                          )}
+                        </Button>
+                      </div>
                     ))
                   )}
                 </div>
+              </ScrollArea>
             </TabsContent>
-            <TabsContent value="console" className="mt-4 relative flex-1 min-h-0">
-              <div className="flex justify-between items-center h-6 shrink-0">
+
+            <TabsContent value="debug" className="mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-400">AI Debug Conversations</span>
+                {clearDebugResponses && (
+                  <Button
+                    onClick={clearDebugResponses}
+                    variant="outline"
+                    size="sm"
+                    className="border-red-500/50 text-red-400 hover:bg-red-500/10 h-7 px-2 text-xs"
+                  >
+                    Clear AI Debug
+                  </Button>
+                )}
+              </div>
+              <ScrollArea className="h-64 bg-slate-800/50 rounded p-2">
+                <div className="font-mono text-sm space-y-3">
+                  {debugResponses.length === 0 ? (
+                    <div className="text-gray-500">No debug responses yet...</div>
+                  ) : (
+                    debugResponses.map((response) => (
+                      <div key={response.id} className="border-l-2 border-purple-500/30 pl-3">
+                        <div className="text-gray-500 text-xs mb-1">
+                          [{formatTime(response.timestamp)}]
+                        </div>
+                        <div className="text-purple-400 font-medium mb-1">Prompt:</div>
+                        <div className="text-gray-300 text-xs mb-2 bg-slate-700/50 p-2 rounded">
+                          {response.prompt}
+                        </div>
+                        <div className="text-green-400 font-medium mb-1">Response:</div>
+                        <div className="text-gray-300 text-xs bg-slate-700/50 p-2 rounded">
+                          {response.response}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="console" className="mt-4">
+              <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-gray-400">Console Errors & Warnings</span>
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-1 text-xs text-gray-300 cursor-pointer select-none">
+                <div className="flex gap-2 items-center">
+                  <label className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={associateWithElement}
                       onChange={e => setAssociateWithElement(e.target.checked)}
-                      className="accent-blue-500 h-3 w-3 rounded border-gray-400 focus:ring-0"
+                      className="accent-cyan-500"
                     />
                     Associate with element
                   </label>
-                  <button
-                    className="bg-red-500/10 text-red-400 border border-red-500/50 rounded px-3 py-1 text-xs hover:bg-red-500/20 transition"
-                    onClick={clearEvents}
+                  <Button
+                    onClick={clearConsoleLogs}
+                    variant="outline"
+                    size="sm"
+                    className="border-red-500/50 text-red-400 hover:bg-red-500/10 h-7 px-2 text-xs"
                   >
                     Clear Console
-                  </button>
+                  </Button>
                 </div>
               </div>
-              <div className="absolute inset-x-0 bottom-0 top-6 overflow-y-auto overflow-x-hidden bg-slate-800/50 rounded p-2 scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
+              <ScrollArea className="h-64 bg-slate-800/50 rounded p-2">
                 <div className="font-mono text-sm space-y-2">
+                  {consoleLogs.length === 0 ? (
                     <div className="text-gray-500">No console errors or warnings captured yet...</div>
+                  ) : (
+                    consoleLogs.map(log => (
+                      <div key={log.id} className="flex gap-2 items-start border-l-2 pl-2 rounded border-red-500/30 bg-slate-900/60 py-1">
+                        {log.type === 'error' ? (
+                          <AlertCircle className="w-4 h-4 text-red-400 mt-0.5" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <div className="text-xs text-gray-500 mb-1">[{log.timestamp}] {log.type.toUpperCase()}</div>
+                          <div className={log.type === 'error' ? 'text-red-300' : 'text-yellow-300'}>{log.message}</div>
+                          {log.stack && <pre className="text-gray-400 text-xs mt-1 whitespace-pre-wrap">{log.stack}</pre>}
+                          {associateWithElement && log.associatedElement && (
+                            <div className="text-cyan-400 text-xs mt-1">Element: {log.associatedElement}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-              </div>
+              </ScrollArea>
             </TabsContent>
           </Tabs>
         </div>

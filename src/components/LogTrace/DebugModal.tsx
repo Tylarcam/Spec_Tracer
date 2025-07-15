@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { X, Sparkles, Copy } from 'lucide-react';
@@ -13,7 +13,6 @@ import { sanitizeText } from '@/utils/sanitization';
 import { useToast } from '@/hooks/use-toast';
 import { useConsoleLogs } from '@/shared/hooks/useConsoleLogs';
 import { useContextEngine } from '@/shared/hooks/useContextEngine';
-import QuickObjectivePill from './QuickObjectivePill';
 
 interface DebugModalProps {
   showDebugModal: boolean;
@@ -31,26 +30,7 @@ interface DebugModalProps {
   user?: any;
   guestDebugCount?: number;
   maxGuestDebugs?: number;
-  terminalHeight?: number; // height of bottom terminal in pixels
 }
-
-const quickObjectives = [
-  { label: 'Fix alignment', tooltip: 'Align element to its container or siblings' },
-  { label: 'Check accessibility', tooltip: 'Ensure element is accessible (ARIA, contrast, etc.)' },
-  { label: 'Make clickable', tooltip: 'Make this element interactive' },
-  { label: 'Improve contrast', tooltip: 'Increase text/background contrast' },
-  { label: 'Fix overflow/scroll', tooltip: 'Resolve overflow or scrolling issues' },
-  { label: 'Add aria-label', tooltip: 'Add ARIA label for accessibility' },
-  { label: 'Make responsive', tooltip: 'Ensure element works on all screen sizes' },
-  { label: 'Remove outline', tooltip: 'Remove unwanted focus outline' },
-  { label: 'Add hover effect', tooltip: 'Add a visual effect on hover' },
-  { label: 'Fix font size', tooltip: 'Adjust font size for readability' },
-  { label: 'Make button primary', tooltip: 'Style as a primary action button' },
-  { label: 'Add tooltip', tooltip: 'Show extra info on hover/focus' },
-  { label: 'Fix color contrast', tooltip: 'Improve color contrast for accessibility' },
-  { label: 'Add alt text', tooltip: 'Add alt text for images' },
-  { label: 'Center element', tooltip: 'Center this element in its container' },
-];
 
 const DebugModal: React.FC<DebugModalProps> = ({
   showDebugModal,
@@ -66,8 +46,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
   setShowAuthModal,
   user,
   guestDebugCount = 0,
-  maxGuestDebugs = 5,
-  terminalHeight = 0,
+  maxGuestDebugs = 3,
 }) => {
   const [userIntent, setUserIntent] = useState('');
   const [advancedPrompt, setAdvancedPrompt] = useState('');
@@ -75,8 +54,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
   const [activeTab, setActiveTab] = useState('quick');
   const { toast } = useToast();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedQuickObjective, setSelectedQuickObjective] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Get console logs for current element
   const currentElementSelector = useMemo(() => {
@@ -155,7 +132,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
   if (!showDebugModal) return null;
 
-  // Add guest gating logic for extension  
+  // Add guest gating logic for extension
   const handleDebugSubmit = async (prompt: string) => {
     if (!prompt.trim()) {
       toast({
@@ -165,8 +142,8 @@ const DebugModal: React.FC<DebugModalProps> = ({
       });
       return;
     }
-    // Extension guest gating - increased to 5 credits
-    if (isExtensionMode && !user && guestDebugCount >= 5) {
+    // Extension guest gating
+    if (isExtensionMode && !user && guestDebugCount >= maxGuestDebugs) {
       setShowAuthModal && setShowAuthModal(true);
       return;
     }
@@ -217,22 +194,15 @@ const DebugModal: React.FC<DebugModalProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      style={{ bottom: terminalHeight }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="debug-modal-title"
-    >
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <Card 
         id="logtrace-modal"
         ref={modalRef}
-        className="bg-slate-900/95 border-cyan-500/50 w-full max-w-4xl overflow-hidden"
-        style={{ maxHeight: `calc(90vh - ${terminalHeight}px)` }}
+        className="bg-slate-900/95 border-cyan-500/50 w-full max-w-4xl max-h-[90vh] overflow-hidden"
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 id="debug-modal-title" className="text-2xl font-bold text-cyan-400">Debug Assistant</h3>
+            <h3 className="text-2xl font-bold text-cyan-400">Debug Assistant</h3>
             <Button 
               onClick={() => setShowDebugModal(false)}
               variant="ghost" 
@@ -272,53 +242,12 @@ const DebugModal: React.FC<DebugModalProps> = ({
             </TabsList>
 
             <TabsContent value="quick" className="space-y-4">
-              {/* Quick Objective Pills Row */}
-              <div className="flex flex-wrap gap-2 mb-2" role="listbox" aria-label="Quick Debug Objectives" aria-orientation="horizontal">
-                {quickObjectives.map((obj, idx) => (
-                  <QuickObjectivePill
-                    key={obj.label}
-                    label={obj.label}
-                    tooltip={obj.tooltip}
-                    selected={selectedQuickObjective === obj.label}
-                    onClick={() => {
-                      setSelectedQuickObjective(obj.label);
-                      setUserIntent(obj.label);
-                      setTimeout(() => inputRef.current?.focus(), 0);
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        setSelectedQuickObjective(obj.label);
-                        setUserIntent(obj.label);
-                        setTimeout(() => inputRef.current?.focus(), 0);
-                      }
-                      // Arrow navigation
-                      if (e.key === 'ArrowRight') {
-                        const next = (idx + 1) % quickObjectives.length;
-                        const nextButton = e.currentTarget.parentElement?.children[next]?.querySelector('button');
-                        nextButton?.focus();
-                      }
-                      if (e.key === 'ArrowLeft') {
-                        const prev = (idx - 1 + quickObjectives.length) % quickObjectives.length;
-                        const prevButton = e.currentTarget.parentElement?.children[prev]?.querySelector('button');
-                        prevButton?.focus();
-                      }
-                    }}
-                    tabIndex={0}
-                    role="option"
-                  />
-                ))}
-              </div>
-              {/* End Pills Row */}
               <div>
                 <label className="block text-cyan-400 font-semibold mb-2">What do you want to change or fix?</label>
                 <div className="flex gap-2">
                   <Input
-                    ref={inputRef}
                     value={userIntent}
-                    onChange={(e) => {
-                      setUserIntent(e.target.value);
-                      setSelectedQuickObjective(null);
-                    }}
+                    onChange={(e) => setUserIntent(e.target.value)}
                     className="bg-slate-800 border-green-500/30 text-green-400"
                     placeholder="Describe what you want to change or fix..."
                     maxLength={500}
@@ -332,6 +261,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                   </Button>
                 </div>
               </div>
+
               <div className="flex gap-2">
                 <Button 
                   onClick={handleGeneratePrompt}
@@ -345,23 +275,23 @@ const DebugModal: React.FC<DebugModalProps> = ({
             </TabsContent>
 
             <TabsContent value="advanced" className="space-y-4">
-            <div>
-              <label className="block text-cyan-400 font-semibold mb-2">Advanced Debug</label>
-              <Textarea
-                value={advancedPrompt || generateAdvancedPrompt()}
-                onChange={(e) => setAdvancedPrompt(e.target.value)}
-                className="bg-slate-800 border-green-500/30 text-green-400 min-h-32"
-                placeholder="Detailed debugging prompt..."
-                maxLength={2000}
-              />
-              <Button 
-                onClick={() => handleDebugSubmit(advancedPrompt || generateAdvancedPrompt())}
-                disabled={isAnalyzing}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white mt-2"
-              >
-                {isAnalyzing ? 'Analyzing...' : 'Advanced Debug'}
-              </Button>
-            </div>
+              <div>
+                <label className="block text-cyan-400 font-semibold mb-2">Advanced Debug</label>
+                <Textarea
+                  value={advancedPrompt || generateAdvancedPrompt()}
+                  onChange={(e) => setAdvancedPrompt(e.target.value)}
+                  className="bg-slate-800 border-green-500/30 text-green-400 min-h-32"
+                  placeholder="Detailed debugging prompt..."
+                  maxLength={2000}
+                />
+                <Button 
+                  onClick={() => handleDebugSubmit(advancedPrompt || generateAdvancedPrompt())}
+                  disabled={isAnalyzing}
+                  className="bg-cyan-600 hover:bg-cyan-700 text-white mt-2"
+                >
+                  {isAnalyzing ? 'Analyzing...' : 'Advanced Debug'}
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="prompt" className="space-y-4">
@@ -405,7 +335,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                     </Button>
                   </div>
                 )}
-          </div>
+              </div>
             </TabsContent>
           </Tabs>
 

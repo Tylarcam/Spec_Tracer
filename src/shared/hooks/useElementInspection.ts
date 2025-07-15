@@ -28,11 +28,6 @@ export const useElementInspection = () => {
       levels++;
     }
 
-    // Extract attributes
-    const attributes = Array.from(element.attributes).map(attr => ({ name: attr.name, value: attr.value }));
-    // Extract size
-    const size = { width: Math.round(rect.width), height: Math.round(rect.height) };
-
     return {
       tag: element.tagName.toLowerCase(),
       id: sanitizeText(element.id || ''),
@@ -40,8 +35,6 @@ export const useElementInspection = () => {
       text: sanitizeText(text.slice(0, 100)), // Limit text length
       element: element,
       parentPath, // Add this line
-      attributes,
-      size,
     };
   }, []);
 
