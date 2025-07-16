@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { LogTrace } from '@/components/LogTrace';
-import { ExtensionAuthModal } from './components/ExtensionAuthModal';
+import LogTrace from '@/components/LogTrace';
+import ExtensionAuthModal from './components/ExtensionAuthModal';
 import { useExtensionAuth } from './hooks/useExtensionAuth';
 
 export const LogTraceExtension: React.FC = () => {
