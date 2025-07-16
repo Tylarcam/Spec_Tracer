@@ -45,6 +45,7 @@ interface ExtensionMouseOverlayProps {
   showElementInspector: boolean;
   overlayRef: React.RefObject<HTMLDivElement>;
   onPin?: () => void;
+  onQuickAction?: (action: 'details' | 'screenshot' | 'context' | 'debug', element: ElementInfo | null) => void;
 }
 
 const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
@@ -54,6 +55,7 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
   showElementInspector,
   overlayRef,
   onPin,
+  onQuickAction,
 }) => {
   if (!isActive) return null;
 
@@ -98,9 +100,8 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
   }, [mousePosition.x, mousePosition.y, currentElement]);
 
   const handleQuickAction = (action: 'details' | 'screenshot' | 'context' | 'debug') => {
-    // TODO: Implement real logic for each action
-    // For now, just close quick actions
     setShowQuickActions(false);
+    if (onQuickAction) onQuickAction(action, currentElement);
   };
 
   // Show quick actions when hovering overlay card

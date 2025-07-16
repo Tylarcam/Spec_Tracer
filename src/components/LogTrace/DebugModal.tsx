@@ -214,7 +214,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
       duration: 5000,
     });
     try {
-      setActiveTab('prompt');
+    setActiveTab('prompt');
       // setShowTerminal?.(true); // Removed, not defined here
       // Call OpenAI via analyzeWithAI (assume it returns the generated prompt)
       const aiResponse = await analyzeWithAI(fullPrompt);

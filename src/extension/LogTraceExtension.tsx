@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ExtensionMouseOverlay from './components/ExtensionMouseOverlay';
 import PinnedDetails from './components/PinnedDetails';
+import ExtensionTerminalWrapper from './components/ExtensionTerminalWrapper';
 import { usePinnedDetails } from '@/shared/hooks/usePinnedDetails';
-import { ElementInfo } from '@/shared/types';
+import { ElementInfo, LogEvent } from '@/shared/types';
 import ExtensionAuthModal from './components/ExtensionAuthModal';
 import { useExtensionAuth } from './hooks/useExtensionAuth';
 
@@ -14,6 +15,10 @@ export const LogTraceExtension: React.FC = () => {
   const [currentElement, setCurrentElement] = useState<ElementInfo | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [showElementInspector, setShowElementInspector] = useState(false);
+  const [showTerminal, setShowTerminal] = useState(false);
+  const [events, setEvents] = useState<LogEvent[]>([]);
+  const [debugResponses, setDebugResponses] = useState<any[]>([]);
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
   const overlayRef = React.useRef<HTMLDivElement>(null);
 
   const {
@@ -44,6 +49,70 @@ export const LogTraceExtension: React.FC = () => {
   const handleOverlayPin = () => {
     if (currentElement) {
       addPin(currentElement, mousePosition);
+    }
+  };
+
+  // Event and debug response handlers (placeholder logic)
+  const handleExportEvents = () => {
+    // Export events as JSON
+    const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'logtrace-events.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const handleClearEvents = () => setEvents([]);
+  const handleClearDebugResponses = () => setDebugResponses([]);
+
+  // Quick Action handler
+  const handleQuickAction = (action: 'details' | 'screenshot' | 'context' | 'debug', element: ElementInfo | null) => {
+    const timestamp = new Date().toISOString();
+    // Map action to allowed LogEvent type
+    let eventType: LogEvent['type'] = 'inspect';
+    if (action === 'debug' || action === 'context') eventType = 'debug';
+    else if (action === 'screenshot') eventType = 'click';
+    else if (action === 'details') eventType = 'inspect';
+    // Log to events
+    setEvents(prev => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        type: eventType,
+        timestamp,
+        position: mousePosition,
+        element: element ? {
+          tag: element.tag,
+          id: element.id,
+          classes: element.classes,
+          text: element.text,
+          parentPath: element.parentPath,
+          attributes: element.attributes,
+          size: element.size,
+        } : undefined,
+      },
+    ]);
+    // Log to console
+    setConsoleLogs(prev => [
+      ...prev,
+      `[${timestamp}] QuickAction: ${action} on ${element ? element.tag : 'unknown'}`
+    ]);
+    // Simulate AI response for debug/context
+    if (action === 'debug' || action === 'context') {
+      setTimeout(() => {
+        setDebugResponses(prev => [
+          ...prev,
+          {
+            response: `Simulated AI response for ${action} on ${element ? element.tag : 'unknown'}`,
+            timestamp,
+          },
+        ]);
+        setConsoleLogs(prev => [
+          ...prev,
+          `[${timestamp}] AI Response: Simulated response for ${action}`
+        ]);
+      }, 800);
     }
   };
 
@@ -79,8 +148,19 @@ export const LogTraceExtension: React.FC = () => {
         showElementInspector={showElementInspector}
         overlayRef={overlayRef}
         onPin={handleOverlayPin}
+        onQuickAction={handleQuickAction}
       />
       <PinnedDetails pins={pinnedDetails} onRemove={removePin} />
+      <ExtensionTerminalWrapper
+        showTerminal={showTerminal}
+        onToggleTerminal={() => setShowTerminal(v => !v)}
+        events={events}
+        onExportEvents={handleExportEvents}
+        onClearEvents={handleClearEvents}
+        debugResponses={debugResponses}
+        onClearDebugResponses={handleClearDebugResponses}
+        consoleLogs={consoleLogs}
+      />
       {showAuthModal && (
         <ExtensionAuthModal
           isOpen={showAuthModal}
