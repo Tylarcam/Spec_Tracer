@@ -20,6 +20,8 @@ interface ElementInspectorProps {
   // Extension mode adjustments
   isExtensionMode?: boolean;
   isDraggable?: boolean;
+  isPinned?: boolean;
+  onPin?: () => void;
   onShowMoreDetails: () => void;
   // NEW: AI debug usage
   currentDebugCount?: number;
@@ -35,6 +37,8 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   panelRef,
   isExtensionMode = false,
   isDraggable = false,
+  isPinned = false,
+  onPin,
   onShowMoreDetails,
   currentDebugCount,
   maxDebugCount,
@@ -43,7 +47,6 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   const [expandedAttrIndexes, setExpandedAttrIndexes] = useState<number[]>([]);
   const { toast } = useToast();
   const [modalPosition, setModalPosition] = useState<{ x: number; y: number } | null>(null);
-  const [isPinned, setIsPinned] = useState(false);
   const dragOffset = useRef<{ x: number; y: number } | null>(null);
   const dragging = useRef(false);
 
@@ -218,17 +221,19 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                   {currentDebugCount}/{maxDebugCount}
                 </Badge>
               )}
+              {onPin && (
                 <Button
-                onClick={() => setIsPinned(p => !p)}
+                  onClick={onPin}
                   size="sm"
                   variant="ghost"
                   className={`h-6 w-6 p-0 ${isPinned ? 'text-green-400' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10`}
                   title={isPinned ? 'Unpin panel' : 'Pin panel'}
-                tabIndex={-1}
-                type="button"
+                  tabIndex={-1}
+                  type="button"
                 >
                   {isPinned ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
                 </Button>
+              )}
               <Button
                 onClick={onDebug}
                 size="sm"
@@ -261,7 +266,6 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
             onValueChange={setExpandedSections}
             className="w-full"
           >
-            {/* Basic Info */}
             <AccordionItem value="basic" className="border-green-500/20">
               <AccordionTrigger className="text-cyan-400 text-sm py-2 hover:no-underline">
                 <div className="flex items-center gap-2">
@@ -341,7 +345,6 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
               </AccordionContent>
             </AccordionItem>
 
-            {/* Attributes */}
             {attributes.length > 0 && (
               <AccordionItem value="attributes" className="border-purple-500/20">
                 <AccordionTrigger className="text-purple-400 text-sm py-2 hover:no-underline">
@@ -390,7 +393,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                                       title={isLongValue ? attr.value : undefined}
                                     >
                                       "{sanitizeText(displayValue)}"
-                        </span>
+                                    </span>
                                     {isLongValue && (
                                       <button
                                         onClick={handleToggle}
@@ -422,7 +425,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                                       <div className="text-gray-300 font-mono text-xs break-all">
                                         {sanitizeText(attr.value)}
                                       </div>
-                      </div>
+                                    </div>
                                   </td>
                                 </tr>
                               )}
@@ -436,7 +439,6 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
               </AccordionItem>
             )}
 
-            {/* Computed Styles */}
             <AccordionItem value="styles" className="border-orange-500/20">
               <AccordionTrigger className="text-orange-400 text-sm py-2 hover:no-underline">
                 <div className="flex items-center gap-2">
@@ -481,7 +483,6 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
               </AccordionContent>
             </AccordionItem>
 
-            {/* Event Listeners */}
             {eventListeners.length > 0 && (
               <AccordionItem value="events" className="border-yellow-500/20">
                 <AccordionTrigger className="text-yellow-400 text-sm py-2 hover:no-underline">
@@ -508,4 +509,4 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   );
 };
 
-export default ElementInspector; 
+export default ElementInspector;
