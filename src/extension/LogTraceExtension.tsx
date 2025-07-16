@@ -6,6 +6,7 @@ import { useExtensionAuth } from './hooks/useExtensionAuth';
 
 export const LogTraceExtension: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const {
     user,
     authLoading,
@@ -22,19 +23,34 @@ export const LogTraceExtension: React.FC = () => {
     incrementGuestDebug,
   } = useExtensionAuth();
 
-  const handleSignInClick = () => {
-    setShowAuthModal(true);
-  };
+  // Check if user needs authentication for certain features
+  const handleAuthRequired = useCallback(() => {
+    if (!user) {
+      setShowAuthModal(true);
+      return false;
+    }
+    return true;
+  }, [user]);
+
+  // Handle onboarding completion
+  const handleOnboardingComplete = useCallback(() => {
+    setShowOnboarding(false);
+    localStorage.setItem('logtrace-extension-onboarding-completed', 'true');
+  }, []);
+
+  // Check if onboarding should be shown
+  useEffect(() => {
+    const onboardingCompleted = localStorage.getItem('logtrace-extension-onboarding-completed');
+    if (!onboardingCompleted) {
+      setShowOnboarding(true);
+    }
+  }, []);
 
   return (
     <>
       <LogTrace
-        user={user}
-        authLoading={authLoading}
-        guestDebugCount={guestDebugCount}
-        onSignInClick={handleSignInClick}
-        incrementGuestDebug={incrementGuestDebug}
-        isExtension={true}
+        showOnboarding={showOnboarding}
+        onOnboardingComplete={handleOnboardingComplete}
       />
 
       {showAuthModal && (
