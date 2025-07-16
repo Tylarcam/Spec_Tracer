@@ -1,4 +1,3 @@
-
 /**
  * LogTrace component optimized for Chrome extension
  */

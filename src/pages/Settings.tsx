@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Settings as SettingsIcon, Key, Bell, Shield, Palette } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, Key, Bell, Shield, Palette, Share2, Crown, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useNotification } from '@/hooks/useNotification';
+import { useEnhancedCredits } from '@/hooks/useEnhancedCredits';
+import ShareModal from '@/components/ShareModal';
 import Spinner from '@/components/ui/spinner';
+import { supabase } from '@/integrations/supabase/client';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -16,7 +20,9 @@ const Settings: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
+  const [showShareModal, setShowShareModal] = useState(false);
   const { success, error } = useNotification();
+  const { creditStatus, refreshCredits } = useEnhancedCredits();
 
   const handleSaveApiKey = async () => {
     if (!apiKey.trim()) {
@@ -26,7 +32,6 @@ const Settings: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Store API key in localStorage for now
       localStorage.setItem('openai_api_key', apiKey);
       success({ title: 'API key saved', description: 'Your API key has been stored securely' });
       setApiKey('');
@@ -34,6 +39,34 @@ const Settings: React.FC = () => {
       error({ title: 'Save failed', description: 'Failed to save API key' });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout');
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Upgrade error:', error);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Portal error:', error);
     }
   };
 
@@ -60,6 +93,72 @@ const Settings: React.FC = () => {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
+            {/* Credit Status & Subscription */}
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-green-400" />
+                  <CardTitle className="text-white">Credits & Subscription</CardTitle>
+                </div>
+                <CardDescription className="text-slate-400">
+                  Manage your usage and subscription
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-white font-medium">
+                      {creditStatus.isPremium ? 'Pro Plan' : 'Free Plan'}
+                    </span>
+                    {creditStatus.isPremium && (
+                      <Crown className="h-4 w-4 text-yellow-400" />
+                    )}
+                  </div>
+                  <div className="text-sm text-slate-400">
+                    {creditStatus.isPremium ? (
+                      'Unlimited credits'
+                    ) : (
+                      `${creditStatus.totalCredits} credits remaining`
+                    )}
+                  </div>
+                  {!creditStatus.isPremium && (
+                    <div className="text-xs text-slate-500 mt-1">
+                      Daily: {creditStatus.dailyCredits}/10 • Bonus: {creditStatus.waitlistBonus}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  {creditStatus.isPremium ? (
+                    <Button
+                      onClick={handleManageSubscription}
+                      variant="outline"
+                      className="w-full border-green-600 text-green-400 hover:bg-green-600/10"
+                    >
+                      Manage Subscription
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleUpgrade}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                    >
+                      <Crown className="mr-2 h-4 w-4" />
+                      Upgrade to Pro - $9/mo
+                    </Button>
+                  )}
+
+                  <Button
+                    onClick={() => setShowShareModal(true)}
+                    variant="outline"
+                    className="w-full border-cyan-600 text-cyan-400 hover:bg-cyan-600/10"
+                  >
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Share for Bonus Credits
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* API Configuration */}
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
@@ -152,34 +251,16 @@ const Settings: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Privacy & Security */}
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-blue-400" />
-                  <CardTitle className="text-white">Privacy & Security</CardTitle>
-                </div>
-                <CardDescription className="text-slate-400">
-                  Manage your data and security settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700">
-                    Export My Data
-                  </Button>
-                  <Button variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700">
-                    Delete Account
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
+
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+      />
     </div>
   );
 };
 
-export default Settings; 
+export default Settings;

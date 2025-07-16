@@ -1,9 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Code, Zap, Target, Sparkles, Play, Eye, Mail, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import PricingSection from '@/components/PricingSection';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -25,11 +27,29 @@ const Landing = () => {
     navigate('/debug?onboarding=true');
   };
 
+  const handleUpgrade = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout');
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Upgrade error:', error);
+      toast({
+        title: "Error",
+        description: "Unable to start upgrade process. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleJoinWaitlist = async () => {
     if (!email.trim()) return;
     setIsJoiningWaitlist(true);
     try {
-      // Check for duplicate
       const { data: existing, error: fetchError } = await supabase
         .from('waitlist')
         .select('id')
@@ -45,7 +65,6 @@ const Landing = () => {
         setIsJoiningWaitlist(false);
         return;
       }
-      // Insert new
       const { error } = await supabase
         .from('waitlist')
         .insert([{ email: email.trim().toLowerCase() }]);
@@ -284,6 +303,9 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* Pricing Section */}
+      <PricingSection onUpgrade={handleUpgrade} />
 
       {/* Final CTA */}
       <section className="py-20 px-4">
