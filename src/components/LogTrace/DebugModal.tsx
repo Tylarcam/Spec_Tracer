@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { X, Sparkles, Copy } from 'lucide-react';
-import { Input } from '../ui/input';git 
+import { Input } from '../ui/input'; 
 import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
