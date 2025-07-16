@@ -11,8 +11,7 @@ import { sanitizeText } from '@/utils/sanitization';
 export const useDebugModal = (
   currentElement: ElementInfo | null,
   mousePosition: { x: number; y: number },
-  addEvent: (event: any) => void,
-  useCredit?: () => Promise<boolean>
+  addEvent: (event: any) => void
 ) => {
   const [showDebugModal, setShowDebugModal] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -26,7 +25,7 @@ export const useDebugModal = (
       let lastError: any = null;
       while (attempt <= MAX_RETRIES) {
         try {
-          response = await callAIDebugFunction(prompt, currentElement, mousePosition, useCredit);
+          response = await callAIDebugFunction(prompt, currentElement, mousePosition);
           lastError = null;
           break;
         } catch (error) {
