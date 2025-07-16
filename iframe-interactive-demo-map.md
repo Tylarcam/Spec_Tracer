@@ -1,6 +1,62 @@
 
 # Iframe Interactive Demo Architecture Map
 
+## TLDR - Source File Reference
+
+### Core Application Files
+- `src/App.tsx` - Main application wrapper with routing
+- `src/pages/Index.tsx` - Debug page entry point with iframe integration
+- `src/components/IframeDemoBar.tsx` - Site selection landing page
+
+### Main Debug System
+- `src/components/LogTrace.tsx` - Main debug overlay orchestrator (623 lines)
+- `src/shared/hooks/useLogTrace.ts` - Main composition hook
+- `src/shared/hooks/useIframeBridge.ts` - Iframe communication bridge (308 lines)
+- `src/shared/iframeContentScript.ts` - Script injected into iframe
+
+### UI Components
+- `src/components/LogTrace/Header.tsx` - Debug mode controls
+- `src/components/LogTrace/MouseOverlay.tsx` - Element highlighting
+- `src/components/LogTrace/ElementInspector.tsx` - Element details panel
+- `src/components/LogTrace/DebugModal.tsx` - AI debugging interface
+- `src/components/LogTrace/TabbedTerminal.tsx` - Event log terminal
+- `src/components/LogTrace/SettingsDrawer.tsx` - Configuration panel
+- `src/components/LogTrace/UpgradeModal.tsx` - Subscription interface
+- `src/components/LogTrace/QuickActionModal.tsx` - Context menu
+- `src/components/LogTrace/PinnedDetails.tsx` - Detailed element view
+- `src/components/LogTrace/UpgradeNotificationBanner.tsx` - Usage notifications
+
+### Hooks & Utilities
+- `src/shared/hooks/useElementInspection.ts` - DOM element analysis
+- `src/shared/hooks/useEventTracking.ts` - Event logging system
+- `src/shared/hooks/useDebugModal.ts` - AI debug interface
+- `src/shared/hooks/useDebugResponses.ts` - Response management
+- `src/shared/hooks/useSettings.ts` - Configuration management
+- `src/shared/storage.ts` - Local storage interface
+- `src/shared/types.ts` - Type definitions
+- `src/utils/sanitization.ts` - Input sanitization
+
+### Authentication & Credits
+- `src/contexts/AuthContext.tsx` - Authentication provider
+- `src/hooks/useCreditsSystem.ts` - Credit management
+- `src/hooks/useUsageTracking.ts` - Usage analytics
+- `src/hooks/useSubscription.ts` - Subscription handling
+
+### Extension Support
+- `src/extension/LogTraceExtension.tsx` - Browser extension version (453 lines)
+- `src/extension/LogTraceContent.tsx` - Extension content script
+- `src/extension/components/ExtensionControlPanel.tsx` - Extension controls
+- `src/extension/components/ExtensionAuthModal.tsx` - Extension auth
+- `src/extension/components/ExtensionMouseOverlay.tsx` - Extension overlay
+- `src/extension/hooks/useExtensionAuth.ts` - Extension authentication
+
+### Backend Integration
+- `supabase/functions/ai-debug/index.ts` - AI analysis edge function
+- `src/integrations/supabase/client.ts` - Database client
+- `src/integrations/supabase/types.ts` - Database types
+
+---
+
 ## Overview
 This document provides a comprehensive architectural mapping of the `/debug` page and its iframe interactive demo functionality. This system enables users to debug any website through iframe embedding with AI-powered element inspection and analysis.
 
