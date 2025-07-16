@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Target, User, Settings, Crown, Zap } from 'lucide-react';
+import { Target, User, Crown, Zap, LogOut, LogIn } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const NavBar: React.FC = () => {
   const navigate = useNavigate();
-  const { user, signUp, signIn, signInWithGitHub } = useAuth();
+  const { user, signUp, signIn, signInWithGitHub, signOut } = useAuth();
   const {
     aiDebugCount,
     remainingUses,
@@ -40,8 +40,6 @@ const NavBar: React.FC = () => {
   const showBonus = user && bonusCredits > 0;
 
   const handleShare = () => {
-    // Implement share logic (e.g., navigator.share or copy link)
-    // On success, grant 5 credits (update localStorage or backend)
     alert('Share with a friend to get 5 extra credits! (Demo only)');
   };
 
@@ -95,25 +93,33 @@ const NavBar: React.FC = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      const { error } = await signOut();
+      if (error) {
+        toast({ title: 'Sign Out Error', description: error.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'Signed out', description: 'You have been signed out successfully.' });
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to sign out', variant: 'destructive' });
+    }
+  };
+
   const handleAuthModalClick = (e: React.MouseEvent) => {
-    // Prevent the modal from closing when clicking inside the modal content
     e.stopPropagation();
   };
 
   const handleOverlayClick = () => {
-    // Close modal when clicking on the overlay (outside the modal)
     setShowAuthModal(false);
     setEmail('');
     setPassword('');
   };
 
-  const handleAccountButtonClick = () => {
+  const handleAuthButtonClick = () => {
     if (user) {
-      // If user is logged in, could show profile menu or navigate to profile
-      // For now, just show a success message
-      toast({ title: 'Account', description: `Welcome, ${user.email}!` });
+      handleSignOut();
     } else {
-      // If user is not logged in, show auth modal
       setShowAuthModal(true);
     }
   };
@@ -167,23 +173,39 @@ const NavBar: React.FC = () => {
               <span className="hidden sm:inline">Pro</span>
             </button>
             
-            {/* Settings */}
+            {/* Quick Sign In/Out */}
             <button
-              className="text-gray-400 hover:text-white p-2 rounded-full"
-              title="Settings"
-              onClick={() => navigate('/settings')}
+              className={`p-2 rounded-full flex items-center gap-1 text-sm font-medium transition-colors ${
+                user 
+                  ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10' 
+                  : 'text-green-400 hover:text-green-300 hover:bg-green-500/10'
+              }`}
+              title={user ? "Sign Out" : "Sign In"}
+              onClick={handleAuthButtonClick}
             >
-              <Settings className="h-5 w-5" />
+              {user ? (
+                <>
+                  <LogOut className="h-5 w-5" />
+                  <span className="hidden sm:inline">Out</span>
+                </>
+              ) : (
+                <>
+                  <LogIn className="h-5 w-5" />
+                  <span className="hidden sm:inline">In</span>
+                </>
+              )}
             </button>
             
-            {/* Account/Sign In */}
-            <button
-              className="text-cyan-300 hover:text-cyan-400 p-2 rounded-full"
-              title={user ? "Account" : "Sign In / Account"}
-              onClick={handleAccountButtonClick}
-            >
-              <User className="h-5 w-5" />
-            </button>
+            {/* Account/Profile (only show when signed in) */}
+            {user && (
+              <button
+                className="text-cyan-300 hover:text-cyan-400 p-2 rounded-full"
+                title="Account"
+                onClick={() => navigate('/settings')}
+              >
+                <User className="h-5 w-5" />
+              </button>
+            )}
           </div>
         </div>
       </nav>
