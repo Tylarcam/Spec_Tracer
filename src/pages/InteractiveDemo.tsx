@@ -4,7 +4,7 @@ import IframeDemoBar from '@/components/IframeDemoBar';
 import LogTrace from '@/components/LogTrace';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Globe, X, AlertCircle } from 'lucide-react';
+import { Globe, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 
 const InteractiveDemo: React.FC = () => {
@@ -14,6 +14,7 @@ const InteractiveDemo: React.FC = () => {
   const [newUrl, setNewUrl] = useState('');
   const [isEditingUrl, setIsEditingUrl] = useState(false);
   const [iframeError, setIframeError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Check if URL was passed from the demo bar
   useEffect(() => {
@@ -22,6 +23,7 @@ const InteractiveDemo: React.FC = () => {
       const decodedUrl = decodeURIComponent(siteParam);
       setCurrentUrl(decodedUrl);
       setShowIframe(true);
+      setIsLoading(true);
     }
   }, [searchParams]);
 
@@ -36,6 +38,7 @@ const InteractiveDemo: React.FC = () => {
       setIsEditingUrl(false);
       setNewUrl('');
       setIframeError(false);
+      setIsLoading(true);
     }
   };
 
@@ -43,6 +46,7 @@ const InteractiveDemo: React.FC = () => {
     setShowIframe(false);
     setCurrentUrl('');
     setIframeError(false);
+    setIsLoading(false);
   };
 
   const handleEditUrl = () => {
@@ -55,8 +59,24 @@ const InteractiveDemo: React.FC = () => {
     setNewUrl('');
   };
 
+  const handleIframeLoad = () => {
+    setIsLoading(false);
+    setIframeError(false);
+  };
+
   const handleIframeError = () => {
+    setIsLoading(false);
     setIframeError(true);
+  };
+
+  const handleRetry = () => {
+    setIframeError(false);
+    setIsLoading(true);
+    // Force iframe reload by changing key
+    const iframe = document.querySelector('iframe');
+    if (iframe) {
+      iframe.src = iframe.src;
+    }
   };
 
   if (!showIframe) {
@@ -99,7 +119,7 @@ const InteractiveDemo: React.FC = () => {
             </div>
           ) : (
             <div className="flex-1 flex items-center gap-2">
-              <div className="flex-1 bg-slate-800 rounded px-3 py-2 text-sm font-mono text-slate-300">
+              <div className="flex-1 bg-slate-800 rounded px-3 py-2 text-sm font-mono text-slate-300 truncate">
                 {currentUrl}
               </div>
               <Button onClick={handleEditUrl} variant="outline" size="sm">
@@ -122,17 +142,41 @@ const InteractiveDemo: React.FC = () => {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="absolute top-24 left-4 right-4 z-40 bg-blue-900/90 border border-blue-500/50 rounded-lg p-4 max-w-2xl mx-auto">
+          <div className="flex items-center gap-3">
+            <RefreshCw className="h-5 w-5 text-blue-400 animate-spin" />
+            <div>
+              <h3 className="text-blue-300 font-medium">Loading Website</h3>
+              <p className="text-blue-200 text-sm">Please wait while the website loads...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Error Message */}
       {iframeError && (
         <div className="absolute top-24 left-4 right-4 z-40 bg-red-900/90 border border-red-500/50 rounded-lg p-4 max-w-2xl mx-auto">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" />
-            <div>
+            <div className="flex-1">
               <h3 className="text-red-300 font-medium mb-1">Cannot Load Website</h3>
-              <p className="text-red-200 text-sm">
+              <p className="text-red-200 text-sm mb-3">
                 This website cannot be displayed in an iframe due to security restrictions. 
-                Try websites like: github.com, reddit.com, or yoursite.com
+                Try these iframe-friendly alternatives:
               </p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {['example.com', 'httpbin.org', 'jsonplaceholder.typicode.com', 'httpstat.us', 'postman-echo.com'].map((site) => (
+                  <span key={site} className="text-xs bg-red-800/50 text-red-200 px-2 py-1 rounded">
+                    {site}
+                  </span>
+                ))}
+              </div>
+              <Button onClick={handleRetry} size="sm" variant="outline" className="border-red-500/50 text-red-300 hover:bg-red-900/50">
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Retry
+              </Button>
             </div>
           </div>
         </div>
@@ -141,11 +185,12 @@ const InteractiveDemo: React.FC = () => {
       {/* Iframe Container */}
       <div className="absolute inset-0 pt-20">
         <iframe
+          key={currentUrl} // Force remount on URL change
           src={currentUrl}
           className="w-full h-full border-0"
           title="Website Demo"
+          onLoad={handleIframeLoad}
           onError={handleIframeError}
-          onLoad={() => setIframeError(false)}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-navigation"
         />
       </div>
