@@ -10,9 +10,11 @@ const IframeDemoBar: React.FC = () => {
   const navigate = useNavigate();
 
   const popularSites = [
-    { name: 'github.com', url: 'https://github.com' },
-    { name: 'reddit.com', url: 'https://reddit.com' },
-    { name: 'yoursite.com', url: 'https://yoursite.com' },
+    { name: 'example.com', url: 'https://example.com' },
+    { name: 'httpbin.org', url: 'https://httpbin.org' },
+    { name: 'jsonplaceholder.typicode.com', url: 'https://jsonplaceholder.typicode.com' },
+    { name: 'httpstat.us', url: 'https://httpstat.us' },
+    { name: 'postman-echo.com', url: 'https://postman-echo.com' },
   ];
 
   const handleAnalyze = () => {
@@ -60,7 +62,7 @@ const IframeDemoBar: React.FC = () => {
             <Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
             <Input
               type="url"
-              placeholder="github.com, reddit.com, yoursite.com..."
+              placeholder="example.com, httpbin.org, postman-echo.com..."
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="pl-12 py-6 text-lg bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-green-400 focus:ring-green-400/20"
@@ -78,7 +80,7 @@ const IframeDemoBar: React.FC = () => {
 
         {/* Popular Examples */}
         <div className="space-y-4">
-          <p className="text-slate-400 text-sm">Popular examples:</p>
+          <p className="text-slate-400 text-sm">iframe-friendly examples:</p>
           <div className="flex flex-wrap justify-center gap-3">
             {popularSites.map((site) => (
               <Button
@@ -96,8 +98,8 @@ const IframeDemoBar: React.FC = () => {
         {/* Note about iframe compatibility */}
         <div className="mt-8 p-4 bg-slate-800/30 rounded-lg border border-slate-600/30">
           <p className="text-slate-400 text-sm">
-            <strong className="text-slate-300">Note:</strong> Some websites may not load due to security restrictions. 
-            The suggested sites above are known to work well with LogTrace.
+            <strong className="text-slate-300">Note:</strong> These websites are specifically chosen for iframe compatibility. 
+            The examples above are verified to work well with LogTrace.
           </p>
         </div>
       </div>
