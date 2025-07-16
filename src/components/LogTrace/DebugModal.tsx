@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { X, Sparkles, Copy } from 'lucide-react';
-import { Input } from '../ui/input';
+import { Input } from '../ui/input';git 
 import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -214,7 +214,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
       duration: 5000,
     });
     try {
-      setActiveTab('prompt');
+    setActiveTab('prompt');
       // setShowTerminal?.(true); // Removed, not defined here
       // Call OpenAI via analyzeWithAI (assume it returns the generated prompt)
       const aiResponse = await analyzeWithAI(fullPrompt);
