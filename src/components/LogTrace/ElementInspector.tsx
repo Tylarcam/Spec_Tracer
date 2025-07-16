@@ -1,12 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { Eye, Settings, Code, Zap, X, Hash, Type, Lock, Unlock, Copy } from 'lucide-react';
+import { Eye, Settings, Code, Zap, X, Hash, Type, Lock, Unlock, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { ElementInfo } from '@/shared/types';
 import { sanitizeText } from '@/utils/sanitization';
+import { useToast } from '@/hooks/use-toast';
+import { useConsoleLogs } from '@/shared/hooks/useConsoleLogs';
 
 interface ElementInspectorProps {
   isVisible: boolean;
@@ -18,8 +20,6 @@ interface ElementInspectorProps {
   // Extension mode adjustments
   isExtensionMode?: boolean;
   isDraggable?: boolean;
-  isPinned?: boolean;
-  onPin?: () => void;
   onShowMoreDetails: () => void;
   // NEW: AI debug usage
   currentDebugCount?: number;
@@ -35,13 +35,45 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   panelRef,
   isExtensionMode = false,
   isDraggable = false,
-  isPinned = false,
-  onPin,
   onShowMoreDetails,
   currentDebugCount,
   maxDebugCount,
 }) => {
   const [expandedSections, setExpandedSections] = useState<string[]>(['basic']);
+  const [expandedAttrIndexes, setExpandedAttrIndexes] = useState<number[]>([]);
+  const { toast } = useToast();
+  const [modalPosition, setModalPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isPinned, setIsPinned] = useState(false);
+  const dragOffset = useRef<{ x: number; y: number } | null>(null);
+  const dragging = useRef(false);
+
+  // Drag handlers
+  const handleDragStart = (e: React.MouseEvent) => {
+    if (isPinned) return;
+    dragging.current = true;
+    const rect = panelRef?.current?.getBoundingClientRect();
+    dragOffset.current = rect
+      ? { x: e.clientX - rect.left, y: e.clientY - rect.top }
+      : { x: 0, y: 0 };
+    document.body.style.userSelect = 'none';
+  };
+  const handleDrag = (e: MouseEvent) => {
+    if (!dragging.current || isPinned) return;
+    setModalPosition({ x: e.clientX - (dragOffset.current?.x || 0), y: e.clientY - (dragOffset.current?.y || 0) });
+  };
+  const handleDragEnd = () => {
+    dragging.current = false;
+    document.body.style.userSelect = '';
+  };
+  React.useEffect(() => {
+    if (!dragging.current) return;
+    window.addEventListener('mousemove', handleDrag);
+    window.addEventListener('mouseup', handleDragEnd);
+    return () => {
+      window.removeEventListener('mousemove', handleDrag);
+      window.removeEventListener('mouseup', handleDragEnd);
+    };
+  });
 
   // Get computed styles
   const computedStyles = useMemo(() => {
@@ -139,7 +171,8 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
 
   if (!isVisible || !currentElement) return null;
 
-  const positionStyle = isExtensionMode 
+  // Position logic
+  const defaultPosition = isExtensionMode
     ? {
         left: Math.min(mousePosition.x + 20, window.innerWidth - 350),
         top: Math.min(mousePosition.y + 20, window.innerHeight - 450),
@@ -148,6 +181,9 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
         left: Math.min(mousePosition.x + 20, window.innerWidth - 320),
         top: Math.min(mousePosition.y + 20, window.innerHeight - 400),
       };
+  const positionStyle = modalPosition
+    ? { left: Math.max(0, Math.min(modalPosition.x, window.innerWidth - 350)), top: Math.max(0, Math.min(modalPosition.y, window.innerHeight - 100)) }
+    : defaultPosition;
 
   return (
     <div
@@ -158,7 +194,11 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
       <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20">
         <div className="p-4">
           {/* Header */}
-          <div className="flex items-center justify-between mb-3">
+          <div
+            className="flex items-center justify-between mb-3 cursor-move select-none"
+            onMouseDown={handleDragStart}
+            style={{ cursor: isPinned ? 'default' : 'move' }}
+          >
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400">
                 {currentElement.tag.toUpperCase()}
@@ -178,23 +218,25 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                   {currentDebugCount}/{maxDebugCount}
                 </Badge>
               )}
-              {onPin && isDraggable && (
-                <Button
-                  onClick={onPin}
-                  size="sm"
-                  variant="ghost"
-                  className={`h-6 w-6 p-0 ${isPinned ? 'text-green-400' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10`}
-                  title={isPinned ? 'Unpin panel' : 'Pin panel'}
-                >
-                  {isPinned ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                </Button>
-              )}
+              <Button
+                onClick={() => setIsPinned(p => !p)}
+                size="sm"
+                variant="ghost"
+                className={`h-6 w-6 p-0 ${isPinned ? 'text-green-400' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10`}
+                title={isPinned ? 'Unpin panel' : 'Pin panel'}
+                tabIndex={-1}
+                type="button"
+              >
+                {isPinned ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+              </Button>
               <Button
                 onClick={onDebug}
                 size="sm"
                 variant="ghost"
                 className="h-6 w-6 p-0 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
                 title="Debug with AI"
+                tabIndex={-1}
+                type="button"
               >
                 <Code className="w-3 h-3" />
               </Button>
@@ -202,7 +244,10 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                 onClick={onClose}
                 size="sm"
                 variant="ghost"
-                className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                className="h-6 w-6 p-0 text-gray-400 hover:text-red-400 hover:bg-red-500/10"
+                title="Close"
+                tabIndex={-1}
+                type="button"
               >
                 <X className="w-3 h-3" />
               </Button>
@@ -274,6 +319,32 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                       </div>
                     </div>
                   )}
+
+                  {/* Events Section */}
+                  {eventListeners.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-gray-700">
+                      <div className="font-semibold text-purple-300 mb-1 flex items-center gap-2">
+                        <Zap className="w-4 h-4" />
+                        Events
+                      </div>
+                      <table className="min-w-full text-xs text-left">
+                        <thead>
+                          <tr>
+                            <th className="py-1 px-2 text-purple-200 font-medium">Type</th>
+                            <th className="py-1 px-2 text-purple-200 font-medium">Handler</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {eventListeners.map((evt, idx) => (
+                            <tr key={idx} className="border-b border-gray-700/50 last:border-b-0">
+                              <td className="py-1 px-2 font-mono text-purple-100">{evt.replace('on', '')}</td>
+                              <td className="py-1 px-2 text-gray-300">handler</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -288,15 +359,86 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-1 text-xs">
-                  <div className="bg-slate-800/50 p-3 rounded border border-purple-500/20 max-h-32 overflow-y-auto">
-                    {attributes.map((attr, index) => (
-                      <div key={index} className="flex justify-between py-0.5">
-                        <span className="text-purple-300">{attr.name}:</span>
-                        <span className="text-gray-300 font-mono text-right max-w-[120px] truncate">
-                          "{sanitizeText(attr.value)}"
-                        </span>
-                      </div>
-                    ))}
+                  <div className="bg-slate-800/50 p-3 rounded border border-purple-500/20 max-h-48 overflow-y-auto">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="border-b border-gray-700/50">
+                          <th className="text-left py-1 px-2 text-purple-300 font-medium">attribute</th>
+                          <th className="text-left py-1 px-2 text-purple-300 font-medium">value</th>
+                          <th className="text-left py-1 px-2 text-purple-300 font-medium w-16">actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {attributes.map((attr, index) => {
+                          const isLongValue = attr.value.length > 50;
+                          const isExpanded = expandedAttrIndexes.includes(index);
+                          const displayValue = isLongValue && !isExpanded
+                            ? `${attr.value.substring(0, 50)}...`
+                            : attr.value;
+                          const handleToggle = () => {
+                            setExpandedAttrIndexes(prev =>
+                              prev.includes(index)
+                                ? prev.filter(i => i !== index)
+                                : [...prev, index]
+                            );
+                          };
+                          
+                          return (
+                            <React.Fragment key={index}>
+                              <tr className="border-b border-gray-700/50 last:border-b-0">
+                                <td className="py-1 px-2 text-purple-200 font-mono align-top">
+                                  {attr.name}
+                                </td>
+                                <td className="py-1 px-2 align-top">
+                                  <div className="flex items-start gap-1">
+                                    <span
+                                      className={`text-gray-300 font-mono break-all ${
+                                        isLongValue && !isExpanded ? 'max-w-[200px]' : 'max-w-[300px]'
+                                      }`}
+                                      title={isLongValue ? attr.value : undefined}
+                                    >
+                                      "{sanitizeText(displayValue)}"
+                                    </span>
+                                    {isLongValue && (
+                                      <button
+                                        onClick={handleToggle}
+                                        className="text-gray-400 hover:text-purple-300 transition-colors flex-shrink-0 mt-0.5"
+                                        title={isExpanded ? 'Collapse' : 'Expand'}
+                                      >
+                                        {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-1 px-2 align-top">
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(attr.value);
+                                      toast({ title: 'Copied!', description: 'Attribute value copied to clipboard', variant: 'success' });
+                                    }}
+                                    className="text-gray-400 hover:text-purple-300 transition-colors"
+                                    title="Copy value"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </td>
+                              </tr>
+                              {isLongValue && isExpanded && (
+                                <tr>
+                                  <td colSpan={3} className="px-2 pb-2">
+                                    <div className="mt-1 p-2 bg-slate-900/50 rounded border border-purple-500/20">
+                                      <div className="text-gray-300 font-mono text-xs break-all">
+                                        {sanitizeText(attr.value)}
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -312,14 +454,37 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
               </AccordionTrigger>
               <AccordionContent className="space-y-2 text-xs">
                 <div className="bg-slate-800/50 p-3 rounded border border-orange-500/20 max-h-48 overflow-y-auto">
-                  {Object.entries(computedStyles).map(([property, value]) => (
-                    <div key={property} className="flex justify-between py-0.5">
-                      <span className="text-orange-300">{property}:</span>
-                      <span className="text-gray-300 font-mono text-right max-w-[120px] truncate">
-                        {sanitizeText(String(value))}
-                      </span>
-                    </div>
-                  ))}
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="border-b border-gray-700/50">
+                        <th className="text-left py-1 px-2 text-orange-300 font-medium">property</th>
+                        <th className="text-left py-1 px-2 text-orange-300 font-medium">value</th>
+                        <th className="text-left py-1 px-2 text-orange-300 font-medium w-16">actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(computedStyles).map(([property, value], idx) => (
+                        <tr key={property} className="border-b border-gray-700/50 last:border-b-0">
+                          <td className="py-1 px-2 text-orange-200 font-mono align-top">{property}</td>
+                          <td className="py-1 px-2 align-top">
+                            <span className="text-gray-300 font-mono break-all max-w-[300px]">{sanitizeText(String(value))}</span>
+                          </td>
+                          <td className="py-1 px-2 align-top">
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(String(value));
+                                toast({ title: 'Copied!', description: 'Style value copied to clipboard', variant: 'success' });
+                              }}
+                              className="text-gray-400 hover:text-orange-300 transition-colors"
+                              title="Copy value"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </AccordionContent>
             </AccordionItem>
