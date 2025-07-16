@@ -1,4 +1,8 @@
 
+/**
+ * Shared types for LogTrace
+ */
+
 export interface LogEvent {
   id: string;
   type: 'move' | 'click' | 'debug' | 'inspect' | 'llm_response';
@@ -23,7 +27,7 @@ export interface ElementInfo {
   classes: string[];
   text: string;
   element: HTMLElement;
-  parentPath?: string;
+  parentPath?: string; // DOM hierarchy path, e.g., 'form.checkout-form > div.flex > button.submit-btn'
   attributes?: { name: string; value: string }[];
   size?: { width: number; height: number };
 }
@@ -40,4 +44,11 @@ export interface DebugContext {
   position: { x: number; y: number };
   events: LogEvent[];
   settings: LogTraceSettings;
+}
+
+export interface PinnedDetail {
+  id: string;
+  element: ElementInfo;
+  position: { x: number; y: number };
+  pinnedAt: { x: number; y: number };
 }

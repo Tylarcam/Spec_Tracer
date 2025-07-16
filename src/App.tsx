@@ -16,7 +16,6 @@ import Upgrade from "./pages/Upgrade";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import NavBar from './components/NavBar';
-import InteractiveDemo0 from "./pages/InteractiveDemo0";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,7 +35,6 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/interactive-demo" element={<InteractiveDemo />} />
-        <Route path="/interactive-demo-0" element={<InteractiveDemo0 />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/debug" element={<Index />} />
         <Route path="/context-transform" element={<ContextTransform />} />
