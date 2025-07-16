@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { X, Download, Play, History } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { parseAIResponse, formatAIResponseForDisplay } from '@/utils/sanitization';
 
 interface TabbedTerminalProps {
   showTerminal: boolean;
@@ -187,20 +187,55 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                 <span className="text-sm text-gray-400">AI Debug Conversations</span>
                 <button
                   className="bg-red-500/10 text-red-400 border border-red-500/50 rounded px-3 py-1 text-xs hover:bg-red-500/20 transition"
-                    onClick={clearDebugResponses}
-                  >
-                    Clear AI Debug
+                  onClick={clearDebugResponses}
+                >
+                  Clear AI Debug
                 </button>
               </div>
-              <div className="absolute inset-x-0 bottom-0 top-6 font-mono text-sm space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
-                  {debugResponses.length === 0 ? (
-                    <div className="text-gray-500">No debug responses yet...</div>
-                  ) : (
-                  debugResponses.map((resp, idx) => (
-                    <div key={idx} className="text-gray-300">{JSON.stringify(resp)}</div>
-                    ))
-                  )}
-                </div>
+              <div className="absolute inset-x-0 bottom-0 top-6 font-mono text-sm space-y-4 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
+                {debugResponses.length === 0 ? (
+                  <div className="text-gray-500">No debug responses yet...</div>
+                ) : (
+                  debugResponses.map((resp, idx) => {
+                    const parsedResponse = parseAIResponse(resp.response);
+                    const formattedResponse = formatAIResponseForDisplay(parsedResponse);
+                    return (
+                      <div key={idx} className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50">
+                        {/* Header with timestamp and copy button */}
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400">
+                              {new Date(resp.timestamp).toLocaleTimeString()}
+                            </span>
+                            <span className="text-xs text-green-400 font-semibold">AI Debug</span>
+                          </div>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(formattedResponse)}
+                            className="text-gray-400 hover:text-white transition-colors"
+                            title="Copy response"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy w-3 h-3 text-gray-400"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                          </button>
+                        </div>
+                        {/* Prompt */}
+                        <div className="mb-3">
+                          <div className="text-xs text-gray-400 mb-1">Prompt:</div>
+                          <div className="text-sm text-blue-300 bg-slate-800/50 rounded p-2">
+                            {resp.prompt}
+                          </div>
+                        </div>
+                        {/* Parsed Response */}
+                        <div>
+                          <div className="text-xs text-gray-400 mb-2">Response:</div>
+                          <div className="text-sm text-gray-200 whitespace-pre-line leading-relaxed">
+                            {formattedResponse}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </TabsContent>
             <TabsContent value="console" className="mt-4 relative flex-1 min-h-0">
               <div className="flex justify-between items-center h-6 shrink-0">
