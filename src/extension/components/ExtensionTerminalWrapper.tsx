@@ -74,18 +74,18 @@ const ExtensionTerminalWrapper: React.FC<ExtensionTerminalWrapperProps> = ({
                     else if (type === 'DEBUG') color = 'text-yellow-400';
                     else if (type === 'INSPECT') color = 'text-cyan-400';
                     // Compose element info
-                    const el = event.element || {};
-                    const tag = el.tag || 'div';
-                    const id = el.id ? `#${el.id}` : '';
-                    const classes = el.classes && el.classes.length > 0 ? `.${el.classes.join('.')}` : '';
-                    const text = el.text ? `"${el.text}"` : '';
-                    const parentPath = el.parentPath ? el.parentPath : '';
-                    const attributes = el.attributes && el.attributes.length > 0
+                    const el: LogEvent['element'] = event.element;
+                    const tag = el?.tag || 'div';
+                    const id = el?.id ? `#${el.id}` : '';
+                    const classes = el?.classes && el.classes.length > 0 ? `.${el.classes.join('.')}` : '';
+                    const text = el?.text ? `"${el.text}"` : '';
+                    const parentPath = el?.parentPath ? el.parentPath : '';
+                    const attributes = el?.attributes && el.attributes.length > 0
                       ? el.attributes.map((a: any) => `${a.name}="${a.value}"`).join(', ')
                       : '';
-                    const size = el.size ? `${el.size.width}×${el.size.height}` : '';
+                    const size = el?.size ? `${el.size.width}×${el.size.height}` : '';
                     const position = event.position ? `@${event.position.x},${event.position.y}` : '';
-                    const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(tag) || (el && el.classes && el.classes.includes('interactive'));
+                    const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(tag) || (el?.classes && el.classes.includes('interactive'));
                     const copyString = `[${event.timestamp}] ${type} ${tag}${id}${classes} ${text} ${position} ${parentPath} ${attributes} ${size}`;
                     return (
                       <div key={idx} className="contents">
