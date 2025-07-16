@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { LogTraceExtension } from './LogTraceExtension';
+import LogTraceExtension from './LogTraceExtension';
 import '../index.css'; // Import Tailwind/global styles
 
 // Create a container for the extension UI
