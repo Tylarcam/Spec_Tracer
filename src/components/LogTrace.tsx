@@ -18,6 +18,8 @@ import QuickActionModal from './LogTrace/QuickActionModal';
 import { Button } from './ui/button';
 import html2canvas from 'html2canvas';
 import { Switch } from './ui/switch';
+import RectScreenshotOverlay from './LogTrace/RectScreenshotOverlay';
+import FreeformScreenshotOverlay from './LogTrace/FreeformScreenshotOverlay';
 
 interface LogTraceProps {
   showOnboarding?: boolean;
@@ -62,6 +64,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const [quickActionModalY, setQuickActionModalY] = useState(0);
   const logTraceRef = useRef<HTMLDivElement>(null);
   const [contextCaptureEnabled, setContextCaptureEnabled] = useState(false);
+  const [activeScreenshotOverlay, setActiveScreenshotOverlay] = useState<null | 'rectangle' | 'freeform'>(null);
 
   // Usage tracking with new credits system
   const {
@@ -314,36 +317,23 @@ const LogTrace: React.FC<LogTraceProps> = ({
   }, [isActive, currentElement, addEvent]);
 
   // quick action handler
-  const handleQuickAction = async (action: 'screenshot' | 'context' | 'debug') => {
+  const handleQuickAction = async (action: 'screenshot' | 'context' | 'debug' | 'details' | { type: 'screenshot', mode: 'rectangle' | 'window' | 'fullscreen' | 'freeform' }) => {
     setQuickActionModalVisible(false);
-    if (action === 'screenshot') {
-      try {
-        // Wait for modal to hide
-        await new Promise(res => setTimeout(res, 100));
-        if (logTraceRef.current) {
-          const canvas = await html2canvas(logTraceRef.current);
-          const dataUrl = canvas.toDataURL('image/png');
-          // Download
-          const link = document.createElement('a');
-          link.href = dataUrl;
-          link.download = 'logtrace-screenshot.png';
-          link.click();
-          // Copy to clipboard
-          try {
-            const blob = await (await fetch(dataUrl)).blob();
-            await navigator.clipboard.write([
-              new window.ClipboardItem({ 'image/png': blob })
-            ]);
-            toast({ title: 'Screenshot', description: 'Screenshot downloaded and copied to clipboard', variant: 'success' });
-          } catch (clipErr) {
-            toast({ title: 'Screenshot', description: 'Downloaded, but failed to copy to clipboard', variant: 'default' });
-          }
-        } else {
-          toast({ title: 'Screenshot', description: 'Could not find LogTrace area', variant: 'destructive' });
-        }
-      } catch (err) {
-        toast({ title: 'Screenshot', description: 'Screenshot failed', variant: 'destructive' });
+
+    // Handle screenshot with specific mode
+    if (typeof action === 'object' && action.type === 'screenshot') {
+      if (action.mode === 'rectangle' || action.mode === 'freeform') {
+        setActiveScreenshotOverlay(action.mode);
+        return;
       }
+      await handleScreenshot(action.mode);
+      return;
+    }
+
+    // Handle simple actions
+    if (action === 'screenshot') {
+      // Default to fullscreen for backward compatibility
+      await handleScreenshot('fullscreen');
     } else if (action === 'context') {
       try {
         const prompt = generateAdvancedPrompt();
@@ -362,7 +352,135 @@ const LogTrace: React.FC<LogTraceProps> = ({
         return;
       }
       setShowDebugModal(true);
+    } else if (action === 'details') {
+      if (!currentElement) {
+        toast({ title: 'No Element Selected', description: 'Please select an element to view details.', variant: 'default' });
+        return;
+      }
+      setDetailsElement(currentElement);
+      setShowMoreDetails(true);
     }
+  };
+
+  // Screenshot mode handlers
+  const handleScreenshot = async (mode: 'rectangle' | 'window' | 'fullscreen' | 'freeform') => {
+    try {
+      // Wait for modal to hide
+      await new Promise(res => setTimeout(res, 100));
+      let canvas: HTMLCanvasElement;
+      switch (mode) {
+        case 'rectangle':
+          canvas = await captureRectangleScreenshot();
+          break;
+        case 'window':
+          // 'window' now captures only the LogTrace area
+          canvas = await captureFullscreenScreenshot();
+          break;
+        case 'fullscreen':
+          // 'fullscreen' now captures the entire browser window
+          canvas = await captureEntireBrowserWindowScreenshot();
+          break;
+        case 'freeform':
+          canvas = await captureFreeformScreenshot();
+          break;
+        default:
+          throw new Error(`Unknown screenshot mode: ${mode}`);
+      }
+      if (canvas) {
+        const dataUrl = canvas.toDataURL('image/png');
+        // Download
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `logtrace-screenshot-${mode}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+        link.click();
+        // Copy to clipboard
+        try {
+          const blob = await (await fetch(dataUrl)).blob();
+          await navigator.clipboard.write([
+            new window.ClipboardItem({ 'image/png': blob })
+          ]);
+          toast({ title: 'Screenshot Captured', description: `${mode} screenshot downloaded and copied to clipboard`, variant: 'success' });
+        } catch (clipErr) {
+          toast({ title: 'Screenshot Captured', description: `Downloaded, but failed to copy to clipboard`, variant: 'default' });
+        }
+      }
+    } catch (err) {
+      console.error('Screenshot error:', err);
+      toast({ title: 'Screenshot Failed', description: `Failed to capture ${mode} screenshot`, variant: 'destructive' });
+    }
+  };
+
+  const handleScreenshotOverlayComplete = (dataUrl: string) => {
+    setActiveScreenshotOverlay(null);
+    // Download
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `logtrace-screenshot-overlay-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+    link.click();
+    // Copy to clipboard
+    fetch(dataUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        navigator.clipboard.write([
+          new window.ClipboardItem({ 'image/png': blob })
+        ]);
+        toast({ title: 'Screenshot Captured', description: `Screenshot downloaded and copied to clipboard`, variant: 'success' });
+      })
+      .catch(() => {
+        toast({ title: 'Screenshot Captured', description: `Downloaded, but failed to copy to clipboard`, variant: 'default' });
+      });
+  };
+
+  const captureFullscreenScreenshot = async (): Promise<HTMLCanvasElement> => {
+    if (!logTraceRef.current) {
+      throw new Error('Could not find LogTrace area');
+    }
+    return await html2canvas(logTraceRef.current);
+  };
+
+  const captureWindowScreenshot = async (): Promise<HTMLCanvasElement> => {
+    return await html2canvas(document.body, {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight,
+    });
+  };
+
+  const captureRectangleScreenshot = async (): Promise<HTMLCanvasElement> => {
+    const rect = prompt('Enter rectangle coordinates (x,y,width,height):', '0,0,800,600');
+    if (!rect) throw new Error('Rectangle selection cancelled');
+    const [x, y, width, height] = rect.split(',').map(Number);
+    if (isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) {
+      throw new Error('Invalid rectangle coordinates');
+    }
+    const canvas = await html2canvas(document.body, {
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+    });
+    return canvas;
+  };
+
+  const captureFreeformScreenshot = async (): Promise<HTMLCanvasElement> => {
+    toast({ title: 'Freeform Screenshot', description: 'Freeform selection coming soon. Using rectangle selection instead.', variant: 'default' });
+    return await captureRectangleScreenshot();
+  };
+
+  const captureEntireBrowserWindowScreenshot = async (): Promise<HTMLCanvasElement> => {
+    return await html2canvas(document.body, {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight,
+    });
   };
 
   // keyboard event handlers
@@ -716,6 +834,14 @@ const LogTrace: React.FC<LogTraceProps> = ({
         onClose={() => setShowUpgradeModal(false)}
         remainingUses={remainingUses}
       />
+
+      {/* Screenshot overlays */}
+      {activeScreenshotOverlay === 'rectangle' && (
+        <RectScreenshotOverlay onComplete={handleScreenshotOverlayComplete} />
+      )}
+      {activeScreenshotOverlay === 'freeform' && (
+        <FreeformScreenshotOverlay onComplete={handleScreenshotOverlayComplete} />
+      )}
     </div>
   );
 };

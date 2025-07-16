@@ -1,7 +1,7 @@
 // MouseOverlay.tsx
 // Overlay UI for displaying real-time element info on hover in the LogTrace debugger
 
-import React from 'react';
+import React, { useRef, useLayoutEffect, useState } from 'react';
 import { ElementInfo } from '@/shared/types';
 import { Badge } from '../ui/badge';
 import { Card } from '../ui/card';
@@ -80,6 +80,39 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
   // Extract up to 3 unique colors from the hovered element
   const colors = currentElement?.element ? extractColorsFromElement(currentElement.element) : [];
 
+  // --- New logic for keeping info card in viewport ---
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [cardPos, setCardPos] = useState<{ left: number; top: number; below?: boolean }>({ left: mousePosition.x, top: mousePosition.y - 10, below: false });
+
+  useLayoutEffect(() => {
+    if (!cardRef.current) return;
+    const card = cardRef.current;
+    const cardRect = card.getBoundingClientRect();
+    const padding = 8; // px from edge
+    let left = mousePosition.x;
+    let top = mousePosition.y - 10;
+    let below = false;
+    // Flip horizontally if overflowing right
+    if (left + cardRect.width / 2 > window.innerWidth - padding) {
+      left = window.innerWidth - cardRect.width / 2 - padding;
+    }
+    // Flip horizontally if overflowing left
+    if (left - cardRect.width / 2 < padding) {
+      left = cardRect.width / 2 + padding;
+    }
+    // Flip vertically if overflowing top
+    if (top - cardRect.height < padding) {
+      top = mousePosition.y + 20;
+      below = true;
+    }
+    // Flip vertically if overflowing bottom
+    if (top + cardRect.height > window.innerHeight - padding) {
+      top = window.innerHeight - cardRect.height - padding;
+    }
+    setCardPos({ left, top, below });
+  }, [mousePosition.x, mousePosition.y, currentElement]);
+  // --- End new logic ---
+
   return (
     <>
       {/* Green cursor circle - always show when active */}
@@ -116,11 +149,14 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
       {currentElement && (
         <div
           id="logtrace-overlay"
-          ref={overlayRef}
-          className="fixed pointer-events-auto z-40 cursor-pointer transform -translate-y-full -translate-x-1/2"
+          ref={node => {
+            if (cardRef) cardRef.current = node;
+            if (overlayRef && 'current' in overlayRef) (overlayRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          }}
+          className={`fixed pointer-events-auto z-40 cursor-pointer transform -translate-x-1/2 ${cardPos.below ? '' : '-translate-y-full'}`}
           style={{
-            left: mousePosition.x,
-            top: mousePosition.y - 10,
+            left: cardPos.left,
+            top: cardPos.top,
           }}
           onClick={onElementClick}
         >

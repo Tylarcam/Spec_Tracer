@@ -251,14 +251,6 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
               >
                 <X className="w-3 h-3" />
               </Button>
-              <Button
-                onClick={onShowMoreDetails}
-                size="sm"
-                variant="outline"
-                className="ml-2 text-cyan-400 border-cyan-500/50 hover:bg-cyan-500/10"
-              >
-                More Details
-              </Button>
             </div>
           </div>
 
