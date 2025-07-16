@@ -10,7 +10,6 @@ import { useEventTracking } from './useEventTracking';
 import { useElementInspection } from './useElementInspection';
 import { useDebugModal } from './useDebugModal';
 import { useSettings } from './useSettings';
-import { useCreditsSystem } from '@/hooks/useCreditsSystem';
 
 export const useLogTrace = () => {
   const [isActive, setIsActive] = useState(false);
@@ -19,9 +18,6 @@ export const useLogTrace = () => {
   
   const overlayRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-
-  // Get credit system
-  const { useCredit } = useCreditsSystem();
 
   const { 
     settings, 
@@ -56,7 +52,7 @@ export const useLogTrace = () => {
     isAnalyzing,
     analyzeWithAI,
     generateAdvancedPrompt,
-  } = useDebugModal(currentElement, mousePosition, addEvent, useCredit);
+  } = useDebugModal(currentElement, mousePosition, addEvent);
 
   // Load events from storage with error handling
   useEffect(() => {

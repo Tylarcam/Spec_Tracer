@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useConsoleLogs } from '@/shared/hooks/useConsoleLogs';
 import { useContextEngine } from '@/shared/hooks/useContextEngine';
 import QuickObjectivePill from './QuickObjectivePill';
+import { Badge } from '../ui/badge';
 
 interface DebugModalProps {
   showDebugModal: boolean;
@@ -76,6 +77,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
   const { toast } = useToast();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedQuickObjective, setSelectedQuickObjective] = useState<string | null>(null);
+  const [selectedAdvancedQuestion, setSelectedAdvancedQuestion] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Get console logs for current element
@@ -87,7 +89,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
     return selector;
   }, [currentElement]);
 
-  const { logs } = useConsoleLogs(currentElementSelector);
+  const { logs } = useConsoleLogs();
 
   // Get computed styles for current element
   const computedStyles = useMemo(() => {
@@ -155,7 +157,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
   if (!showDebugModal) return null;
 
-  // Add guest gating logic for extension  
+  // Add guest gating logic for extension
   const handleDebugSubmit = async (prompt: string) => {
     if (!prompt.trim()) {
       toast({
@@ -165,8 +167,8 @@ const DebugModal: React.FC<DebugModalProps> = ({
       });
       return;
     }
-    // Extension guest gating - increased to 5 credits
-    if (isExtensionMode && !user && guestDebugCount >= 5) {
+    // Extension guest gating
+    if (isExtensionMode && !user && guestDebugCount >= maxGuestDebugs) {
       setShowAuthModal && setShowAuthModal(true);
       return;
     }
@@ -185,10 +187,51 @@ const DebugModal: React.FC<DebugModalProps> = ({
     }
   };
 
-  const handleGeneratePrompt = () => {
-    const prompt = contextEngine.generatePrompt();
-    setGeneratedPrompt(prompt);
-    setActiveTab('prompt');
+  const handleGeneratePrompt = async () => {
+    let contextInfo = '';
+    if (currentElement) {
+      const isInteractive = ['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null;
+      const eventListeners = [];
+      const el = currentElement.element as any;
+      [
+        'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmouseout',
+        'onmouseenter', 'onmouseleave', 'onkeydown', 'onkeyup', 'oninput',
+        'onchange', 'onfocus', 'onblur', 'onsubmit'
+      ].forEach(listener => {
+        if (typeof el[listener] === 'function') eventListeners.push(listener);
+      });
+      const styles = window.getComputedStyle(currentElement.element);
+      contextInfo = `Target Context For Debug:\n- Tag: <${currentElement.tag}>\n- ID: ${currentElement.id || 'none'}\n- Classes: ${currentElement.classes.join(', ') || 'none'}\n- Text: \"${currentElement.text || 'none'}\"\n- Interactive: ${isInteractive ? 'Yes' : 'No'}\n- Event Listeners: ${eventListeners.join(', ') || 'none'}\n- Styles: display=${styles.display}, visibility=${styles.visibility}, pointer-events=${styles.pointerEvents}`;
+    }
+    const selectedQuick = selectedQuickObjective ? `Selected Quick Objective: ${selectedQuickObjective}\n` : '';
+    const userInput = advancedPrompt ? `User Input: ${advancedPrompt}\n` : '';
+    const preamble = 'Generate a prompt based on the user\'s data, context, and request. Output a clear, concise, detailed prompt for understanding and/or debugging an issue with a component or element they want to change.\n';
+    const fullPrompt = `${preamble}${selectedQuick}${userInput}${contextInfo}`;
+    toast({
+      title: 'Generating AI Context Prompt...',
+      description: 'Please wait while the AI generates a detailed prompt.',
+      variant: 'default',
+      duration: 5000,
+    });
+    try {
+      setActiveTab('prompt');
+      // setShowTerminal?.(true); // Removed, not defined here
+      // Call OpenAI via analyzeWithAI (assume it returns the generated prompt)
+      const aiResponse = await analyzeWithAI(fullPrompt);
+      // Only set state if aiResponse is a string
+      if (typeof aiResponse === 'string') {
+        setGeneratedPrompt(aiResponse);
+        setUserIntent(aiResponse);
+      }
+      // TODO: Handle AI response in the central terminal if needed
+      // Optionally, add to debug terminal if not already handled by analyzeWithAI
+    } catch (error) {
+      toast({
+        title: 'Prompt Generation Failed',
+        description: 'There was an error generating the prompt.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleCopyPrompt = async () => {
@@ -245,15 +288,72 @@ const DebugModal: React.FC<DebugModalProps> = ({
           {currentElement && (
             <div className="mb-6 p-4 bg-slate-800/50 rounded-lg border border-green-500/30">
               <h4 className="text-green-400 font-semibold mb-2">Element Context</h4>
-              <div className="text-sm text-green-300">
-                <div><strong>Tag:</strong> {currentElement.tag}</div>
-                {currentElement.id && <div><strong>ID:</strong> {sanitizeText(currentElement.id)}</div>}
-                {currentElement.classes.length > 0 && (
-                  <div><strong>Classes:</strong> {currentElement.classes.map(c => sanitizeText(c)).join(', ')}</div>
+              {/* Enhanced details, reusing PinnedDetails logic */}
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="secondary" className="bg-green-500/20 text-green-400">
+                    {currentElement.tag.toUpperCase()}
+                  </Badge>
+                  {/* Interactive badge */}
+                  {(['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null) && (
+                    <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs ml-2">
+                      Interactive
+                    </Badge>
+                  )}
+                </div>
+                {currentElement.id && (
+                  <div className="flex justify-between"><span className="text-gray-400">ID:</span><span className="text-green-300 font-mono">#{sanitizeText(currentElement.id)}</span></div>
                 )}
-                <div><strong>Position:</strong> x:{mousePosition.x}, y:{mousePosition.y}</div>
+                {currentElement.classes.length > 0 && (
+                  <div className="flex justify-between"><span className="text-gray-400">Classes:</span><span className="text-green-300 font-mono text-right">.{currentElement.classes.map(c => sanitizeText(c)).join(' .')}</span></div>
+                )}
                 {currentElement.text && (
-                  <div><strong>Text:</strong> "{sanitizeText(currentElement.text)}"</div>
+                  <div className="flex justify-between"><span className="text-gray-400">Text:</span><span className="text-gray-300 text-right max-w-48 truncate">"{sanitizeText(currentElement.text)}"</span></div>
+                )}
+                {/* Primary Value */}
+                {currentElement.attributes?.find(attr => attr.name === 'data-lov-id') && (
+                  <div className="flex justify-between"><span className="text-gray-400">data-lov-id:</span><span className="text-blue-300 font-mono">{currentElement.attributes.find(attr => attr.name === 'data-lov-id')?.value}</span></div>
+                )}
+                {/* Source Attribution */}
+                {currentElement.attributes?.find(attr => attr.name === 'data-source' || attr.name === 'data-attribution') && (
+                  <div className="flex justify-between"><span className="text-gray-400">{currentElement.attributes.find(attr => attr.name === 'data-source' || attr.name === 'data-attribution')?.name}:</span><span className="text-orange-300 font-mono">{currentElement.attributes.find(attr => attr.name === 'data-source' || attr.name === 'data-attribution')?.value}</span></div>
+                )}
+                {/* Attributes Table */}
+                {currentElement.attributes && currentElement.attributes.length > 0 && (
+                  <div className="space-y-1 mt-2">
+                    <div className="font-semibold text-green-400 mb-1">All Attributes</div>
+                    <div className="max-h-32 overflow-y-auto border border-green-500/10 rounded bg-slate-800/40">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-green-300">
+                            <th className="py-1 px-2 font-semibold">attribute</th>
+                            <th className="py-1 px-2 font-semibold">value</th>
+                            <th className="py-1 px-2 font-semibold">actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {currentElement.attributes.map(attr => (
+                            <tr key={attr.name} className="border-t border-green-500/5">
+                              <td className="py-1 px-2 text-gray-400 align-top whitespace-nowrap">{attr.name}</td>
+                              <td className="py-1 px-2 text-orange-300 font-mono align-top break-all whitespace-pre-wrap max-w-[200px]">{sanitizeText(attr.value)}</td>
+                              <td className="py-1 px-2 align-top">
+                                <button
+                                  className="text-cyan-400 hover:text-cyan-200 px-1"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(attr.value);
+                                    toast({ title: 'Copied', description: `Copied value for ${attr.name}`, variant: 'success' });
+                                  }}
+                                  title="Copy value"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="inline w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -275,11 +375,9 @@ const DebugModal: React.FC<DebugModalProps> = ({
               {/* Quick Objective Pills Row */}
               <div className="flex flex-wrap gap-2 mb-2" role="listbox" aria-label="Quick Debug Objectives" aria-orientation="horizontal">
                 {quickObjectives.map((obj, idx) => (
-                  <QuickObjectivePill
+                  <button
                     key={obj.label}
-                    label={obj.label}
-                    tooltip={obj.tooltip}
-                    selected={selectedQuickObjective === obj.label}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold border border-cyan-500/30 bg-slate-800 text-cyan-300 hover:bg-cyan-700/30 focus:outline-none focus:ring-2 focus:ring-cyan-400 ${selectedQuickObjective === obj.label ? 'bg-cyan-600 text-white' : ''}`}
                     onClick={() => {
                       setSelectedQuickObjective(obj.label);
                       setUserIntent(obj.label);
@@ -294,18 +392,22 @@ const DebugModal: React.FC<DebugModalProps> = ({
                       // Arrow navigation
                       if (e.key === 'ArrowRight') {
                         const next = (idx + 1) % quickObjectives.length;
-                        const nextButton = e.currentTarget.parentElement?.children[next]?.querySelector('button');
+                        const nextButton = e.currentTarget.parentElement?.children[next] as HTMLElement | undefined;
                         nextButton?.focus();
                       }
                       if (e.key === 'ArrowLeft') {
                         const prev = (idx - 1 + quickObjectives.length) % quickObjectives.length;
-                        const prevButton = e.currentTarget.parentElement?.children[prev]?.querySelector('button');
+                        const prevButton = e.currentTarget.parentElement?.children[prev] as HTMLElement | undefined;
                         prevButton?.focus();
                       }
                     }}
                     tabIndex={0}
                     role="option"
-                  />
+                    aria-selected={selectedQuickObjective === obj.label}
+                    title={obj.tooltip}
+                  >
+                    {obj.label}
+                  </button>
                 ))}
               </div>
               {/* End Pills Row */}
@@ -346,16 +448,78 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
             <TabsContent value="advanced" className="space-y-4">
             <div>
-              <label className="block text-cyan-400 font-semibold mb-2">Advanced Debug</label>
+              <label className="block text-cyan-400 font-semibold mb-2">Target Context For Debug</label>
+              {/* Contextual guidance block */}
+              {currentElement && (
+                <div className="mb-2 p-2 rounded bg-slate-800/70 border border-cyan-500/20 text-xs text-cyan-200 space-y-1">
+                  <div><span className="font-bold">Tag:</span> &lt;{currentElement.tag}&gt; {currentElement.id && <span className="ml-2 font-mono text-green-300">#{sanitizeText(currentElement.id)}</span>}</div>
+                  {currentElement.classes.length > 0 && <div><span className="font-bold">Classes:</span> <span className="font-mono text-green-300">.{currentElement.classes.map(c => sanitizeText(c)).join(' .')}</span></div>}
+                  {currentElement.text && <div><span className="font-bold">Text:</span> <span className="text-gray-300">"{sanitizeText(currentElement.text)}"</span></div>}
+                  {(['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null) && <div><span className="font-bold text-green-400">Interactive element</span></div>}
+                  {/* Key attributes */}
+                  {currentElement.attributes && currentElement.attributes.length > 0 && (
+                    <div><span className="font-bold">Key attributes:</span> {currentElement.attributes.slice(0,3).map(attr => <span key={attr.name} className="ml-1 font-mono text-orange-300">{attr.name}="{sanitizeText(attr.value)}"</span>)}</div>
+                  )}
+                  {/* Event listeners */}
+                  {eventListeners.length > 0 && <div><span className="font-bold">Event listeners:</span> <span className="font-mono text-purple-300">{eventListeners.join(', ')}</span></div>}
+                  {/* Notable computed styles */}
+                  {computedStyles && (
+                    <div><span className="font-bold">Styles:</span> <span className="font-mono text-blue-300">display={computedStyles.display}, visibility={computedStyles.visibility}, pointer-events={computedStyles.pointerEvents}</span></div>
+                  )}
+                </div>
+              )}
+              {/* Advanced Debug Quick Pills */}
+              <label className="block text-cyan-400 font-semibold mb-2">Select a Question</label>
+              <div className="flex flex-wrap gap-2 mb-2" role="listbox" aria-label="Advanced Debug Questions" aria-orientation="horizontal">
+                {[
+                  'Why might this element not be behaving as expected?',
+                  'Are there any CSS properties preventing interaction?',
+                  'Are there any event listeners that might be interfering?',
+                  'What accessibility concerns might exist?',
+                  'How could the user experience be improved?'
+                ].map((q, idx) => (
+                  <button
+                    key={q}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold border border-cyan-500/30 bg-slate-800 text-cyan-300 hover:bg-cyan-700/30 focus:outline-none focus:ring-2 focus:ring-cyan-400 ${selectedAdvancedQuestion === q ? 'bg-cyan-600 text-white' : ''}`}
+                    onClick={() => setSelectedAdvancedQuestion(q)}
+                    tabIndex={0}
+                    role="option"
+                    aria-selected={selectedAdvancedQuestion === q}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
               <Textarea
-                value={advancedPrompt || generateAdvancedPrompt()}
+                value={advancedPrompt}
                 onChange={(e) => setAdvancedPrompt(e.target.value)}
                 className="bg-slate-800 border-green-500/30 text-green-400 min-h-32"
-                placeholder="Detailed debugging prompt..."
+                placeholder="Describe your advanced debug question or issue..."
                 maxLength={2000}
               />
               <Button 
-                onClick={() => handleDebugSubmit(advancedPrompt || generateAdvancedPrompt())}
+                onClick={async () => {
+                  // Compose the full prompt
+                  let contextInfo = '';
+                  if (currentElement) {
+                    const isInteractive = ['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null;
+                    const eventListeners = [];
+                    const el = currentElement.element as any;
+                    [
+                      'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmouseout',
+                      'onmouseenter', 'onmouseleave', 'onkeydown', 'onkeyup', 'oninput',
+                      'onchange', 'onfocus', 'onblur', 'onsubmit'
+                    ].forEach(listener => {
+                      if (typeof el[listener] === 'function') eventListeners.push(listener);
+                    });
+                    const styles = window.getComputedStyle(currentElement.element);
+                    contextInfo = `Target Context For Debug:\n- Tag: <${currentElement.tag}>\n- ID: ${currentElement.id || 'none'}\n- Classes: ${currentElement.classes.join(', ') || 'none'}\n- Text: "${currentElement.text || 'none'}"\n- Interactive: ${isInteractive ? 'Yes' : 'No'}\n- Event Listeners: ${eventListeners.join(', ') || 'none'}\n- Styles: display=${styles.display}, visibility=${styles.visibility}, pointer-events=${styles.pointerEvents}`;
+                  }
+                  const selectedQuestion = selectedAdvancedQuestion ? `Selected Question: ${selectedAdvancedQuestion}\n` : '';
+                  const userInput = advancedPrompt ? `User Input: ${advancedPrompt}\n` : '';
+                  const fullPrompt = `${selectedQuestion}${userInput}${contextInfo}`;
+                  await handleDebugSubmit(fullPrompt);
+                }}
                 disabled={isAnalyzing}
                 className="bg-cyan-600 hover:bg-cyan-700 text-white mt-2"
               >
