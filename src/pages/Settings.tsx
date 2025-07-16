@@ -1,48 +1,25 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Settings as SettingsIcon, Key, Bell, Shield, Palette, Share2, Crown, Zap, UserCog } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, Bell, Shield, Palette, Share2, Crown, Zap, UserCog } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNotification } from '@/hooks/useNotification';
 import { useEnhancedCredits } from '@/hooks/useEnhancedCredits';
 import ShareModal from '@/components/ShareModal';
 import AccountManagement from '@/components/AccountManagement';
-import Spinner from '@/components/ui/spinner';
 import { supabase } from '@/integrations/supabase/client';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
-  const [apiKey, setApiKey] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
   const [showShareModal, setShowShareModal] = useState(false);
   const { success, error } = useNotification();
   const { creditStatus, refreshCredits } = useEnhancedCredits();
-
-  const handleSaveApiKey = async () => {
-    if (!apiKey.trim()) {
-      error({ title: 'Invalid', description: 'Please enter a valid API key' });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      localStorage.setItem('openai_api_key', apiKey);
-      success({ title: 'API key saved', description: 'Your API key has been stored securely' });
-      setApiKey('');
-    } catch (error) {
-      error({ title: 'Save failed', description: 'Failed to save API key' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleUpgrade = async () => {
     try {
@@ -95,11 +72,10 @@ const Settings: React.FC = () => {
           </div>
 
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 bg-slate-800">
+            <TabsList className="grid w-full grid-cols-3 bg-slate-800">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="account">Account</TabsTrigger>
               <TabsTrigger value="subscription">Subscription</TabsTrigger>
-              <TabsTrigger value="api">API</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="space-y-6">
@@ -241,53 +217,6 @@ const Settings: React.FC = () => {
                         </Button>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="api" className="space-y-6">
-              <div className="grid md:grid-cols-1 gap-6">
-                {/* API Configuration */}
-                <Card className="bg-slate-800 border-slate-700">
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <Key className="h-5 w-5 text-green-400" />
-                      <CardTitle className="text-white">API Configuration</CardTitle>
-                    </div>
-                    <CardDescription className="text-slate-400">
-                      Configure your OpenAI API key for AI debugging features
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="api-key">OpenAI API Key</Label>
-                      <Input
-                        id="api-key"
-                        type="password"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="sk-..."
-                        className="mt-1 bg-slate-700 border-slate-600"
-                      />
-                      <p className="text-sm text-slate-500 mt-1">
-                        Required for AI debugging features. Your key is stored locally and securely.
-                      </p>
-                    </div>
-                    <Button 
-                      onClick={handleSaveApiKey}
-                      disabled={isLoading}
-                      className="w-full bg-green-600 hover:bg-green-700"
-                    >
-                      {isLoading ? (
-                        <>
-                          <Spinner size={16} className="mr-2" />
-                          Saving...
-                        </>
-                      ) : (
-                        'Save API Key'
-                      )}
-                    </Button>
                   </CardContent>
                 </Card>
               </div>
