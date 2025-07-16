@@ -90,11 +90,9 @@ export const useExtensionAuth = (): UseExtensionAuthReturn => {
   };
 
   const incrementGuestDebug = () => {
-    if (guestDebugCount < 5) {
-      const newCount = guestDebugCount + 1;
-      setGuestDebugCount(newCount);
-      localStorage.setItem('logtrace_guest_debug_count', newCount.toString());
-    }
+    const newCount = guestDebugCount + 1;
+    setGuestDebugCount(newCount);
+    localStorage.setItem('logtrace_guest_debug_count', newCount.toString());
   };
 
   return {
