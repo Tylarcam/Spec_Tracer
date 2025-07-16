@@ -39,7 +39,6 @@ const NavBar: React.FC = () => {
   // For demo: show bonus if user just signed up
   const showBonus = user && bonusCredits > 0;
 
-  // Virality: share for 5 credits
   const handleShare = () => {
     // Implement share logic (e.g., navigator.share or copy link)
     // On success, grant 5 credits (update localStorage or backend)
@@ -56,6 +55,8 @@ const NavBar: React.FC = () => {
       } else {
         toast({ title: 'Check your email', description: 'We sent you a confirmation link.' });
         setShowAuthModal(false);
+        setEmail('');
+        setPassword('');
       }
     } finally {
       setIsLoading(false);
@@ -71,6 +72,9 @@ const NavBar: React.FC = () => {
         toast({ title: 'Sign In Error', description: error.message, variant: 'destructive' });
       } else {
         setShowAuthModal(false);
+        setEmail('');
+        setPassword('');
+        toast({ title: 'Welcome back!', description: 'You have been signed in successfully.' });
       }
     } finally {
       setIsLoading(false);
@@ -80,10 +84,37 @@ const NavBar: React.FC = () => {
   const handleGitHubSignIn = async () => {
     setIsLoading(true);
     try {
-      await signInWithGitHub();
-      setShowAuthModal(false);
+      const { error } = await signInWithGitHub();
+      if (error) {
+        toast({ title: 'GitHub Sign In Error', description: error.message, variant: 'destructive' });
+      } else {
+        setShowAuthModal(false);
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAuthModalClick = (e: React.MouseEvent) => {
+    // Prevent the modal from closing when clicking inside the modal content
+    e.stopPropagation();
+  };
+
+  const handleOverlayClick = () => {
+    // Close modal when clicking on the overlay (outside the modal)
+    setShowAuthModal(false);
+    setEmail('');
+    setPassword('');
+  };
+
+  const handleAccountButtonClick = () => {
+    if (user) {
+      // If user is logged in, could show profile menu or navigate to profile
+      // For now, just show a success message
+      toast({ title: 'Account', description: `Welcome, ${user.email}!` });
+    } else {
+      // If user is not logged in, show auth modal
+      setShowAuthModal(true);
     }
   };
 
@@ -153,18 +184,22 @@ const NavBar: React.FC = () => {
             {/* Account/Sign In */}
             <button
               className="text-cyan-300 hover:text-cyan-400 p-2 rounded-full"
-              title="Sign In / Account"
-              onClick={() => setShowAuthModal(true)}
+              title={user ? "Account" : "Sign In / Account"}
+              onClick={handleAccountButtonClick}
             >
               <User className="h-5 w-5" />
             </button>
           </div>
         </div>
       </nav>
+
       {/* Auth Modal Popup */}
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black/70 z-[2147483650] flex items-center justify-center">
-          <Card className="w-full max-w-md p-0">
+        <div 
+          className="fixed inset-0 bg-black/70 z-[2147483650] flex items-center justify-center"
+          onClick={handleOverlayClick}
+        >
+          <Card className="w-full max-w-md p-0" onClick={handleAuthModalClick}>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl text-green-400">Welcome to LogTrace</CardTitle>
               <CardDescription className="text-slate-300">
@@ -269,7 +304,17 @@ const NavBar: React.FC = () => {
                   GitHub
                 </Button>
               </div>
-              <Button onClick={() => setShowAuthModal(false)} className="mt-6 w-full" variant="ghost">Close</Button>
+              <Button 
+                onClick={() => {
+                  setShowAuthModal(false);
+                  setEmail('');
+                  setPassword('');
+                }} 
+                className="mt-6 w-full" 
+                variant="ghost"
+              >
+                Close
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -278,4 +323,4 @@ const NavBar: React.FC = () => {
   );
 };
 
-export default NavBar; 
+export default NavBar;
