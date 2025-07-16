@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { X, Settings, Keyboard, Zap, Eye, Terminal, MousePointer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
