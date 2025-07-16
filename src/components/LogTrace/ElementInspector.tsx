@@ -218,17 +218,17 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                   {currentDebugCount}/{maxDebugCount}
                 </Badge>
               )}
-              <Button
+                <Button
                 onClick={() => setIsPinned(p => !p)}
-                size="sm"
-                variant="ghost"
-                className={`h-6 w-6 p-0 ${isPinned ? 'text-green-400' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10`}
-                title={isPinned ? 'Unpin panel' : 'Pin panel'}
+                  size="sm"
+                  variant="ghost"
+                  className={`h-6 w-6 p-0 ${isPinned ? 'text-green-400' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10`}
+                  title={isPinned ? 'Unpin panel' : 'Pin panel'}
                 tabIndex={-1}
                 type="button"
-              >
-                {isPinned ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-              </Button>
+                >
+                  {isPinned ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                </Button>
               <Button
                 onClick={onDebug}
                 size="sm"
@@ -390,7 +390,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                                       title={isLongValue ? attr.value : undefined}
                                     >
                                       "{sanitizeText(displayValue)}"
-                                    </span>
+                        </span>
                                     {isLongValue && (
                                       <button
                                         onClick={handleToggle}
@@ -422,7 +422,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                                       <div className="text-gray-300 font-mono text-xs break-all">
                                         {sanitizeText(attr.value)}
                                       </div>
-                                    </div>
+                      </div>
                                   </td>
                                 </tr>
                               )}

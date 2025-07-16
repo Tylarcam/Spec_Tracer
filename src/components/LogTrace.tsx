@@ -4,7 +4,6 @@ import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 import { useToast } from '@/hooks/use-toast';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { useIsMobile } from '@/hooks/use-mobile';
-import Header from './LogTrace/Header';
 import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
 import ElementInspector from './LogTrace/ElementInspector';
@@ -228,6 +227,14 @@ const LogTrace: React.FC<LogTraceProps> = ({
       try {
         const response = await analyzeWithAI(prompt);
         addDebugResponse(prompt, response || 'No response received');
+        // UX improvement: open terminal and show toast
+        setShowTerminal(true);
+        toast({
+          title: 'Analysis Complete!',
+          description: 'Your AI debug results are now in the terminal (bottom right). Click the > button and select the AI Debug tab.',
+          variant: 'success',
+          duration: 5000,
+        });
         return response;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Error occurred during analysis';
@@ -246,16 +253,21 @@ const LogTrace: React.FC<LogTraceProps> = ({
       // The credit will be used inside analyzeWithAI via the API call
       const response = await analyzeWithAI(prompt);
       addDebugResponse(prompt, response || 'No response received');
-      
-      // The new system handles credit usage automatically, no need to manually increment
-      
+      // UX improvement: open terminal and show toast
+      setShowTerminal(true);
+      toast({
+        title: 'Analysis Complete!',
+        description: 'Your AI debug results are now in the terminal (bottom right). Click the > button and select the AI Debug tab.',
+        variant: 'success',
+        duration: 5000,
+      });
       return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error occurred during analysis';
       addDebugResponse(prompt, errorMessage);
       return null;
     }
-  }, [analyzeWithAI, addDebugResponse, canUseAiDebug, isPremium]);
+  }, [analyzeWithAI, addDebugResponse, canUseAiDebug, isPremium, setShowTerminal, toast]);
 
   const handleUpgradeClick = useCallback(() => {
     setShowUpgradeModal(true);
@@ -629,20 +641,26 @@ const LogTrace: React.FC<LogTraceProps> = ({
       </div>
 
       <div className="relative z-10 p-6">
-        <Header 
-          isActive={isActive}
-          setIsActive={setIsActive}
-          showTerminal={showTerminal}
-          setShowTerminal={setShowTerminal}
-          remainingUses={remainingUses}
-          onSettingsClick={() => setShowSettingsDrawer(true)}
-          onUpgradeClick={() => setShowUpgradeModal(true)}
-          contextCaptureEnabled={contextCaptureEnabled}
-          onContextCaptureChange={(enabled) => {
-            setContextCaptureEnabled(enabled);
-            setIsActive(enabled);
-          }}
-        />
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-green-400 font-bold text-2xl">LogTrace</h1>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-sm">Remaining Uses: {remainingUses}</span>
+            <Switch
+              checked={contextCaptureEnabled}
+              onCheckedChange={(checked) => {
+                setContextCaptureEnabled(checked);
+                setIsActive(checked);
+              }}
+              aria-label="Context Capture"
+            />
+            <Button onClick={handleSettingsClick} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+              Settings
+            </Button>
+            <Button onClick={handleUpgradeClick} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+              Upgrade
+            </Button>
+          </div>
+        </div>
 
         {hasErrors && (
           <div className="my-4 p-3 rounded bg-red-800/60 text-red-200 animate-pulse max-w-xl">
