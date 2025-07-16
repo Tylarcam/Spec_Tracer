@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Target, User, Settings, Crown, Zap, Gift, Share2 } from 'lucide-react';
+import { Target, User, Settings, Crown, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -152,18 +152,11 @@ const NavBar: React.FC = () => {
               </span>
               {showBonus && (
                 <span className="flex items-center gap-1 ml-2 text-yellow-400 font-semibold text-xs">
-                  <Gift className="h-4 w-4" /> +{bonusCredits} bonus
+                  <Crown className="h-4 w-4" /> +{bonusCredits} bonus
                 </span>
               )}
             </div>
-            {/* Share for credits */}
-            <button
-              className="flex items-center gap-1 px-2 py-1 bg-cyan-700 hover:bg-cyan-800 text-white rounded-full text-xs font-semibold shadow focus:outline-none focus:ring-2 focus:ring-cyan-400"
-              onClick={handleShare}
-              title="Share with a friend for 5 credits"
-            >
-              <Share2 className="h-4 w-4" /> Share +5
-            </button>
+            
             {/* Upgrade */}
             <button
               className="bg-yellow-600 hover:bg-yellow-700 text-black px-3 py-1 rounded-full flex items-center gap-1 text-sm font-semibold"
@@ -173,6 +166,7 @@ const NavBar: React.FC = () => {
               <Crown className="h-4 w-4" />
               <span className="hidden sm:inline">Pro</span>
             </button>
+            
             {/* Settings */}
             <button
               className="text-gray-400 hover:text-white p-2 rounded-full"
@@ -181,6 +175,7 @@ const NavBar: React.FC = () => {
             >
               <Settings className="h-5 w-5" />
             </button>
+            
             {/* Account/Sign In */}
             <button
               className="text-cyan-300 hover:text-cyan-400 p-2 rounded-full"
