@@ -1,6 +1,8 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
+import { useLogTraceEventHandlers } from '@/shared/hooks/useLogTraceEventHandlers';
 import { useToast } from '@/hooks/use-toast';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -69,7 +71,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const [activeScreenshotOverlay, setActiveScreenshotOverlay] = useState<null | 'rectangle' | 'freeform'>(null);
   const [openInspectors, setOpenInspectors] = useState<Array<{ id: string, elementInfo: ElementInfo, mousePosition: { x: number, y: number } }>>([]);
   const [clipboardFallback, setClipboardFallback] = useState<{ response: string, open: boolean }>({ response: '', open: false });
-  const [activeTerminalTab, setActiveTerminalTab] = useState<'debug' | 'console' | 'events'>('debug');
 
   // Usage tracking with new credits system
   const {
@@ -112,6 +113,31 @@ const LogTrace: React.FC<LogTraceProps> = ({
     clearDebugResponses,
   } = useDebugResponses();
 
+  // Escape handler
+  const handleEscape = useCallback(() => {
+    setOpenInspectors((prev) => prev.length > 0 ? prev.slice(0, -1) : prev);
+    setShowDebugModal(false);
+    setIsHoverPaused(false);
+    setShowSettingsDrawer(false);
+    if (showTerminal) setShowTerminal(false);
+  }, [setShowDebugModal, showTerminal, setShowTerminal]);
+
+  // Get mouse and click handlers from the hook
+  const { handleMouseMove, handleClick } = useLogTraceEventHandlers({
+    isActive,
+    isHoverPaused,
+    currentElement,
+    mousePosition,
+    showInteractivePanel,
+    setMousePosition,
+    setCurrentElement,
+    setShowInteractivePanel,
+    setShowDebugModal,
+    extractElementInfo,
+    addEvent,
+    handleEscape,
+  });
+
   const { toast } = useToast();
 
   // Sync contextCaptureEnabled with isActive state
@@ -147,6 +173,134 @@ const LogTrace: React.FC<LogTraceProps> = ({
       }
     }
   }, [hasErrors, errors, toast]);
+
+  // Screenshot handling functions
+  const handleScreenshot = useCallback(async (mode: 'window' | 'fullscreen' | 'element') => {
+    try {
+      let canvas;
+      if (mode === 'fullscreen') {
+        canvas = await html2canvas(document.body);
+      } else if (mode === 'window') {
+        canvas = await html2canvas(document.documentElement);
+      } else {
+        // element mode - not implemented yet
+        toast({ title: 'Element screenshot not implemented yet', variant: 'default' });
+        return;
+      }
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `logtrace-screenshot-${Date.now()}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          toast({ title: 'Screenshot saved!', variant: 'success' });
+        }
+      });
+    } catch (error) {
+      toast({ title: 'Screenshot failed', description: 'Could not capture screenshot', variant: 'destructive' });
+    }
+  }, [toast]);
+
+  const handleScreenshotOverlayComplete = useCallback(async (bounds: { x: number, y: number, width: number, height: number } | { points: { x: number, y: number }[] }) => {
+    setActiveScreenshotOverlay(null);
+    
+    try {
+      const canvas = await html2canvas(document.body);
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        toast({ title: 'Screenshot failed', description: 'Could not get canvas context', variant: 'destructive' });
+        return;
+      }
+
+      let croppedCanvas;
+      
+      if ('points' in bounds) {
+        // Freeform screenshot - create a mask
+        croppedCanvas = document.createElement('canvas');
+        const croppedCtx = croppedCanvas.getContext('2d');
+        if (!croppedCtx) return;
+        
+        croppedCanvas.width = canvas.width;
+        croppedCanvas.height = canvas.height;
+        
+        // Create clipping path from points
+        croppedCtx.beginPath();
+        bounds.points.forEach((point, index) => {
+          if (index === 0) {
+            croppedCtx.moveTo(point.x, point.y);
+          } else {
+            croppedCtx.lineTo(point.x, point.y);
+          }
+        });
+        croppedCtx.closePath();
+        croppedCtx.clip();
+        
+        // Draw the original canvas
+        croppedCtx.drawImage(canvas, 0, 0);
+      } else {
+        // Rectangle screenshot
+        croppedCanvas = document.createElement('canvas');
+        const croppedCtx = croppedCanvas.getContext('2d');
+        if (!croppedCtx) return;
+        
+        croppedCanvas.width = bounds.width;
+        croppedCanvas.height = bounds.height;
+        
+        croppedCtx.drawImage(
+          canvas,
+          bounds.x, bounds.y, bounds.width, bounds.height,
+          0, 0, bounds.width, bounds.height
+        );
+      }
+      
+      croppedCanvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `logtrace-screenshot-${Date.now()}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          toast({ title: 'Screenshot saved!', variant: 'success' });
+        }
+      });
+    } catch (error) {
+      toast({ title: 'Screenshot failed', description: 'Could not capture screenshot', variant: 'destructive' });
+    }
+  }, [toast]);
+
+  const handleMultiElementContext = useCallback(async () => {
+    try {
+      const elementsInfo = openInspectors.map(inspector => inspector.elementInfo);
+      const prompt = `Generate context for multiple elements:
+${elementsInfo.map((el, index) => `
+Element ${index + 1}:
+- Tag: ${el.tag}
+- ID: ${el.id}
+- Classes: ${el.classes.join(', ')}
+- Text: ${el.text}
+- Parent Path: ${el.parentPath}
+`).join('')}
+
+Please provide a comprehensive analysis of these elements and their relationships.`;
+
+      const aiResponse = await analyzeWithAI(prompt);
+      addDebugResponse(prompt, aiResponse);
+      
+      try {
+        await navigator.clipboard.writeText(aiResponse);
+        toast({ title: 'Multi-Element Context Copied', description: 'Context for all selected elements has been copied to your clipboard.', variant: 'success' });
+      } catch (err) {
+        setClipboardFallback({ response: aiResponse, open: true });
+      }
+    } catch (err) {
+      toast({ title: 'Context Generation Failed', description: 'Failed to generate multi-element context.', variant: 'destructive' });
+    }
+  }, [openInspectors, analyzeWithAI, addDebugResponse, toast]);
 
   // Onboarding handlers
   const handleOnboardingNext = () => {
@@ -217,15 +371,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
     }
   }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowInteractivePanel, canUseAiDebug]);
 
-  // Escape handler
-  const handleEscape = useCallback(() => {
-    setOpenInspectors((prev) => prev.length > 0 ? prev.slice(0, -1) : prev);
-    setShowDebugModal(false);
-    setIsHoverPaused(false);
-    setShowSettingsDrawer(false);
-    if (showTerminal) setShowTerminal(false);
-  }, [setShowDebugModal, showTerminal]);
-
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
     // Check usage limit for premium users
     if (isPremium) {
@@ -235,7 +380,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
         addDebugResponse(prompt, response || 'No response received');
         // UX improvement: open terminal and show toast
         setShowTerminal(true);
-        setActiveTerminalTab('debug');
         toast({
           title: 'Request sent!',
           description: 'Your AI debug results are now in the terminal (bottom right).',
@@ -262,7 +406,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
       addDebugResponse(prompt, response || 'No response received');
       // UX improvement: open terminal and show toast
       setShowTerminal(true);
-      setActiveTerminalTab('debug');
       toast({
         title: 'Request sent!',
         description: 'Your AI debug results are now in the terminal (bottom right).',
@@ -275,7 +418,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
       addDebugResponse(prompt, errorMessage);
       return null;
     }
-  }, [analyzeWithAI, addDebugResponse, canUseAiDebug, isPremium, setShowTerminal, toast, setActiveTerminalTab]);
+  }, [analyzeWithAI, addDebugResponse, canUseAiDebug, isPremium, setShowTerminal, toast]);
 
   const handleUpgradeClick = useCallback(() => {
     setShowUpgradeModal(true);
@@ -283,123 +426,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
 
   const handleSettingsClick = useCallback(() => {
     setShowSettingsDrawer(true);
-  }, []);
-
-  // keyboard event handlers
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeElement = document.activeElement;
-      if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-        return;
-      }
-      
-      if (isActive && e.ctrlKey && e.key === 'd') {
-        e.preventDefault();
-        
-        // Check usage limit before proceeding
-        if (!canUseAiDebug) {
-          setShowUpgradeModal(true);
-          return;
-        }
-
-        // Ensure only one modal is visible at a time
-        setShowInteractivePanel(false);
-        setShowDebugModal(true);
-        
-        if (currentElement) {
-          addEvent({
-            type: 'debug',
-            position: mousePosition,
-            element: {
-              tag: currentElement.tag,
-              id: currentElement.id,
-              classes: currentElement.classes,
-              text: currentElement.text,
-            },
-          });
-        }
-      }
-      
-      if (e.ctrlKey && e.key === 's' && !e.altKey && !e.metaKey) {
-        e.preventDefault();
-        if (!isActive) {
-          setIsActive(true);
-        } else {
-          setIsActive(false);
-          setOpenInspectors([]); // Close all open inspectors when stopping
-        }
-      }
-      
-      if (e.ctrlKey && e.key === 'p' && !e.altKey && !e.metaKey) {
-        e.preventDefault();
-        setIsHoverPaused(!isHoverPaused);
-        if (!isHoverPaused && currentElement) {
-          setPausedElement(currentElement);
-          setPausedPosition(mousePosition);
-        }
-      }
-      
-      if (e.ctrlKey && e.key === 'e' && !e.altKey && !e.metaKey) {
-        e.preventDefault();
-        if (isActive) {
-          setIsActive(false);
-          handleEscape();
-        }
-      }
-      
-      if (e.ctrlKey && e.key === 't' && !e.altKey && !e.metaKey) {
-        e.preventDefault();
-        // Ensure only one modal is visible at a time
-        if (!showTerminal) {
-          setShowInteractivePanel(false);
-          setShowDebugModal(false);
-          setShowTerminal(true);
-        } else {
-          setShowTerminal(false);
-        }
-      }
-      
-      if (e.key === 'Escape') {
-        handleEscape();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [
-    isActive, 
-    mousePosition, 
-    currentElement, 
-    addEvent, 
-    setShowDebugModal, 
-    showTerminal, 
-    setShowTerminal, 
-    setIsActive,
-    handleEscape,
-    canUseAiDebug,
-    setOpenInspectors,
-    isHoverPaused,
-    setIsHoverPaused
-  ]);
-
-  // mouse events for resizing
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (resizingRef.current) {
-        const newHeight = Math.max(window.innerHeight - e.clientY, terminalMinHeight);
-        setTerminalHeight(newHeight);
-      }
-    };
-    const handleMouseUp = () => {
-      resizingRef.current = false;
-    };
-    // Always listen for mouse move/up globally
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
   }, []);
 
   // Mouse tracking logic
@@ -485,7 +511,6 @@ Please provide a response for the "${action.mode}" action with the user's specif
         
         // Open terminal to show results
         setShowTerminal(true);
-        setActiveTerminalTab('debug');
         
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -539,6 +564,26 @@ Please provide a response for the "${action.mode}" action with the user's specif
       setShowMoreDetails(true);
     }
   };
+
+  // mouse events for resizing
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (resizingRef.current) {
+        const newHeight = Math.max(window.innerHeight - e.clientY, terminalMinHeight);
+        setTerminalHeight(newHeight);
+      }
+    };
+    const handleMouseUp = () => {
+      resizingRef.current = false;
+    };
+    // Always listen for mouse move/up globally
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   return (
     <div
@@ -776,8 +821,6 @@ Please provide a response for the "${action.mode}" action with the user's specif
               debugResponses={debugResponses}
               clearDebugResponses={clearDebugResponses}
               terminalHeight={isMobile ? undefined : terminalHeight}
-              activeTab={activeTerminalTab}
-              setActiveTab={setActiveTerminalTab}
             />
           </div>
         </div>
