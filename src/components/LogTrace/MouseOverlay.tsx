@@ -80,7 +80,7 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
   // Extract up to 3 unique colors from the hovered element
   const colors = currentElement?.element ? extractColorsFromElement(currentElement.element) : [];
 
-  // --- New logic for keeping info card in viewport ---
+  // Keep info card in viewport
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardPos, setCardPos] = useState<{ left: number; top: number; below?: boolean }>({ left: mousePosition.x, top: mousePosition.y - 10, below: false });
 
@@ -111,7 +111,6 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
     }
     setCardPos({ left, top, below });
   }, [mousePosition.x, mousePosition.y, currentElement]);
-  // --- End new logic ---
 
   return (
     <>
@@ -129,7 +128,7 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
         }}
       />
       
-      {/* Blue element highlighter - highlights the DOM element under the cursor */}
+      {/* Blue element highlighter - simple border only */}
       {currentElement?.element && (
         <div
           className="fixed pointer-events-none z-40"
@@ -139,8 +138,6 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
             width: currentElement.element.getBoundingClientRect().width,
             height: currentElement.element.getBoundingClientRect().height,
             border: '2px solid #06b6d4',
-            background: 'rgba(6, 182, 212, 0.1)',
-            boxShadow: '0 0 10px rgba(6, 182, 212, 0.5)',
           }}
         />
       )}
@@ -160,20 +157,7 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
           }}
           onClick={onElementClick}
         >
-          {/* Halo effect for visual focus */}
-          <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0"
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: '50%',
-              boxShadow: '0 0 32px 12px rgba(34,211,238,0.35), 0 0 0 4px rgba(34,211,238,0.15)',
-              background: 'radial-gradient(circle, rgba(34,211,238,0.18) 0%, rgba(34,211,238,0.08) 80%, transparent 100%)',
-              pointerEvents: 'none',
-            }}
-            aria-hidden="true"
-          />
-          <Card className="relative z-10 bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20 hover:border-cyan-400/70 transition-colors">
+          <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl hover:border-cyan-400/70 transition-colors">
             <div className="p-3 text-xs">
               {/* Header: tag, event listeners, errors */}
               <div className="flex items-center gap-2 mb-2">
@@ -239,7 +223,6 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
                   Position: ({mousePosition.x}, {mousePosition.y})
                 </span>
               </div>
-              {/* Remove 'Click for more details' and pause key instructions */}
             </div>
           </Card>
         </div>
