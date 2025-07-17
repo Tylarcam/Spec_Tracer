@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 import { useLogTraceEventHandlers } from '@/shared/hooks/useLogTraceEventHandlers';
+import { usePinnedDetails } from '@/shared/hooks/usePinnedDetails';
 import { useToast } from '@/hooks/use-toast';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -83,6 +84,15 @@ const LogTrace: React.FC<LogTraceProps> = ({
     isPremium,
     waitlistBonusRemaining,
   } = useUsageTracking();
+
+  // Pinned details functionality
+  const {
+    pinnedDetails,
+    addPin,
+    removePin,
+    updatePinPosition,
+    clearAllPins,
+  } = usePinnedDetails();
 
   const {
     isActive,
