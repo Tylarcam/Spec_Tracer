@@ -328,7 +328,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
   // Element click handler
   const handleElementClick = useCallback(() => {
     if (!currentElement) return;
-    addPin(currentElement, mousePosition);
     setShowDebugModal(false);
     setShowInteractivePanel(true);
     addEvent({
@@ -341,7 +340,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
         text: currentElement.text,
       },
     });
-  }, [currentElement, mousePosition, addPin, addEvent, setShowDebugModal, setShowInteractivePanel]);
+  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowInteractivePanel]);
 
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
     if (isPremium) {
