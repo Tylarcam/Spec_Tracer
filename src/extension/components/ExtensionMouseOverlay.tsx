@@ -1,3 +1,4 @@
+
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -130,7 +131,7 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
         }}
       />
 
-      {/* Blue element highlighter */}
+      {/* Simple blue element border - no halo or glow effects */}
       {currentElement?.element && (
         <div
           className="fixed pointer-events-none z-40"
@@ -148,7 +149,7 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
       {currentElement && showQuickActions && !showElementInspector && (
         <div
           style={{ position: 'absolute', left: quickActionPos.left, top: quickActionPos.top, zIndex: 1050 }}
-          className="flex items-center bg-slate-900/95 border border-cyan-700 rounded-full shadow-lg px-2 py-1 gap-1 animate-fade-in"
+          className="flex items-center bg-slate-900/95 border border-cyan-700 rounded-full shadow-lg px-2 py-1 gap-1"
         >
           <button
             onClick={() => handleQuickAction('details')}
@@ -206,7 +207,7 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
           onMouseEnter={handleOverlayMouseEnter}
           onMouseLeave={handleOverlayMouseLeave}
         >
-          <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl hover:border-cyan-400/70 transition-colors">
+          <Card className="bg-slate-900/95 border-cyan-500/50 shadow-xl hover:border-cyan-400/70 transition-colors">
             <div className="p-3 text-xs">
               <div className="flex items-center gap-2 mb-2">
                 {/* Tag name badge */}
