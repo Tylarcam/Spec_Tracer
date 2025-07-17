@@ -204,72 +204,18 @@ const LogTrace: React.FC<LogTraceProps> = ({
     }
   }, [toast]);
 
-  const handleScreenshotOverlayComplete = useCallback(async (bounds: { x: number, y: number, width: number, height: number } | { points: { x: number, y: number }[] }) => {
+  const handleScreenshotOverlayComplete = useCallback(async (dataUrl: string) => {
     setActiveScreenshotOverlay(null);
     
     try {
-      const canvas = await html2canvas(document.body);
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        toast({ title: 'Screenshot failed', description: 'Could not get canvas context', variant: 'destructive' });
-        return;
-      }
-
-      let croppedCanvas;
-      
-      if ('points' in bounds) {
-        // Freeform screenshot - create a mask
-        croppedCanvas = document.createElement('canvas');
-        const croppedCtx = croppedCanvas.getContext('2d');
-        if (!croppedCtx) return;
-        
-        croppedCanvas.width = canvas.width;
-        croppedCanvas.height = canvas.height;
-        
-        // Create clipping path from points
-        croppedCtx.beginPath();
-        bounds.points.forEach((point, index) => {
-          if (index === 0) {
-            croppedCtx.moveTo(point.x, point.y);
-          } else {
-            croppedCtx.lineTo(point.x, point.y);
-          }
-        });
-        croppedCtx.closePath();
-        croppedCtx.clip();
-        
-        // Draw the original canvas
-        croppedCtx.drawImage(canvas, 0, 0);
-      } else {
-        // Rectangle screenshot
-        croppedCanvas = document.createElement('canvas');
-        const croppedCtx = croppedCanvas.getContext('2d');
-        if (!croppedCtx) return;
-        
-        croppedCanvas.width = bounds.width;
-        croppedCanvas.height = bounds.height;
-        
-        croppedCtx.drawImage(
-          canvas,
-          bounds.x, bounds.y, bounds.width, bounds.height,
-          0, 0, bounds.width, bounds.height
-        );
-      }
-      
-      croppedCanvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `logtrace-screenshot-${Date.now()}.png`;
-          a.click();
-          URL.revokeObjectURL(url);
-          toast({ title: 'Screenshot saved!', variant: 'success' });
-        }
-      });
+      // Create a download link for the screenshot
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `logtrace-screenshot-${Date.now()}.png`;
+      a.click();
+      toast({ title: 'Screenshot saved!', variant: 'success' });
     } catch (error) {
-      toast({ title: 'Screenshot failed', description: 'Could not capture screenshot', variant: 'destructive' });
+      toast({ title: 'Screenshot failed', description: 'Could not save screenshot', variant: 'destructive' });
     }
   }, [toast]);
 
@@ -820,7 +766,6 @@ Please provide a response for the "${action.mode}" action with the user's specif
               clearEvents={clearEvents}
               debugResponses={debugResponses}
               clearDebugResponses={clearDebugResponses}
-              terminalHeight={isMobile ? undefined : terminalHeight}
             />
           </div>
         </div>
