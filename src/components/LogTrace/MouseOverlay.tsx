@@ -200,41 +200,46 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
                 </Badge>
               </div>
               {/* Color palette: up to 3 squares for main colors */}
-              {colors.length > 0 && (
-                <div className="flex gap-1 mb-2">
-                  {colors.map((color, i) => (
-                    <div
-                      key={i}
-                      className="w-4 h-4 rounded border"
-                      style={{ backgroundColor: color.value }}
-                      title={`${color.property}: ${color.value}`}
-                    />
-                  ))}
-                </div>
-              )}
-              {/* ID badge if present */}
-              {currentElement.id && (
-                <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">
-                  #{sanitizeText(currentElement.id)}
-                </Badge>
-              )}
-              {/* Classes list if present */}
-              {currentElement.classes.length > 0 && (
-                <div className="text-green-300 mb-1 max-w-48 truncate">
-                  .{currentElement.classes.map(c => sanitizeText(c)).join(' .')}
-                </div>
-              )}
-              {/* Text content if present */}
-              {currentElement.text && (
-                <div className="text-gray-300 max-w-48 truncate mb-1">
-                  "{sanitizeText(currentElement.text)}"
-                </div>
-              )}
-              {/* Action instructions for user */}
-              <span className="text-purple-300"> Press D to pause details</span>
-              <div className="text-cyan-300 text-xs flex items-center justify-between">
-                <span> Click for details</span>            
+              <div className="flex gap-1 mb-2">
+                {colors.map((color, i) => (
+                  <div
+                    key={i}
+                    className="w-4 h-4 rounded border"
+                    style={{ backgroundColor: color.value }}
+                    title={`${color.property}: ${color.value}`}
+                  />
+                ))}
               </div>
+              {/* Basic Info Section */}
+              <div className="mb-1">
+                {/* data-lov-id value */}
+                {currentElement.attributes && currentElement.attributes.some(attr => attr.name === 'data-lov-id') && (
+                  <span className="text-purple-300 block mb-1">
+                    data-lov-id: {currentElement.attributes.find(attr => attr.name === 'data-lov-id')?.value}
+                  </span>
+                )}
+                {/* data-component-line value */}
+                {currentElement.attributes && currentElement.attributes.some(attr => attr.name === 'data-component-line') && (
+                  <span className="text-cyan-300 block mb-1">
+                    data-component-line: {currentElement.attributes.find(attr => attr.name === 'data-component-line')?.value}
+                  </span>
+                )}
+                {currentElement.id && (
+                  <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs mr-1">
+                    #{sanitizeText(currentElement.id)}
+                  </Badge>
+                )}
+                {currentElement.classes.length > 0 && (
+                  <span className="text-green-300 max-w-48 truncate block mb-1">
+                    class: .{currentElement.classes.map(c => sanitizeText(c)).join(' .')}
+                  </span>
+                )}
+                {/* Position (x, y) */}
+                <span className="text-orange-300 block mb-1">
+                  Position: ({mousePosition.x}, {mousePosition.y})
+                </span>
+              </div>
+              {/* Remove 'Click for more details' and pause key instructions */}
             </div>
           </Card>
         </div>

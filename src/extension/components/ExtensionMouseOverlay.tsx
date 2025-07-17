@@ -46,6 +46,7 @@ interface ExtensionMouseOverlayProps {
   overlayRef: React.RefObject<HTMLDivElement>;
   onPin?: () => void;
   onQuickAction?: (action: 'details' | 'screenshot' | 'context' | 'debug', element: ElementInfo | null) => void;
+  onElementClick?: () => void;
 }
 
 const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
@@ -56,6 +57,7 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
   overlayRef,
   onPin,
   onQuickAction,
+  onElementClick,
 }) => {
   if (!isActive) return null;
 
@@ -203,7 +205,7 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
             left: cardPos.left,
             top: cardPos.top,
           }}
-          onClick={handleOverlayClick}
+          onClick={onElementClick}
           onMouseEnter={handleOverlayMouseEnter}
           onMouseLeave={handleOverlayMouseLeave}
         >
@@ -223,36 +225,68 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
           <Card className="relative z-10 bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20 hover:border-cyan-400/70 transition-colors">
             <div className="p-3 text-xs">
               <div className="flex items-center gap-2 mb-2">
+                {/* Tag name badge */}
                 <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400 text-xs">
                   {currentElement.tag}
                 </Badge>
-                {currentElement.id && (
-                  <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">
-                    #{sanitizeText(currentElement.id)}
-                  </Badge>
-                )}
+                {/* Event Listeners badge: shows count or 'No events' */}
+                <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">
+                  {(() => {
+                    const el = currentElement.element as any;
+                    const listeners = [
+                      'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmouseout',
+                      'onmouseenter', 'onmouseleave', 'onkeydown', 'onkeyup', 'oninput',
+                      'onchange', 'onfocus', 'onblur', 'onsubmit', 'onload', 'onerror'
+                    ];
+                    const active = listeners.filter(l => typeof el?.[l] === 'function');
+                    return active.length > 0 ? `${active.length} events` : 'No events';
+                  })()}
+                </Badge>
+                {/* Console Errors badge: placeholder for error count */}
+                <Badge variant="outline" className="border-red-500/30 text-red-400 text-xs">
+                  Errors: None {/* Replace with error count if you have error data */}
+                </Badge>
               </div>
-              {currentElement.classes.length > 0 && (
-                <div className="text-green-300 mb-1">
-                  .{currentElement.classes.map(c => sanitizeText(c)).join(' .')}
-                </div>
-              )}
-              {currentElement.text && (
-                <div className="text-gray-300 max-w-48 truncate">
-                  "{sanitizeText(currentElement.text)}"
-                </div>
-              )}
-              {/* Show up to 3 unique colors */}
+              {/* Color palette: up to 3 squares for main colors */}
               {colors.length > 0 && (
-                <div className="flex gap-2 mt-2">
-                  {colors.map((color, idx) => (
-                    <span key={idx} className="inline-block w-4 h-4 rounded-full border border-cyan-400" style={{ background: color.value }} title={color.property} />
+                <div className="flex gap-1 mb-2">
+                  {colors.map((color, i) => (
+                    <div
+                      key={i}
+                      className="w-4 h-4 rounded border"
+                      style={{ backgroundColor: color.value }}
+                      title={`${color.property}: ${color.value}`}
+                    />
                   ))}
                 </div>
               )}
-              <div className="text-cyan-300 mt-2 text-xs">
-                Click to inspect • Ctrl+D to debug
-              </div>
+              {/* Basic Info Section */}
+              {/* data-lov-id value */}
+              {currentElement.attributes && currentElement.attributes.some(attr => attr.name === 'data-lov-id') && (
+                <span className="text-purple-300 block mb-1">
+                  data-lov-id: {currentElement.attributes.find(attr => attr.name === 'data-lov-id')?.value}
+                </span>
+              )}
+              {/* data-component-line value */}
+              {currentElement.attributes && currentElement.attributes.some(attr => attr.name === 'data-component-line') && (
+                <span className="text-cyan-300 block mb-1">
+                  data-component-line: {currentElement.attributes.find(attr => attr.name === 'data-component-line')?.value}
+                </span>
+              )}
+              {currentElement.id && (
+                <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs mr-1">
+                  #{sanitizeText(currentElement.id)}
+                </Badge>
+              )}
+              {currentElement.classes.length > 0 && (
+                <span className="text-green-300 max-w-48 truncate block mb-1">
+                  class: .{currentElement.classes.map(c => sanitizeText(c)).join(' .')}
+                </span>
+              )}
+              {/* Position (x, y) */}
+              <span className="text-orange-300 block mb-1">
+                Position: ({mousePosition.x}, {mousePosition.y})
+              </span>
             </div>
           </Card>
         </div>

@@ -26,8 +26,8 @@ const InstructionsCard: React.FC = () => {
                 <span>Start context capture</span>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">D</Badge>
-                <span>Pin element details</span>
+                <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">Click</Badge>
+                <span>Open element details</span>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">Esc</Badge>
@@ -43,10 +43,6 @@ const InstructionsCard: React.FC = () => {
               Advanced Features
             </h3>
             <div className="space-y-2 text-sm text-green-300">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-purple-500/30 text-purple-400 text-xs">D</Badge>
-                <span>Pause/resume hover details</span>
-              </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="border-purple-500/30 text-purple-400 text-xs">Ctrl+D</Badge>
                 <span>Quick debug with AI</span>
@@ -66,8 +62,7 @@ const InstructionsCard: React.FC = () => {
             </h3>
             <div className="space-y-2 text-sm text-green-300">
               <div>• Hover over elements to see live details</div>
-              <div>• Use 'D' key to freeze hover details at cursor position</div>
-              <div>• Click elements to pin details for comparison</div>
+              <div>• Click elements to open details instantly</div>
               <div>• Drag pinned details to organize your workspace</div>
             </div>
           </div>
@@ -93,8 +88,7 @@ const InstructionsCard: React.FC = () => {
             <span className="text-cyan-400 font-semibold text-sm">Pro Tip</span>
           </div>
           <p className="text-green-300 text-xs">
-            Press 'D' to pause hover details, then move your cursor freely while keeping the element information visible. 
-            Perfect for precise debugging or when you need to reference multiple elements simultaneously.
+            Click any element to open its details instantly. Use Ctrl+D for instant AI analysis, and Esc to exit capture mode.
           </p>
         </div>
       </div>

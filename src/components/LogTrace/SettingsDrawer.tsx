@@ -14,7 +14,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
   const shortcuts = [
     { key: 'S', description: 'Start/Stop tracing', icon: Zap },
     { key: 'E', description: 'End tracing session', icon: X },
-    { key: 'D', description: 'Freeze hover state', icon: Eye },
+    { key: 'Click', description: 'Open element details', icon: MousePointer },
     { key: 'T', description: 'Toggle terminal panel', icon: Terminal },
     { key: 'Ctrl+D', description: 'Trigger AI debug', icon: MousePointer },
   ];

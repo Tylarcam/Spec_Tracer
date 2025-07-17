@@ -12,7 +12,7 @@ interface OnboardingWalkthroughProps {
   isActive?: boolean;
   currentElement?: any;
   mousePosition?: { x: number; y: number };
-  showInteractivePanel?: boolean;
+  showInspectorOpen?: boolean;
   showTerminal?: boolean;
 }
 
@@ -23,8 +23,9 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
   onComplete,
   isActive,
   currentElement,
-  showInteractivePanel,
+  showInspectorOpen,
   showTerminal,
+  mousePosition,
 }) => {
   const navigate = useNavigate();
   const [userActions, setUserActions] = useState({
@@ -58,20 +59,20 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
       highlight: "Move mouse over elements",
     },
     {
-      title: "Pause inspection",
-      description: "Press 'D' to pause the hover inspection and pin the current element",
-      mobileDescription: "Use the pause button to pin the current element for detailed inspection",
-      action: "pressedD",
-      requirement: "Press 'D' key",
+      title: "Open Details",
+      description: "Click any element to open its details instantly.",
+      mobileDescription: "Tap on an element to open its details instantly.",
+      action: "openedDebug",
+      requirement: "Click element",
       position: "center",
-      highlight: "Press D to pause",
+      highlight: "Click to open details",
     },
     {
       title: "Open AI Debug",
-      description: "Press 'Ctrl+D' or click on an element to open the AI debug panel with instant insights",
-      mobileDescription: "Tap on an element twice or use the debug button to get AI insights",
+      description: "Press 'Ctrl+D' or use the debug button in the details panel for instant AI insights.",
+      mobileDescription: "Tap the debug button in the details panel to get AI insights.",
       action: "openedDebug",
-      requirement: "Press Ctrl+D or click element",
+      requirement: "Press Ctrl+D or use debug button",
       position: "center",
       highlight: "Press Ctrl+D for AI debug",
     },
@@ -126,13 +127,14 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
     if (step === 1 && currentElement) {
       setUserActions(prev => ({ ...prev, hoveredElement: true }));
     }
-    if (step === 3 && showInteractivePanel) {
+    // Step 3: Use showInspectorOpen instead of showInteractivePanel
+    if (step === 2 && showInspectorOpen) {
       setUserActions(prev => ({ ...prev, openedDebug: true }));
     }
     if (step === 4 && showTerminal) {
       setUserActions(prev => ({ ...prev, pressedT: true }));
     }
-  }, [step, isActive, currentElement, showInteractivePanel, showTerminal]);
+  }, [step, isActive, currentElement, showInspectorOpen, showTerminal]);
 
   // Check if current step action is completed
   const isStepCompleted = () => {

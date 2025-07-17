@@ -26,6 +26,9 @@ interface ElementInspectorProps {
   // NEW: AI debug usage
   currentDebugCount?: number;
   maxDebugCount?: number;
+  // For extension: pause hover when mouse is over inspector
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 const ElementInspector: React.FC<ElementInspectorProps> = ({
@@ -42,6 +45,8 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   onShowMoreDetails,
   currentDebugCount,
   maxDebugCount,
+  onMouseEnter,
+  onMouseLeave,
 }) => {
   const [expandedSections, setExpandedSections] = useState<string[]>(['basic']);
   const [expandedAttrIndexes, setExpandedAttrIndexes] = useState<number[]>([]);
@@ -193,6 +198,8 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
       ref={panelRef}
       className={`fixed pointer-events-auto z-50 w-full max-w-md max-h-[80vh] overflow-y-auto ${isExtensionMode ? 'z-[10001]' : 'z-50'}`}
       style={positionStyle}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20">
         <div className="p-4">

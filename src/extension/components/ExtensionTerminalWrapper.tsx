@@ -17,6 +17,8 @@ interface ExtensionTerminalWrapperProps {
   debugResponses?: any[];
   onClearDebugResponses?: () => void;
   consoleLogs?: string[];
+  activeTab: 'debug' | 'console' | 'events';
+  setActiveTab: React.Dispatch<React.SetStateAction<'debug' | 'console' | 'events'>>;
 }
 
 const ExtensionTerminalWrapper: React.FC<ExtensionTerminalWrapperProps> = ({
@@ -28,9 +30,9 @@ const ExtensionTerminalWrapper: React.FC<ExtensionTerminalWrapperProps> = ({
   debugResponses = [],
   onClearDebugResponses = () => {},
   consoleLogs = [],
+  activeTab,
+  setActiveTab,
 }) => {
-  const [activeTab, setActiveTab] = useState<'events' | 'debug' | 'console'>('events');
-
   if (!showTerminal) return null;
 
   return (
@@ -44,7 +46,7 @@ const ExtensionTerminalWrapper: React.FC<ExtensionTerminalWrapperProps> = ({
             <Button onClick={onToggleTerminal} variant="ghost" size="sm" className="text-gray-400 hover:text-white"><X className="h-4 w-4" /></Button>
           </div>
         </div>
-        <Tabs value={activeTab} onValueChange={setActiveTab as any} className="w-full flex-1 flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'debug' | 'console' | 'events')} className="h-full flex flex-col">
           <TabsList className="h-10 items-center justify-center rounded-md p-1 text-muted-foreground grid w-full grid-cols-3 bg-slate-800/50">
             <TabsTrigger value="events" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">Events ({events.length})</TabsTrigger>
             <TabsTrigger value="debug" className="data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-400">AI Debug ({debugResponses.length})</TabsTrigger>
