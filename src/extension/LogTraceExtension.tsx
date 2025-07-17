@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ExtensionMouseOverlay from './components/ExtensionMouseOverlay';
 import PinnedDetails from './components/PinnedDetails';
@@ -205,17 +204,53 @@ export const LogTraceExtension: React.FC = () => {
       ) {
         return; // Do not fire shortcut if user is typing
       }
-      // Example: handle Ctrl+D for debug/context
+      
+      // Ctrl+D for debug/context
       if (e.ctrlKey && e.key.toLowerCase() === 'd') {
         e.preventDefault();
         // You can trigger your debug/context action here if needed
         // e.g., setShowElementInspector(true) or similar
       }
-      // Add other shortcuts as needed
+      
+      // Ctrl+S for start/stop
+      if (e.ctrlKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        setIsActive(!isActive);
+      }
+      
+      // Ctrl+P for pause/unpause
+      if (e.ctrlKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        setIsHoverPaused(!isHoverPaused);
+        if (!isHoverPaused && currentElement) {
+          setPausedElement(currentElement);
+          setPausedPosition(mousePosition);
+        }
+      }
+      
+      // Ctrl+E for end/escape
+      if (e.ctrlKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        setIsActive(false);
+        setShowElementInspector(false);
+        setIsHoverPaused(false);
+      }
+      
+      // Ctrl+T for terminal
+      if (e.ctrlKey && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setShowTerminal(!showTerminal);
+      }
+      
+      // Escape for general close/cancel
+      if (e.key === 'Escape') {
+        setShowElementInspector(false);
+        setIsHoverPaused(false);
+      }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isActive, isHoverPaused, currentElement, mousePosition, showTerminal]);
 
   // Mouse tracking logic
   useEffect(() => {

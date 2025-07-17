@@ -285,300 +285,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
     setShowSettingsDrawer(true);
   }, []);
 
-  // Mouse move handler
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isActive) return;
-
-    // Always update mouse position for cursor circle, even when debug modal is open
-    setMousePosition({ x: e.clientX, y: e.clientY });
-
-    // Only update current element when debug modal is NOT open
-    if (showDebugModal) return;
-
-    const target = e.target as HTMLElement;
-    if (target && 
-        !target.closest('#logtrace-overlay') && 
-        !target.closest('#logtrace-modal') &&
-        !target.closest('[data-interactive-panel]') &&
-        !target.closest('[data-element-inspector]')) {
-      const elementInfo = extractElementInfo(target);
-      setCurrentElement(elementInfo);
-      
-      // Only auto-close inspector if user is moving to a different element
-      // and no debug modal is currently open
-      if (showInteractivePanel && !showDebugModal) {
-        setShowInteractivePanel(false);
-      }
-    }
-  }, [isActive, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel, showDebugModal]);
-
-  // Click handler
-  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isActive) return;
-    
-    const target = e.target as HTMLElement;
-    // Ignore clicks on overlays, modals, or the inspector
-    if (
-      target.closest('#logtrace-overlay') ||
-      target.closest('#logtrace-modal') ||
-      target.closest('[data-interactive-panel]') ||
-      target.closest('.instructions-card')
-    ) {
-      return;
-    }
-
-      e.preventDefault();
-      
-    // Extract element info for the clicked target
-    const elementInfo = extractElementInfo(target);
-    // Check if already open for this element (by tag, id, classes, parentPath)
-    const isDuplicate = openInspectors.some(
-      (inspector) =>
-        inspector.elementInfo.tag === elementInfo.tag &&
-        inspector.elementInfo.id === elementInfo.id &&
-        inspector.elementInfo.parentPath === elementInfo.parentPath &&
-        inspector.elementInfo.classes.join(' ') === elementInfo.classes.join(' ')
-    );
-    if (isDuplicate) return;
-    // If 3 open, remove oldest
-    setOpenInspectors((prev) => {
-      const next = [...prev, { id: uuidv4(), elementInfo, mousePosition: { x: e.clientX, y: e.clientY } }];
-      return next.length > 3 ? next.slice(1) : next;
-    });
-      addEvent({
-      type: 'inspect',
-        position: { x: e.clientX, y: e.clientY },
-      element: {
-        tag: elementInfo.tag,
-        id: elementInfo.id,
-        classes: elementInfo.classes,
-        text: elementInfo.text,
-      },
-    });
-  }, [isActive, extractElementInfo, openInspectors, addEvent]);
-
-  // New function to handle multi-element context gathering
-  const handleMultiElementContext = async () => {
-    try {
-      // Check usage limit before proceeding
-      if (!canUseAiDebug) {
-        setShowUpgradeModal(true);
-      return;
-    }
-
-      toast({ 
-        title: 'Analyzing Elements', 
-        description: `Gathering context for ${openInspectors.length} selected elements...`, 
-        variant: 'default' 
-      });
-
-      // Gather information from all open inspectors
-      const elementsData = openInspectors.map((inspector, index) => {
-        const { elementInfo, mousePosition } = inspector;
-        const element = elementInfo.element;
-        const styles = element ? window.getComputedStyle(element) : null;
-        
-        return {
-          index: index + 1,
-          tag: elementInfo.tag,
-          id: elementInfo.id,
-          classes: elementInfo.classes,
-          text: elementInfo.text,
-          position: mousePosition,
-          attributes: elementInfo.attributes,
-          size: elementInfo.size,
-          parentPath: elementInfo.parentPath,
-          styles: styles ? {
-            display: styles.display,
-            visibility: styles.visibility,
-            pointerEvents: styles.pointerEvents,
-            cursor: styles.cursor,
-            position: styles.position,
-            zIndex: styles.zIndex,
-          } : null,
-        };
-      });
-
-      // Create a structured prompt for AI analysis
-      const multiElementPrompt = `Analyze the following ${openInspectors.length} UI elements and provide a comprehensive context summary:
-
-${elementsData.map((el, index) => `
-Element ${index + 1}:
-- Tag: <${el.tag}>
-- ID: ${el.id || 'none'}
-- Classes: ${el.classes.join(', ') || 'none'}
-- Text: "${el.text || 'none'}"
-- Position: (${el.position.x}, ${el.position.y})
-- Size: ${el.size.width}x${el.size.height}
-- Parent Path: ${el.parentPath || 'none'}
-- Key Attributes: ${el.attributes?.map(attr => `${attr.name}="${attr.value}"`).join(', ') || 'none'}
-- Key Styles: ${el.styles ? `display=${el.styles.display}, visibility=${el.styles.visibility}, pointer-events=${el.styles.pointerEvents}, cursor=${el.styles.cursor}` : 'none'}
-`).join('\n')}
-
-Please provide:
-1. A summary of what these elements represent in the UI
-2. Potential relationships or interactions between them
-3. Any potential issues or improvements that could be made
-4. Accessibility considerations
-5. Suggested actions or changes that might be relevant
-
-Format the response in a clear, structured way that would be useful for a developer working on this interface.`;
-
-      // Call AI with the multi-element prompt
-      const aiResponse = await analyzeWithAI(multiElementPrompt);
-      
-      // Copy the AI response to clipboard
-      addDebugResponse(multiElementPrompt, aiResponse);
-      try {
-        await navigator.clipboard.writeText(aiResponse);
-        toast({ 
-          title: 'Multi-Element Context Generated', 
-          description: `Analysis of ${openInspectors.length} elements copied to clipboard`, 
-          variant: 'success' 
-        });
-      } catch (err) {
-        setClipboardFallback({ response: aiResponse, open: true });
-        toast({ 
-          title: 'Context Generation Failed', 
-          description: 'Failed to copy to clipboard. See details below.', 
-          variant: 'destructive' 
-        });
-      }
-
-      // Track usage
-      incrementAiDebugUsage();
-
-    } catch (error) {
-      console.error('Multi-element context error:', error);
-      toast({ 
-        title: 'Context Generation Failed', 
-        description: error instanceof Error ? error.message : 'Failed to generate context for multiple elements', 
-        variant: 'destructive' 
-      });
-    }
-  };
-
-  // Screenshot mode handlers
-  const handleScreenshot = async (mode: 'rectangle' | 'window' | 'fullscreen' | 'freeform') => {
-    try {
-      // Wait for modal to hide
-      await new Promise(res => setTimeout(res, 100));
-      let canvas: HTMLCanvasElement;
-      switch (mode) {
-        case 'rectangle':
-          canvas = await captureRectangleScreenshot();
-          break;
-        case 'window':
-          // 'window' now captures only the LogTrace area
-          canvas = await captureFullscreenScreenshot();
-          break;
-        case 'fullscreen':
-          // 'fullscreen' now captures the entire browser window
-          canvas = await captureEntireBrowserWindowScreenshot();
-          break;
-        case 'freeform':
-          canvas = await captureFreeformScreenshot();
-          break;
-        default:
-          throw new Error(`Unknown screenshot mode: ${mode}`);
-      }
-      if (canvas) {
-        const dataUrl = canvas.toDataURL('image/png');
-        // Download
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = `logtrace-screenshot-${mode}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
-        link.click();
-        // Copy to clipboard
-        try {
-          const blob = await (await fetch(dataUrl)).blob();
-          await navigator.clipboard.write([
-            new window.ClipboardItem({ 'image/png': blob })
-          ]);
-          toast({ title: 'Screenshot Captured', description: `${mode} screenshot downloaded and copied to clipboard`, variant: 'success' });
-        } catch (clipErr) {
-          toast({ title: 'Screenshot Captured', description: `Downloaded, but failed to copy to clipboard`, variant: 'default' });
-        }
-      }
-    } catch (err) {
-      console.error('Screenshot error:', err);
-      toast({ title: 'Screenshot Failed', description: `Failed to capture ${mode} screenshot`, variant: 'destructive' });
-    }
-  };
-
-  const handleScreenshotOverlayComplete = (dataUrl: string) => {
-    setActiveScreenshotOverlay(null);
-    // Download
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `logtrace-screenshot-overlay-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
-    link.click();
-    // Copy to clipboard
-    fetch(dataUrl)
-      .then(res => res.blob())
-      .then(blob => {
-        navigator.clipboard.write([
-          new window.ClipboardItem({ 'image/png': blob })
-        ]);
-        toast({ title: 'Screenshot Captured', description: `Screenshot downloaded and copied to clipboard`, variant: 'success' });
-      })
-      .catch(() => {
-        toast({ title: 'Screenshot Captured', description: `Downloaded, but failed to copy to clipboard`, variant: 'default' });
-      });
-  };
-
-  const captureFullscreenScreenshot = async (): Promise<HTMLCanvasElement> => {
-    if (!logTraceRef.current) {
-      throw new Error('Could not find LogTrace area');
-    }
-    return await html2canvas(logTraceRef.current);
-  };
-
-  const captureWindowScreenshot = async (): Promise<HTMLCanvasElement> => {
-    return await html2canvas(document.body, {
-      width: window.innerWidth,
-      height: window.innerHeight,
-      scrollX: 0,
-      scrollY: 0,
-      windowWidth: window.innerWidth,
-      windowHeight: window.innerHeight,
-    });
-  };
-
-  const captureRectangleScreenshot = async (): Promise<HTMLCanvasElement> => {
-    const rect = prompt('Enter rectangle coordinates (x,y,width,height):', '0,0,800,600');
-    if (!rect) throw new Error('Rectangle selection cancelled');
-    const [x, y, width, height] = rect.split(',').map(Number);
-    if (isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) {
-      throw new Error('Invalid rectangle coordinates');
-    }
-    const canvas = await html2canvas(document.body, {
-      x: x,
-      y: y,
-      width: width,
-      height: height,
-      scrollX: window.scrollX,
-      scrollY: window.scrollY,
-    });
-    return canvas;
-  };
-
-  const captureFreeformScreenshot = async (): Promise<HTMLCanvasElement> => {
-    toast({ title: 'Freeform Screenshot', description: 'Freeform selection coming soon. Using rectangle selection instead.', variant: 'default' });
-    return await captureRectangleScreenshot();
-  };
-
-  const captureEntireBrowserWindowScreenshot = async (): Promise<HTMLCanvasElement> => {
-    return await html2canvas(document.body, {
-      width: window.innerWidth,
-      height: window.innerHeight,
-      scrollX: 0,
-      scrollY: 0,
-      windowWidth: window.innerWidth,
-      windowHeight: window.innerHeight,
-    });
-  };
-
   // keyboard event handlers
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -614,7 +320,7 @@ Format the response in a clear, structured way that would be useful for a develo
         }
       }
       
-      if (e.key === 's' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      if (e.ctrlKey && e.key === 's' && !e.altKey && !e.metaKey) {
         e.preventDefault();
         if (!isActive) {
           setIsActive(true);
@@ -624,7 +330,16 @@ Format the response in a clear, structured way that would be useful for a develo
         }
       }
       
-      if (e.key === 'e' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      if (e.ctrlKey && e.key === 'p' && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        setIsHoverPaused(!isHoverPaused);
+        if (!isHoverPaused && currentElement) {
+          setPausedElement(currentElement);
+          setPausedPosition(mousePosition);
+        }
+      }
+      
+      if (e.ctrlKey && e.key === 'e' && !e.altKey && !e.metaKey) {
         e.preventDefault();
         if (isActive) {
           setIsActive(false);
@@ -632,7 +347,7 @@ Format the response in a clear, structured way that would be useful for a develo
         }
       }
       
-      if (e.key === 't' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      if (e.ctrlKey && e.key === 't' && !e.altKey && !e.metaKey) {
         e.preventDefault();
         // Ensure only one modal is visible at a time
         if (!showTerminal) {
@@ -662,7 +377,9 @@ Format the response in a clear, structured way that would be useful for a develo
     setIsActive,
     handleEscape,
     canUseAiDebug,
-    setOpenInspectors
+    setOpenInspectors,
+    isHoverPaused,
+    setIsHoverPaused
   ]);
 
   // mouse events for resizing

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { X, Settings, Keyboard, Zap, Eye, Terminal, MousePointer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,11 +13,12 @@ interface SettingsDrawerProps {
 
 const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgrade, onUpgradeClick }) => {
   const shortcuts = [
-    { key: 'S', description: 'Start/Stop tracing', icon: Zap },
-    { key: 'E', description: 'End tracing session', icon: X },
+    { key: 'Ctrl+S', description: 'Start/Stop tracing', icon: Zap },
+    { key: 'Ctrl+E', description: 'End tracing session', icon: X },
     { key: 'Click', description: 'Open element details', icon: MousePointer },
-    { key: 'T', description: 'Toggle terminal panel', icon: Terminal },
+    { key: 'Ctrl+T', description: 'Toggle terminal panel', icon: Terminal },
     { key: 'Ctrl+D', description: 'Trigger AI debug', icon: MousePointer },
+    { key: 'Ctrl+P', description: 'Pause/Resume hover tracking', icon: Eye },
   ];
 
   const handleUpgrade = onUpgradeClick || onUpgrade || (() => {});
