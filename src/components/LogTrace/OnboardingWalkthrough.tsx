@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, ArrowRight, SkipForward, CheckCircle, Target } from 'lucide-react';
+import { X, ArrowRight, SkipForward, CheckCircle, MousePointer2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -29,25 +29,34 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
 }) => {
   const navigate = useNavigate();
   const [userActions, setUserActions] = useState({
-    pressedS: false,
+    rightClicked: false,
+    startedLogTrace: false,
     hoveredElement: false,
-    pressedD: false,
-    openedDebug: false,
-    pressedT: false,
+    openedElementActions: false,
+    openedTerminal: false,
   });
   const [waitingForAction, setWaitingForAction] = useState(true);
   const [showHighlight, setShowHighlight] = useState(true);
 
-  // Interactive steps configuration
+  // Interactive steps configuration - Updated for right-click workflow
   const interactiveSteps = [
     {
-      title: "Start LogTrace",
-      description: "Press the 'S' key to activate LogTrace and begin element inspection",
-      mobileDescription: "Tap the 'Start LogTrace' button to begin element inspection",
-      action: "pressedS",
-      requirement: "Press 'S' key",
+      title: "Right-click for Actions",
+      description: "Right-click anywhere on the page to open the LogTrace context menu",
+      mobileDescription: "Long-press anywhere on the page to open the LogTrace context menu",
+      action: "rightClicked",
+      requirement: "Right-click anywhere",
       position: "center",
-      highlight: "Press S to start",
+      highlight: "Right-click to open menu",
+    },
+    {
+      title: "Start LogTrace",
+      description: "From the context menu, click 'Start LogTrace' to begin element inspection",
+      mobileDescription: "From the context menu, tap 'Start LogTrace' to begin element inspection",
+      action: "startedLogTrace",
+      requirement: "Click 'Start LogTrace'",
+      position: "center",
+      highlight: "Start LogTrace from menu",
     },
     {
       title: "Hover over elements",
@@ -59,82 +68,54 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
       highlight: "Move mouse over elements",
     },
     {
-      title: "Open Details",
-      description: "Click any element to open its details instantly.",
-      mobileDescription: "Tap on an element to open its details instantly.",
-      action: "openedDebug",
-      requirement: "Click element",
+      title: "Element Actions",
+      description: "Right-click on an element to see element-specific actions like 'View Details' and 'AI Debug'",
+      mobileDescription: "Long-press on an element to see element-specific actions like 'View Details' and 'AI Debug'",
+      action: "openedElementActions",
+      requirement: "Right-click on element",
       position: "center",
-      highlight: "Click to open details",
-    },
-    {
-      title: "Open AI Debug",
-      description: "Press 'Ctrl+D' or use the debug button in the details panel for instant AI insights.",
-      mobileDescription: "Tap the debug button in the details panel to get AI insights.",
-      action: "openedDebug",
-      requirement: "Press Ctrl+D or use debug button",
-      position: "center",
-      highlight: "Press Ctrl+D for AI debug",
+      highlight: "Right-click on element for actions",
     },
     {
       title: "View Terminal",
-      description: "Press 'T' to open the terminal and see your complete debug history",
-      mobileDescription: "Tap the terminal button to view your debug history and logs",
-      action: "pressedT",
-      requirement: "Press 'T' key",
+      description: "Right-click and select 'Open Terminal' to view your debug history and logs",
+      mobileDescription: "From the context menu, tap 'Open Terminal' to view your debug history and logs",
+      action: "openedTerminal",
+      requirement: "Open Terminal from menu",
       position: "bottom",
-      highlight: "Press T for terminal",
+      highlight: "Open Terminal from context menu",
     }
   ];
 
   const isMobile = window.innerWidth < 768;
   const currentStepData = interactiveSteps[step];
 
-  // Listen for user actions and update state
+  // Listen for context menu events
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key.toLowerCase()) {
-        case 's':
-          if (step === 0) {
-            setUserActions(prev => ({ ...prev, pressedS: true }));
-          }
-          break;
-        case 'd':
-          if (step === 2 && !e.ctrlKey) {
-            setUserActions(prev => ({ ...prev, pressedD: true }));
-          }
-          if (step === 3 && e.ctrlKey) {
-            setUserActions(prev => ({ ...prev, openedDebug: true }));
-          }
-          break;
-        case 't':
-          if (step === 4) {
-            setUserActions(prev => ({ ...prev, pressedT: true }));
-          }
-          break;
+    const handleContextMenu = (e: MouseEvent) => {
+      if (step === 0) {
+        setUserActions(prev => ({ ...prev, rightClicked: true }));
+      } else if (step === 3 && currentElement) {
+        setUserActions(prev => ({ ...prev, openedElementActions: true }));
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [step]);
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => document.removeEventListener('contextmenu', handleContextMenu);
+  }, [step, currentElement]);
 
   // Track LogTrace state changes
   useEffect(() => {
-    if (step === 0 && isActive) {
-      setUserActions(prev => ({ ...prev, pressedS: true }));
+    if (step === 1 && isActive) {
+      setUserActions(prev => ({ ...prev, startedLogTrace: true }));
     }
-    if (step === 1 && currentElement) {
+    if (step === 2 && currentElement) {
       setUserActions(prev => ({ ...prev, hoveredElement: true }));
     }
-    // Step 3: Use showInspectorOpen instead of showInteractivePanel
-    if (step === 2 && showInspectorOpen) {
-      setUserActions(prev => ({ ...prev, openedDebug: true }));
-    }
     if (step === 4 && showTerminal) {
-      setUserActions(prev => ({ ...prev, pressedT: true }));
+      setUserActions(prev => ({ ...prev, openedTerminal: true }));
     }
-  }, [step, isActive, currentElement, showInspectorOpen, showTerminal]);
+  }, [step, isActive, currentElement, showTerminal]);
 
   // Check if current step action is completed
   const isStepCompleted = () => {
@@ -151,7 +132,7 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
           onNext();
           setWaitingForAction(true);
         }
-      }, 1500); // Give user time to see the completion
+      }, 1500);
     }
   }, [userActions, step, waitingForAction, onNext]);
 
@@ -173,7 +154,6 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-slate-900 border border-green-500/30 rounded-xl shadow-2xl w-full max-w-md mx-4 animate-fade-in">
-          {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-green-500/20">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-6 h-6 text-green-500" />
@@ -191,21 +171,19 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
             </Button>
           </div>
 
-          {/* Content */}
           <div className="p-6 text-center">
             <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-4 rounded-xl mb-4 w-16 h-16 mx-auto flex items-center justify-center">
-              <Target className="h-8 w-8 text-white" />
+              <MousePointer2 className="h-8 w-8 text-white" />
             </div>
             
             <h3 className="text-xl font-bold text-white mb-3">
               Great job! You've mastered LogTrace
             </h3>
             <p className="text-gray-300 text-base leading-relaxed mb-6">
-              You're now ready to debug any website with AI-powered insights. 
-              Try it on a real website to see LogTrace in action!
+              You can now debug any website using the powerful right-click context menu. 
+              No more keyboard conflicts - just right-click for all actions!
             </p>
 
-            {/* Actions */}
             <div className="flex gap-3">
               <Button
                 onClick={onComplete}
@@ -240,7 +218,8 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
           ${showHighlight ? 'animate-pulse' : ''}
           transition-opacity duration-300
         `}>
-          <span className="text-green-400 font-semibold text-sm">
+          <span className="text-green-400 font-semibold text-sm flex items-center gap-2">
+            <MousePointer2 className="h-4 w-4" />
             {currentStepData.highlight}
           </span>
         </div>
@@ -252,7 +231,6 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
         ${currentStepData.position === 'bottom' ? 'mb-8' : ''}
         animate-fade-in
       `}>
-        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-green-500/20">
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isStepCompleted() ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
@@ -273,7 +251,6 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
           </Button>
         </div>
 
-        {/* Content */}
         <div className="p-6">
           <h3 className="text-xl font-bold text-white mb-3">
             {currentStepData.title}
@@ -282,7 +259,6 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
             {isMobile ? currentStepData.mobileDescription : currentStepData.description}
           </p>
 
-          {/* Action requirement */}
           <div className={`
             p-3 rounded-lg mb-6 border-2 transition-colors
             ${isStepCompleted() 
@@ -302,7 +278,6 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
             </div>
           </div>
 
-          {/* Progress indicator */}
           <div className="flex gap-2 mb-6">
             {interactiveSteps.map((_, index) => (
               <div
@@ -316,7 +291,6 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
             ))}
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3">
             <Button
               onClick={onSkip}
@@ -331,7 +305,7 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
               <Button
                 onClick={() => {
                   if (step === interactiveSteps.length - 1) {
-                    onNext(); // This will trigger the completion screen
+                    onNext();
                   } else {
                     onNext();
                     setWaitingForAction(true);

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTrace } from '@/shared/hooks/useLogTrace';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
@@ -15,7 +14,8 @@ import MoreDetailsModal from './LogTrace/PinnedDetails';
 import OnboardingWalkthrough from './LogTrace/OnboardingWalkthrough';
 import SettingsDrawer from './LogTrace/SettingsDrawer';
 import UpgradeModal from './LogTrace/UpgradeModal';
-import QuickActionModal from './LogTrace/QuickActionModal';
+import ContextMenu from './LogTrace/ContextMenu';
+import FloatingHint from './LogTrace/FloatingHint';
 import { Button } from './ui/button';
 import html2canvas from 'html2canvas';
 import { Switch } from './ui/switch';
@@ -45,6 +45,11 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
   
+  // Context menu state
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
+  const [contextMenuX, setContextMenuX] = useState(0);
+  const [contextMenuY, setContextMenuY] = useState(0);
+  
   // Use external onboarding state if provided, otherwise use local state
   const [localShowOnboarding, setLocalShowOnboarding] = useState(() => {
     return !localStorage.getItem('logtrace-onboarding-completed');
@@ -63,9 +68,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const terminalMinHeight = isMobile ? 300 : 200;
   const resizingRef = useRef(false);
   const [pillOn, setPillOn] = useState(false);
-  const [quickActionModalVisible, setQuickActionModalVisible] = useState(false);
-  const [quickActionModalX, setQuickActionModalX] = useState(0);
-  const [quickActionModalY, setQuickActionModalY] = useState(0);
   const logTraceRef = useRef<HTMLDivElement>(null);
   const [contextCaptureEnabled, setContextCaptureEnabled] = useState(false);
   const [activeScreenshotOverlay, setActiveScreenshotOverlay] = useState<null | 'rectangle' | 'freeform'>(null);
@@ -113,12 +115,13 @@ const LogTrace: React.FC<LogTraceProps> = ({
     clearDebugResponses,
   } = useDebugResponses();
 
-  // Escape handler
+  // Escape handler - only handles modals/overlays now
   const handleEscape = useCallback(() => {
     setOpenInspectors((prev) => prev.length > 0 ? prev.slice(0, -1) : prev);
     setShowDebugModal(false);
     setIsHoverPaused(false);
     setShowSettingsDrawer(false);
+    setContextMenuVisible(false);
     if (showTerminal) setShowTerminal(false);
   }, [setShowDebugModal, showTerminal, setShowTerminal]);
 
@@ -219,34 +222,75 @@ const LogTrace: React.FC<LogTraceProps> = ({
     }
   }, [toast]);
 
-  const handleMultiElementContext = useCallback(async () => {
-    try {
-      const elementsInfo = openInspectors.map(inspector => inspector.elementInfo);
-      const prompt = `Generate context for multiple elements:
-${elementsInfo.map((el, index) => `
-Element ${index + 1}:
-- Tag: ${el.tag}
-- ID: ${el.id}
-- Classes: ${el.classes.join(', ')}
-- Text: ${el.text}
-- Parent Path: ${el.parentPath}
-`).join('')}
-
-Please provide a comprehensive analysis of these elements and their relationships.`;
-
-      const aiResponse = await analyzeWithAI(prompt);
-      addDebugResponse(prompt, aiResponse);
-      
-      try {
-        await navigator.clipboard.writeText(aiResponse);
-        toast({ title: 'Multi-Element Context Copied', description: 'Context for all selected elements has been copied to your clipboard.', variant: 'success' });
-      } catch (err) {
-        setClipboardFallback({ response: aiResponse, open: true });
-      }
-    } catch (err) {
-      toast({ title: 'Context Generation Failed', description: 'Failed to generate multi-element context.', variant: 'destructive' });
+  // Context menu action handler
+  const handleContextMenuAction = useCallback((action: string, ...args: any[]) => {
+    switch (action) {
+      case 'toggle-active':
+        setIsActive(!isActive);
+        break;
+      case 'toggle-pause':
+        setIsHoverPaused(!isHoverPaused);
+        if (!isHoverPaused && currentElement) {
+          setPausedElement(currentElement);
+          setPausedPosition(mousePosition);
+        }
+        break;
+      case 'reset':
+        clearEvents();
+        setIsActive(false);
+        setIsHoverPaused(false);
+        setOpenInspectors([]);
+        break;
+      case 'view-details':
+        if (currentElement) {
+          setDetailsElement(currentElement);
+          setShowMoreDetails(true);
+        }
+        break;
+      case 'ai-debug':
+        if (!canUseAiDebug) {
+          setShowUpgradeModal(true);
+          return;
+        }
+        if (currentElement) {
+          setShowDebugModal(true);
+        }
+        break;
+      case 'generate-context':
+        if (currentElement) {
+          // Generate context for current element
+          const prompt = generateAdvancedPrompt();
+          if (prompt) {
+            handleAnalyzeWithAI(prompt);
+          }
+        }
+        break;
+      case 'screenshot':
+        const mode = args[0];
+        if (mode === 'rectangle' || mode === 'freeform') {
+          setActiveScreenshotOverlay(mode);
+        } else {
+          handleScreenshot(mode);
+        }
+        break;
+      case 'toggle-terminal':
+        setShowTerminal(!showTerminal);
+        break;
+      case 'settings':
+        setShowSettingsDrawer(true);
+        break;
+      default:
+        console.warn('Unknown context menu action:', action);
     }
-  }, [openInspectors, analyzeWithAI, addDebugResponse, toast]);
+  }, [isActive, setIsActive, isHoverPaused, setIsHoverPaused, currentElement, mousePosition, canUseAiDebug, clearEvents, setShowUpgradeModal, setShowDebugModal, setShowMoreDetails, generateAdvancedPrompt, setActiveScreenshotOverlay, handleScreenshot, showTerminal, setShowTerminal, setShowSettingsDrawer]);
+
+  // Handle right-click context menu
+  const handleContextMenu = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setContextMenuX(e.clientX);
+    setContextMenuY(e.clientY);
+    setContextMenuVisible(true);
+  }, []);
 
   // Onboarding handlers
   const handleOnboardingNext = () => {
@@ -275,7 +319,6 @@ Please provide a comprehensive analysis of these elements and their relationship
   const handleElementClick = useCallback(() => {
     if (!currentElement) return;
     
-    // Ensure only one modal is visible at a time
     setShowDebugModal(false);
     setShowInteractivePanel(true);
     
@@ -291,40 +334,11 @@ Please provide a comprehensive analysis of these elements and their relationship
     });
   }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowInteractivePanel]);
 
-  // Debug from panel handler
-  const handleDebugFromPanel = useCallback(() => {
-    // Check usage limit before proceeding
-    if (!canUseAiDebug) {
-      setShowUpgradeModal(true);
-      return;
-    }
-
-    // Ensure only one modal is visible at a time
-    setShowInteractivePanel(false);
-    setShowDebugModal(true);
-    
-    if (currentElement) {
-      addEvent({
-        type: 'debug',
-        position: mousePosition,
-        element: {
-          tag: currentElement.tag,
-          id: currentElement.id,
-          classes: currentElement.classes,
-          text: currentElement.text,
-        },
-      });
-    }
-  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowInteractivePanel, canUseAiDebug]);
-
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
-    // Check usage limit for premium users
     if (isPremium) {
-      // Premium users have unlimited access
       try {
         const response = await analyzeWithAI(prompt);
         addDebugResponse(prompt, response || 'No response received');
-        // UX improvement: open terminal and show toast
         setShowTerminal(true);
         toast({
           title: 'Request sent!',
@@ -340,17 +354,14 @@ Please provide a comprehensive analysis of these elements and their relationship
       }
     }
 
-    // For non-premium users, check credit availability
     if (!canUseAiDebug) {
       setShowUpgradeModal(true);
       return null;
     }
 
     try {
-      // The credit will be used inside analyzeWithAI via the API call
       const response = await analyzeWithAI(prompt);
       addDebugResponse(prompt, response || 'No response received');
-      // UX improvement: open terminal and show toast
       setShowTerminal(true);
       toast({
         title: 'Request sent!',
@@ -365,14 +376,6 @@ Please provide a comprehensive analysis of these elements and their relationship
       return null;
     }
   }, [analyzeWithAI, addDebugResponse, canUseAiDebug, isPremium, setShowTerminal, toast]);
-
-  const handleUpgradeClick = useCallback(() => {
-    setShowUpgradeModal(true);
-  }, []);
-
-  const handleSettingsClick = useCallback(() => {
-    setShowSettingsDrawer(true);
-  }, []);
 
   // Mouse tracking logic
   useEffect(() => {
@@ -391,127 +394,6 @@ Please provide a comprehensive analysis of these elements and their relationship
     setIsHoverPaused(false);
   };
 
-  const handleQuickAction = async (
-    action: 'screenshot' | 'context' | 'debug' | 'details' | { type: 'screenshot', mode: 'rectangle' | 'window' | 'fullscreen' | 'freeform' } | { type: 'context', mode: string, input: string }
-  ) => {
-    setQuickActionModalVisible(false);
-
-    // Handle screenshot with specific mode
-    if (typeof action === 'object' && action.type === 'screenshot') {
-      if (action.mode === 'rectangle' || action.mode === 'freeform') {
-        setActiveScreenshotOverlay(action.mode);
-        return;
-      }
-      await handleScreenshot(action.mode);
-      return;
-    }
-
-    // Handle context generation with user input
-    if (typeof action === 'object' && action.type === 'context') {
-      try {
-        // Check usage limit before proceeding
-        if (!canUseAiDebug) {
-          setShowUpgradeModal(true);
-          return;
-        }
-
-        // Build a prompt based on mode and input
-        const elementInfo = currentElement ? {
-          tag: currentElement.tag,
-          id: currentElement.id,
-          classes: currentElement.classes,
-          text: currentElement.text,
-          parentPath: currentElement.parentPath,
-          attributes: currentElement.attributes,
-          size: currentElement.size,
-        } : null;
-
-        const prompt = `Context Action: ${action.mode}
-User Input: ${action.input}
-Element: ${elementInfo ? JSON.stringify(elementInfo, null, 2) : 'none'}
-
-Please provide a response for the "${action.mode}" action with the user's specific request: "${action.input}"`;
-
-        const aiResponse = await analyzeWithAI(prompt);
-        addDebugResponse(prompt, aiResponse);
-        
-        // Copy to clipboard
-        try {
-          await navigator.clipboard.writeText(aiResponse);
-          toast({ 
-            title: 'Context Generated', 
-            description: `AI response for "${action.mode}" copied to clipboard`, 
-            variant: 'success' 
-          });
-        } catch (err) {
-          setClipboardFallback({ response: aiResponse, open: true });
-          toast({ 
-            title: 'Context Generation Failed', 
-            description: 'Failed to copy to clipboard. See details below.', 
-            variant: 'destructive' 
-          });
-        }
-
-        // Track usage
-        incrementAiDebugUsage();
-        
-        // Open terminal to show results
-        setShowTerminal(true);
-        
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-        toast({ 
-          title: 'AI Generation Failed', 
-          description: errorMessage, 
-          variant: 'destructive' 
-        });
-      }
-      return;
-    }
-
-    // Handle simple actions
-    if (action === 'screenshot') {
-      await handleScreenshot('fullscreen');
-    } else if (action === 'context') {
-      if (openInspectors.length > 0) {
-        await handleMultiElementContext();
-      } else {
-        try {
-          const prompt = generateAdvancedPrompt();
-          if (!prompt || prompt.trim() === '') {
-            toast({ title: 'No Element Selected', description: 'Please select an element to generate context.', variant: 'default' });
-            return;
-          }
-          const aiResponse = await analyzeWithAI(prompt);
-          addDebugResponse(prompt, aiResponse);
-          try {
-            await navigator.clipboard.writeText(aiResponse);
-            toast({ title: 'Context Prompt Copied', description: 'The generated context prompt has been copied to your clipboard.', variant: 'success' });
-          } catch (err) {
-            setClipboardFallback({ response: aiResponse, open: true });
-            toast({ title: 'Context Generation Failed', description: 'Failed to copy to clipboard. See details below.', variant: 'destructive' });
-          }
-        } catch (err) {
-          toast({ title: 'AI Generation Failed', description: 'Failed to generate context.', variant: 'destructive' });
-        }
-      }
-    } else if (action === 'debug') {
-      if (!currentElement) {
-        toast({ title: 'No Element Selected', description: 'Please select an element to debug.', variant: 'default' });
-        return;
-      }
-      setShowDebugModal(true);
-    } else if (action === 'details') {
-      if (!currentElement) {
-        toast({ title: 'No Element Selected', description: 'Please select an element to view details.', variant: 'default' });
-        return;
-      }
-      setDetailsElement(currentElement);
-      setShowMoreDetails(true);
-    }
-  };
-
-  // mouse events for resizing
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (resizingRef.current) {
@@ -522,7 +404,6 @@ Please provide a response for the "${action.mode}" action with the user's specif
     const handleMouseUp = () => {
       resizingRef.current = false;
     };
-    // Always listen for mouse move/up globally
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     return () => {
@@ -537,19 +418,25 @@ Please provide a response for the "${action.mode}" action with the user's specif
       className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
       onMouseMove={handleMouseMove}
       onClick={handleClick}
-      onContextMenu={e => {
-        e.preventDefault();
-        setQuickActionModalX(e.clientX);
-        setQuickActionModalY(e.clientY);
-        setQuickActionModalVisible(true);
-      }}
+      onContextMenu={handleContextMenu}
     >
-      <QuickActionModal
-        visible={quickActionModalVisible}
-        x={quickActionModalX}
-        y={quickActionModalY}
-        onClose={() => setQuickActionModalVisible(false)}
-        onAction={handleQuickAction}
+      {/* Context Menu */}
+      <ContextMenu
+        visible={contextMenuVisible}
+        x={contextMenuX}
+        y={contextMenuY}
+        onClose={() => setContextMenuVisible(false)}
+        isActive={isActive}
+        isHoverPaused={isHoverPaused}
+        showTerminal={showTerminal}
+        currentElement={currentElement}
+        onAction={handleContextMenuAction}
+      />
+
+      {/* Floating Hint */}
+      <FloatingHint 
+        isActive={isActive}
+        currentElement={currentElement}
       />
       
       <div className="absolute inset-0 opacity-10">
@@ -575,10 +462,10 @@ Please provide a response for the "${action.mode}" action with the user's specif
               }}
               aria-label="Context Capture"
             />
-            <Button onClick={handleSettingsClick} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+            <Button onClick={() => setShowSettingsDrawer(true)} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
               Settings
             </Button>
-            <Button onClick={handleUpgradeClick} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+            <Button onClick={() => setShowUpgradeModal(true)} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
               Upgrade
             </Button>
           </div>
@@ -623,8 +510,16 @@ Please provide a response for the "${action.mode}" action with the user's specif
             <span className={`ml-2 text-sm font-semibold ${pillOn ? 'text-green-500' : 'text-gray-400'}`}>{pillOn ? 'ON' : 'OFF'}</span>
           </div>
         </div>
+        <div className="text-sm text-gray-400 bg-slate-800/60 rounded p-3">
+          <p className="font-semibold text-cyan-400 mb-2">New Context Menu System:</p>
+          <p>• <strong>Right-click anywhere</strong> to access all LogTrace actions</p>
+          <p>• <strong>No more keyboard shortcuts</strong> - type freely without conflicts</p>
+          <p>• <strong>Context-aware options</strong> - different actions based on current state</p>
+          <p>• <strong>Element-specific actions</strong> when hovering over elements</p>
+        </div>
       </div>
 
+      {/* All existing components remain the same */}
       <SettingsDrawer 
         isOpen={showSettingsDrawer}
         onClose={() => setShowSettingsDrawer(false)}
@@ -658,7 +553,7 @@ Please provide a response for the "${action.mode}" action with the user's specif
             isVisible={true}
             currentElement={isHoverPaused && pausedElement ? pausedElement : inspector.elementInfo}
             mousePosition={isHoverPaused && pausedPosition ? pausedPosition : inspector.mousePosition}
-          onDebug={handleDebugFromPanel}
+          onDebug={() => setShowDebugModal(true)}
             onClose={() => setOpenInspectors((prev) => prev.filter((i) => i.id !== inspector.id))}
           panelRef={interactivePanelRef}
           onShowMoreDetails={() => {
@@ -724,7 +619,6 @@ Please provide a response for the "${action.mode}" action with the user's specif
             backgroundColor: isMobile ? 'rgba(15, 23, 42, 0.98)' : 'transparent',
           }}
         >
-          {/* Mobile: Add close button at top */}
           {isMobile && (
             <div className="flex items-center justify-between p-4 bg-slate-900 border-b border-green-500/30">
               <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
@@ -739,7 +633,6 @@ Please provide a response for the "${action.mode}" action with the user's specif
             </div>
           )}
           
-          {/* Desktop: Resize handle */}
           {!isMobile && (
             <div
               style={{
@@ -777,7 +670,6 @@ Please provide a response for the "${action.mode}" action with the user's specif
         remainingUses={remainingUses}
       />
 
-      {/* Screenshot overlays */}
       {activeScreenshotOverlay === 'rectangle' && (
         <RectScreenshotOverlay onComplete={handleScreenshotOverlayComplete} />
       )}
@@ -785,7 +677,6 @@ Please provide a response for the "${action.mode}" action with the user's specif
         <FreeformScreenshotOverlay onComplete={handleScreenshotOverlayComplete} />
       )}
 
-      {/* Clipboard Fallback Modal */}
       {clipboardFallback.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="bg-slate-900 border border-green-500/30 rounded-xl shadow-2xl p-6 max-w-lg w-full">

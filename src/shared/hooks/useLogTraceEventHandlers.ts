@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect } from 'react';
 import { ElementInfo, LogEvent } from '../types';
 
@@ -82,32 +81,11 @@ export const useLogTraceEventHandlers = ({
       return;
     }
     
-    if (isActive && e.ctrlKey && e.key === 'd') {
-      e.preventDefault();
-      setShowInteractivePanel(false);
-      setShowDebugModal(true);
-      
-      if (currentElement) {
-        addEvent({
-          type: 'debug',
-          position: mousePosition,
-          element: {
-            tag: currentElement.tag,
-            id: currentElement.id,
-            classes: currentElement.classes,
-            text: currentElement.text,
-            parentPath: currentElement.parentPath,
-            attributes: currentElement.attributes,
-            size: currentElement.size,
-          },
-        });
-      }
-    }
-    
+    // Only keep Escape key for closing modals/overlays
     if (e.key === 'Escape') {
       handleEscape();
     }
-  }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal, setShowInteractivePanel, handleEscape]);
+  }, [handleEscape]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
