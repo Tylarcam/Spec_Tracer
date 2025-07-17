@@ -262,6 +262,9 @@ export const LogTraceExtension: React.FC = () => {
 
   // In ExtensionMouseOverlay, add a handler to open the inspector on element click
   const handleOverlayElementClick = () => {
+    if (currentElement) {
+      addPin(currentElement, mousePosition);
+    }
     setShowElementInspector(true);
     setIsHoverPaused(true);
     setPausedElement(currentElement);
