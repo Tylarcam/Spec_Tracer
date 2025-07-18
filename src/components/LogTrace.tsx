@@ -40,6 +40,9 @@ const LogTrace: React.FC<LogTraceProps> = ({
   captureActive: externalCaptureActive,
   onCaptureToggle: externalOnCaptureToggle
 }) => {
+  // Move useToast hook to the top to fix declaration order
+  const { toast } = useToast();
+
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
   const [showElementInspector, setShowElementInspector] = useState(false);
   const [isInspectorHovered, setIsInspectorHovered] = useState(false);
@@ -242,8 +245,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
     handleEscapeKey,
     onElementClick: handleElementClick, // Wire up our element click handler
   });
-
-  const { toast } = useToast();
 
   // Watch for errors and display toast - updated variable names
   useEffect(() => {
