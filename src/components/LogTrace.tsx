@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
@@ -151,14 +152,21 @@ const LogTrace: React.FC<LogTraceProps> = ({
     setCaptureActive(checked);
   }, [setCaptureActive]);
 
-  // Escape handler - only handles modals/overlays now
+  // Escape handler - handles closing inspectors and modals
   const handleEscapeKey = useCallback(() => {
-    setOpenInspectors((prev) => prev.length > 0 ? prev.slice(0, -1) : prev);
+    // Close the most recent inspector first
+    if (openInspectors.length > 0) {
+      setOpenInspectors((prev) => prev.slice(0, -1));
+      return;
+    }
+    
+    // Then handle other modals
     setShowAIDebugModal(false);
     setShowSettingsDrawer(false);
     setShowQuickActions(false);
+    setShowMoreDetails(false);
     if (showTerminalPanel) setShowTerminalPanel(false);
-  }, [setShowAIDebugModal, showTerminalPanel, setShowTerminalPanel]);
+  }, [openInspectors.length, setShowAIDebugModal, showTerminalPanel, setShowTerminalPanel]);
 
   // Keyboard shortcuts handler
   useEffect(() => {
@@ -176,16 +184,35 @@ const LogTrace: React.FC<LogTraceProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleEscapeKey, cursorPosition]);
 
-  // Element click handler - opens details modal directly
+  // Element click handler - opens sticky ElementInspector panel
   const handleElementClick = useCallback(() => {
     if (!detectedElement) return;
     
     console.log('Element clicked:', detectedElement); // Debug log
     
-    // Directly open the details modal
-    setDetailsElement(detectedElement);
-    setShowMoreDetails(true);
+    // Check if we already have 3 inspectors open (maximum limit)
+    if (openInspectors.length >= 3) {
+      toast({
+        title: 'Maximum Panels Reached',
+        description: 'You can only have 3 inspector panels open at once. Close one to open another.',
+        variant: 'destructive',
+        duration: 3000,
+      });
+      return;
+    }
     
+    // Create new inspector panel
+    const newInspector = {
+      id: uuidv4(),
+      elementInfo: detectedElement,
+      mousePosition: { x: cursorPosition.x, y: cursorPosition.y },
+      timestamp: Date.now(),
+    };
+    
+    // Add to open inspectors list
+    setOpenInspectors((prev) => [...prev, newInspector]);
+    
+    // Record the event
     recordEvent({
       type: 'inspect',
       position: cursorPosition,
@@ -200,14 +227,14 @@ const LogTrace: React.FC<LogTraceProps> = ({
       },
     });
 
-    // Also show a toast to confirm the action
+    // Show success toast
     toast({
-      title: 'Element Inspected',
-      description: `Opened details for ${detectedElement.tag} element`,
+      title: 'Element Inspector Opened',
+      description: `Opened sticky panel for ${detectedElement.tag} element`,
       variant: 'success',
       duration: 2000,
     });
-  }, [detectedElement, cursorPosition, recordEvent, setShowMoreDetails, setDetailsElement, toast]);
+  }, [detectedElement, cursorPosition, recordEvent, openInspectors.length, toast]);
 
   // Quick Action handler
   const handleQuickAction = useCallback((action: 'screenshot' | 'context' | 'debug' | 'details' | { type: 'screenshot', mode: ScreenshotMode } | { type: 'context', mode: string, input: string }) => {
@@ -568,8 +595,9 @@ const LogTrace: React.FC<LogTraceProps> = ({
           <p className="font-semibold text-cyan-400 mb-2">How to Use LogTrace:</p>
           <p>• <strong>1. Toggle capture</strong> in the navbar or here to begin</p>
           <p>• <strong>2. Hover over elements</strong> to see live inspection data</p>
-          <p>• <strong>3. Click a highlighted element</strong> to open the pinned details UI</p>
+          <p>• <strong>3. Click a highlighted element</strong> to open a sticky inspector panel</p>
           <p>• <strong>4. Use right-click</strong> for quick actions and screenshots</p>
+          <p>• <strong>5. Press Escape or click X</strong> to close inspector panels</p>
         </div>
       </div>
 
@@ -603,15 +631,15 @@ const LogTrace: React.FC<LogTraceProps> = ({
       {/* Sticky Element Inspectors - supports up to 3 panels */}
       {openInspectors.map((inspector, index) => {
         // Stagger positioning to avoid overlap
-        const offsetX = index * 20;
-        const offsetY = index * 20;
+        const offsetX = index * 30;
+        const offsetY = index * 30;
         const adjustedPosition = {
-          x: inspector.mousePosition.x + offsetX,
-          y: inspector.mousePosition.y + offsetY,
+          x: Math.min(inspector.mousePosition.x + offsetX, window.innerWidth - 350),
+          y: Math.min(inspector.mousePosition.y + offsetY, window.innerHeight - 450),
         };
         
         return (
-        <ElementInspector
+          <ElementInspector
             key={inspector.id}
             isVisible={true}
             currentElement={inspector.elementInfo}
@@ -621,15 +649,15 @@ const LogTrace: React.FC<LogTraceProps> = ({
               setOpenInspectors(prev => prev.filter(i => i.id !== inspector.id));
             }}
             panelRef={elementInspectorRef}
-          onShowMoreDetails={() => {
+            onShowMoreDetails={() => {
               setDetailsElement(inspector.elementInfo);
-            setShowMoreDetails(true);
-          }}
-          currentDebugCount={5 - remainingUses}
-          maxDebugCount={5}
+              setShowMoreDetails(true);
+            }}
+            currentDebugCount={5 - remainingUses}
+            maxDebugCount={5}
             onMouseEnter={handleInspectorMouseEnter}
             onMouseLeave={handleInspectorMouseLeave}
-        />
+          />
         );
       })}
 
