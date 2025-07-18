@@ -8,6 +8,7 @@ import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { useIsMobile } from '@/hooks/use-mobile';
 import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
+import MobileTouchOverlay from './LogTrace/MobileTouchOverlay';
 import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
 import TabbedTerminal from './LogTrace/TabbedTerminal';
@@ -67,6 +68,10 @@ const LogTrace: React.FC<LogTraceProps> = ({
   // Mobile detection
   const isMobile = useIsMobile();
   
+  // Mobile touch state
+  const [showMobileQuickActions, setShowMobileQuickActions] = useState(false);
+  const [touchPosition, setTouchPosition] = useState({ x: 0, y: 0 });
+
   // Get max panels based on device type
   const maxPanels = isMobile ? 1 : 3;
 
@@ -240,13 +245,16 @@ const LogTrace: React.FC<LogTraceProps> = ({
     });
   }, [detectedElement, cursorPosition, recordEvent, openInspectors.length, maxPanels, isMobile, toast]);
 
-  // Quick Action handler
-  const handleQuickAction = useCallback((action: 'screenshot' | 'context' | 'debug' | 'details' | { type: 'screenshot', mode: ScreenshotMode } | { type: 'context', mode: string, input: string }) => {
+  // Quick Action handler - enhanced for mobile
+  const handleQuickAction = useCallback((action: 'screenshot' | 'context' | 'debug' | 'details' | { type: 'screenshot', mode: ScreenshotMode } | { type: 'context', mode: string, input: string }, element?: ElementInfo | null) => {
     setShowQuickActions(false);
+    setShowMobileQuickActions(false);
+    
+    const targetElement = element || detectedElement;
     
     if (action === 'details') {
       setShowMoreDetails(true);
-      setDetailsElement(detectedElement);
+      setDetailsElement(targetElement);
     } else if (action === 'debug') {
       setShowAIDebugModal(true);
     } else if (action === 'screenshot' || (typeof action === 'object' && action.type === 'screenshot')) {
@@ -254,14 +262,27 @@ const LogTrace: React.FC<LogTraceProps> = ({
       setActiveScreenshotOverlay(mode === 'freeform' ? 'freeform' : 'rectangle');
     } else if (typeof action === 'object' && action.type === 'context') {
       // Handle context generation
-      const prompt = `Context Action: ${action.mode}\nUser Input: ${action.input}\nElement: ${detectedElement ? JSON.stringify(detectedElement) : 'none'}`;
+      const prompt = `Context Action: ${action.mode}\nUser Input: ${action.input}\nElement: ${targetElement ? JSON.stringify(targetElement) : 'none'}`;
       console.log('Context generation:', prompt);
       // You can add AI call here if needed
     }
   }, [detectedElement, setShowAIDebugModal, setShowMoreDetails, setDetailsElement, setActiveScreenshotOverlay]);
 
+  // Mobile-specific quick action handler
+  const handleMobileQuickAction = useCallback((action: string, element: ElementInfo | null) => {
+    handleQuickAction(action as any, element);
+  }, [handleQuickAction]);
+
   // Get mouse and click handlers from the interaction handlers hook
-  const { handleCursorMovement, handleElementClick: handleElementClickEvent } = useInteractionHandlers({
+  const { 
+    handleCursorMovement, 
+    handleElementClick: handleElementClickEvent,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    isLongPressActive,
+    isDoubleTapDetected,
+  } = useInteractionHandlers({
     isTraceActive,
     isHoverPaused,
     detectedElement,
@@ -274,8 +295,43 @@ const LogTrace: React.FC<LogTraceProps> = ({
     extractElementDetails,
     recordEvent,
     handleEscapeKey,
-    onElementClick: handleElementClick, // Wire up our element click handler
+    onElementClick: handleElementClick,
+    onQuickAction: handleMobileQuickAction,
   });
+
+  // Update touch position tracking
+  const handleTouchPositionUpdate = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      setTouchPosition({ x: touch.clientX, y: touch.clientY });
+      setCursorPosition({ x: touch.clientX, y: touch.clientY });
+    }
+  }, [setCursorPosition]);
+
+  // Enhanced touch event handlers
+  const enhancedTouchStart = useCallback((e: React.TouchEvent) => {
+    handleTouchPositionUpdate(e);
+    if (handleTouchStart) {
+      handleTouchStart(e);
+    }
+  }, [handleTouchStart, handleTouchPositionUpdate]);
+
+  const enhancedTouchMove = useCallback((e: React.TouchEvent) => {
+    handleTouchPositionUpdate(e);
+    if (handleTouchMove) {
+      handleTouchMove(e);
+    }
+    if (isLongPressActive) {
+      setShowMobileQuickActions(true);
+    }
+  }, [handleTouchMove, handleTouchPositionUpdate, isLongPressActive]);
+
+  const enhancedTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (handleTouchEnd) {
+      handleTouchEnd(e);
+    }
+    setShowMobileQuickActions(false);
+  }, [handleTouchEnd]);
 
   // Watch for errors and display toast - updated variable names
   useEffect(() => {
@@ -471,9 +527,12 @@ const LogTrace: React.FC<LogTraceProps> = ({
     <div
       ref={logTraceRef}
       className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
-      onMouseMove={handleCursorMovement}
-      onClick={handleElementClickEvent}
-      onContextMenu={handleRightClick}
+      onMouseMove={!isMobile ? handleCursorMovement : undefined}
+      onClick={!isMobile ? handleElementClickEvent : undefined}
+      onContextMenu={!isMobile ? handleRightClick : undefined}
+      onTouchStart={isMobile ? enhancedTouchStart : undefined}
+      onTouchMove={isMobile ? enhancedTouchMove : undefined}
+      onTouchEnd={isMobile ? enhancedTouchEnd : undefined}
     >
       {/* Quick Action Modal */}
       <QuickActionModal
@@ -625,12 +684,24 @@ const LogTrace: React.FC<LogTraceProps> = ({
         />
       )}
 
-      <MouseOverlay 
-        isActive={isTraceActive}
-        currentElement={detectedElement}
-        mousePosition={cursorPosition}
-        overlayRef={overlayRef}
-      />
+      {/* Mobile Touch Overlay - only show on mobile */}
+      {isMobile ? (
+        <MobileTouchOverlay
+          isActive={isTraceActive}
+          currentElement={detectedElement}
+          touchPosition={touchPosition}
+          showQuickActions={showMobileQuickActions || isLongPressActive}
+          isLongPressActive={isLongPressActive}
+          onActionSelect={(action) => handleMobileQuickAction(action, detectedElement)}
+        />
+      ) : (
+        <MouseOverlay 
+          isActive={isTraceActive}
+          currentElement={detectedElement}
+          mousePosition={cursorPosition}
+          overlayRef={overlayRef}
+        />
+      )}
 
       {/* Sticky Element Inspectors - Mobile optimized positioning */}
       {openInspectors.map((inspector, index) => {

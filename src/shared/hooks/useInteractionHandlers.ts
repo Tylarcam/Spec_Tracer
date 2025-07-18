@@ -1,3 +1,4 @@
+
 /**
  * Hook for handling mouse and keyboard interactions during LogTrace sessions
  * Manages cursor tracking, element detection, and user input events
@@ -5,6 +6,8 @@
 
 import { useCallback, useEffect } from 'react';
 import { ElementInfo, LogEvent } from '../types';
+import { useMobileTouchInteractions } from './useMobileTouchInteractions';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface UseInteractionHandlersProps {
   isTraceActive: boolean;
@@ -20,6 +23,7 @@ interface UseInteractionHandlersProps {
   recordEvent: (event: Omit<LogEvent, 'id' | 'timestamp'>) => void;
   handleEscapeKey: () => void;
   onElementClick?: () => void;
+  onQuickAction?: (action: string, element: ElementInfo | null) => void;
 }
 
 export const useInteractionHandlers = ({
@@ -36,10 +40,67 @@ export const useInteractionHandlers = ({
   recordEvent,
   handleEscapeKey,
   onElementClick,
+  onQuickAction,
 }: UseInteractionHandlersProps) => {
+  const isMobile = useIsMobile();
+
+  // Mobile touch interaction handlers
+  const handleMobileDoubleTap = useCallback((element: ElementInfo | null, position: { x: number; y: number }) => {
+    if (element && onElementClick) {
+      setCursorPosition(position);
+      setDetectedElement(element);
+      onElementClick();
+      
+      recordEvent({
+        type: 'inspect',
+        position,
+        element: {
+          tag: element.tag,
+          id: element.id,
+          classes: element.classes,
+          text: element.text,
+          parentPath: element.parentPath,
+          attributes: element.attributes,
+          size: element.size,
+        },
+      });
+    }
+  }, [onElementClick, setCursorPosition, setDetectedElement, recordEvent]);
+
+  const handleMobileLongPressStart = useCallback((element: ElementInfo | null, position: { x: number; y: number }) => {
+    if (element) {
+      setCursorPosition(position);
+      setDetectedElement(element);
+    }
+  }, [setCursorPosition, setDetectedElement]);
+
+  const handleMobileLongPressEnd = useCallback((selectedAction: string | null) => {
+    if (selectedAction && detectedElement && onQuickAction) {
+      onQuickAction(selectedAction, detectedElement);
+    }
+  }, [detectedElement, onQuickAction]);
+
+  const handleMobileTouchMove = useCallback((position: { x: number; y: number }) => {
+    setCursorPosition(position);
+  }, [setCursorPosition]);
+
+  const {
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    isLongPressActive,
+    isDoubleTapDetected,
+  } = useMobileTouchInteractions({
+    isActive: isTraceActive && isMobile,
+    onDoubleTap: handleMobileDoubleTap,
+    onLongPressStart: handleMobileLongPressStart,
+    onLongPressEnd: handleMobileLongPressEnd,
+    onTouchMove: handleMobileTouchMove,
+    extractElementDetails,
+  });
 
   const handleCursorMovement = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isTraceActive || isHoverPaused) return;
+    if (!isTraceActive || isHoverPaused || isMobile) return;
 
     const target = e.target as HTMLElement;
     if (target && 
@@ -72,10 +133,10 @@ export const useInteractionHandlers = ({
         }
       }
     }
-  }, [isTraceActive, isHoverPaused, extractElementDetails, setCursorPosition, setDetectedElement, showInteractivePanel, setShowInteractivePanel]);
+  }, [isTraceActive, isHoverPaused, isMobile, extractElementDetails, setCursorPosition, setDetectedElement, showInteractivePanel, setShowInteractivePanel]);
 
   const handleElementClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isTraceActive) return;
+    if (!isTraceActive || isMobile) return;
     
     const target = e.target as HTMLElement;
     
@@ -127,7 +188,7 @@ export const useInteractionHandlers = ({
         }
       }
     }
-  }, [isTraceActive, detectedElement, recordEvent, onElementClick]);
+  }, [isTraceActive, isMobile, detectedElement, recordEvent, onElementClick]);
 
   const handleKeyboardInput = useCallback((e: KeyboardEvent) => {
     const activeElement = document.activeElement;
@@ -149,5 +210,10 @@ export const useInteractionHandlers = ({
   return {
     handleCursorMovement,
     handleElementClick,
+    handleTouchStart: isMobile ? handleTouchStart : undefined,
+    handleTouchMove: isMobile ? handleTouchMove : undefined,
+    handleTouchEnd: isMobile ? handleTouchEnd : undefined,
+    isLongPressActive,
+    isDoubleTapDetected,
   };
 };
