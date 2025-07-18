@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useLogTrace } from '@/shared/hooks/useLogTrace';
+import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
-import { useLogTraceEventHandlers } from '@/shared/hooks/useLogTraceEventHandlers';
+import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
 import { usePinnedDetails } from '@/shared/hooks/usePinnedDetails';
 import { useToast } from '@/hooks/use-toast';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
@@ -101,30 +101,31 @@ const LogTrace: React.FC<LogTraceProps> = ({
     clearAllPins,
   } = usePinnedDetails();
 
+  // Main LogTrace orchestrator with renamed hooks
   const {
-    isActive,
-    setIsActive,
-    mousePosition,
-    setMousePosition,
-    currentElement,
-    setCurrentElement,
-    showDebugModal,
-    setShowDebugModal,
-    showTerminal,
-    setShowTerminal,
-    events,
-    isAnalyzing,
+    isTraceActive,
+    setIsTraceActive,
+    cursorPosition,
+    setCursorPosition,
+    detectedElement,
+    setDetectedElement,
+    showAIDebugModal,
+    setShowAIDebugModal,
+    showTerminalPanel,
+    setShowTerminalPanel,
+    capturedEvents,
+    isAIAnalyzing,
     overlayRef,
     modalRef,
-    addEvent,
-    extractElementInfo,
-    analyzeWithAI,
-    clearEvents,
-    exportEvents,
-    generateAdvancedPrompt,
-    hasErrors,
-    errors,
-  } = useLogTrace();
+    recordEvent,
+    extractElementDetails,
+    analyzeElementWithAI,
+    clearCapturedEvents,
+    exportCapturedEvents,
+    generateElementPrompt,
+    hasAnyErrors,
+    allErrors,
+  } = useLogTraceOrchestrator();
 
   const {
     debugResponses,
@@ -139,8 +140,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
 
   // Sync capture state with LogTrace isActive
   useEffect(() => {
-    setIsActive(captureActive);
-  }, [captureActive, setIsActive]);
+    setIsTraceActive(captureActive);
+  }, [captureActive, setIsTraceActive]);
 
   // Handle capture toggle change
   const handleCaptureToggle = useCallback((checked: boolean) => {
@@ -148,49 +149,49 @@ const LogTrace: React.FC<LogTraceProps> = ({
   }, [setCaptureActive]);
 
   // Escape handler - only handles modals/overlays now
-  const handleEscape = useCallback(() => {
+  const handleEscapeKey = useCallback(() => {
     setOpenInspectors((prev) => prev.length > 0 ? prev.slice(0, -1) : prev);
-    setShowDebugModal(false);
+    setShowAIDebugModal(false);
     setShowSettingsDrawer(false);
     setShowQuickActions(false);
-    if (showTerminal) setShowTerminal(false);
-  }, [setShowDebugModal, showTerminal, setShowTerminal]);
+    if (showTerminalPanel) setShowTerminalPanel(false);
+  }, [setShowAIDebugModal, showTerminalPanel, setShowTerminalPanel]);
 
   // Keyboard shortcuts handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        handleEscape();
+        handleEscapeKey();
       } else if (e.key === 'q' || e.key === 'Q') {
         // Show quick actions at mouse position
-        setQuickActionPosition({ x: mousePosition.x, y: mousePosition.y });
+        setQuickActionPosition({ x: cursorPosition.x, y: cursorPosition.y });
         setShowQuickActions(true);
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleEscape, mousePosition]);
+  }, [handleEscapeKey, cursorPosition]);
 
   // Element click handler - opens details modal directly
   const handleElementClick = useCallback(() => {
-    if (!currentElement) return;
+    if (!detectedElement) return;
     
     // Directly open the details modal
-    setDetailsElement(currentElement);
+    setDetailsElement(detectedElement);
     setShowMoreDetails(true);
     
-    addEvent({
+    recordEvent({
       type: 'inspect',
-      position: mousePosition,
+      position: cursorPosition,
       element: {
-        tag: currentElement.tag,
-        id: currentElement.id,
-        classes: currentElement.classes,
-        text: currentElement.text,
+        tag: detectedElement.tag,
+        id: detectedElement.id,
+        classes: detectedElement.classes,
+        text: detectedElement.text,
       },
     });
-  }, [currentElement, mousePosition, addEvent, setShowMoreDetails, setDetailsElement]);
+  }, [detectedElement, cursorPosition, recordEvent, setShowMoreDetails, setDetailsElement]);
 
   // Quick Action handler
   const handleQuickAction = useCallback((action: 'screenshot' | 'context' | 'debug' | 'details' | { type: 'screenshot', mode: ScreenshotMode } | { type: 'context', mode: string, input: string }) => {
@@ -198,65 +199,65 @@ const LogTrace: React.FC<LogTraceProps> = ({
     
     if (action === 'details') {
       setShowMoreDetails(true);
-      setDetailsElement(currentElement);
+      setDetailsElement(detectedElement);
     } else if (action === 'debug') {
-      setShowDebugModal(true);
+      setShowAIDebugModal(true);
     } else if (action === 'screenshot' || (typeof action === 'object' && action.type === 'screenshot')) {
       const mode = typeof action === 'object' ? action.mode : 'window';
       setActiveScreenshotOverlay(mode === 'freeform' ? 'freeform' : 'rectangle');
     } else if (typeof action === 'object' && action.type === 'context') {
       // Handle context generation
-      const prompt = `Context Action: ${action.mode}\nUser Input: ${action.input}\nElement: ${currentElement ? JSON.stringify(currentElement) : 'none'}`;
+      const prompt = `Context Action: ${action.mode}\nUser Input: ${action.input}\nElement: ${detectedElement ? JSON.stringify(detectedElement) : 'none'}`;
       console.log('Context generation:', prompt);
       // You can add AI call here if needed
     }
-  }, [currentElement, setShowDebugModal, setShowMoreDetails, setDetailsElement, setActiveScreenshotOverlay]);
+  }, [detectedElement, setShowAIDebugModal, setShowMoreDetails, setDetailsElement, setActiveScreenshotOverlay]);
 
-  // Get mouse and click handlers from the hook
-  const { handleMouseMove, handleClick } = useLogTraceEventHandlers({
-    isActive,
+  // Get mouse and click handlers from the renamed hook
+  const { handleCursorMovement, handleElementClick: handleElementClickEvent } = useInteractionHandlers({
+    isTraceActive,
     isHoverPaused,
-    currentElement,
-    mousePosition,
+    detectedElement,
+    cursorPosition,
     showInteractivePanel,
-    setMousePosition,
-    setCurrentElement,
+    setCursorPosition,
+    setDetectedElement,
     setShowInteractivePanel,
-    setShowDebugModal,
-    extractElementInfo,
-    addEvent,
-    handleEscape,
+    setShowAIDebugModal,
+    extractElementDetails,
+    recordEvent,
+    handleEscapeKey,
     onElementClick: handleElementClick,
   });
 
   const { toast } = useToast();
 
-  // Watch for errors from useLogTrace and display toast
+  // Watch for errors and display toast - updated variable names
   useEffect(() => {
-    if (hasErrors) {
-      if (errors.settings) {
+    if (hasAnyErrors) {
+      if (allErrors.settings) {
         toast({
           title: 'Settings Error',
-          description: errors.settings,
+          description: allErrors.settings,
           variant: 'destructive',
         });
       }
-      if (errors.storage) {
+      if (allErrors.storage) {
         toast({
           title: 'Storage Error',
-          description: errors.storage,
+          description: allErrors.storage,
           variant: 'destructive',
         });
       }
-      if (errors.loading) {
+      if (allErrors.loading) {
         toast({
           title: 'Load Error',
-          description: errors.loading,
+          description: allErrors.loading,
           variant: 'destructive',
         });
       }
     }
-  }, [hasErrors, errors, toast]);
+  }, [hasAnyErrors, allErrors, toast]);
 
   // Screenshot handling functions
   const handleScreenshot = useCallback(async (mode: 'window' | 'fullscreen' | 'element') => {
@@ -305,14 +306,14 @@ const LogTrace: React.FC<LogTraceProps> = ({
 
   // Right-click handler for quick actions
   const handleRightClick = useCallback((e: React.MouseEvent) => {
-    if (currentElement) {
+    if (detectedElement) {
       // Show quick actions for elements
       setQuickActionPosition({ x: e.clientX, y: e.clientY });
       setShowQuickActions(true);
     }
     // No context menu for empty space - just prevent default
     e.preventDefault();
-  }, [currentElement]);
+  }, [detectedElement]);
 
   // Onboarding handlers
   const handleOnboardingNext = () => {
@@ -340,9 +341,9 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
     if (isPremium) {
       try {
-        const response = await analyzeWithAI(prompt);
+        const response = await analyzeElementWithAI(prompt);
         addDebugResponse(prompt, response || 'No response received');
-        setShowTerminal(true);
+        setShowTerminalPanel(true);
         toast({
           title: 'Request sent!',
           description: 'Your AI debug results are now in the terminal (bottom right).',
@@ -363,9 +364,9 @@ const LogTrace: React.FC<LogTraceProps> = ({
     }
 
     try {
-      const response = await analyzeWithAI(prompt);
+      const response = await analyzeElementWithAI(prompt);
       addDebugResponse(prompt, response || 'No response received');
-      setShowTerminal(true);
+      setShowTerminalPanel(true);
       toast({
         title: 'Request sent!',
         description: 'Your AI debug results are now in the terminal (bottom right).',
@@ -378,7 +379,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
       addDebugResponse(prompt, errorMessage);
       return null;
     }
-  }, [analyzeWithAI, addDebugResponse, canUseAiDebug, isPremium, setShowTerminal, toast]);
+  }, [analyzeElementWithAI, addDebugResponse, canUseAiDebug, isPremium, setShowTerminalPanel, toast]);
 
   // Mouse tracking logic
   useEffect(() => {
@@ -425,8 +426,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
     <div
       ref={logTraceRef}
       className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
-      onMouseMove={handleMouseMove}
-      onClick={handleClick}
+      onMouseMove={handleCursorMovement}
+      onClick={handleElementClickEvent}
       onContextMenu={handleRightClick}
     >
       {/* Quick Action Modal */}
@@ -440,8 +441,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
 
       {/* Floating Hint */}
       <FloatingHint 
-        isActive={isActive}
-        currentElement={currentElement}
+        isActive={isTraceActive}
+        currentElement={detectedElement}
       />
       
       <div className="absolute inset-0 opacity-10">
@@ -510,11 +511,11 @@ const LogTrace: React.FC<LogTraceProps> = ({
           </div>
         </div>
 
-        {hasErrors && (
+        {hasAnyErrors && (
           <div className="my-4 p-3 rounded bg-red-800/60 text-red-200 animate-pulse max-w-xl">
             <h4 className="font-semibold text-red-300 mb-1">Errors Detected</h4>
             <ul className="text-sm list-disc list-inside space-y-1">
-              {Object.entries(errors).map(([key, value]) => (
+              {Object.entries(allErrors).map(([key, value]) => (
                 value ? <li key={key}>{value}</li> : null
               ))}
             </ul>
@@ -570,20 +571,20 @@ const LogTrace: React.FC<LogTraceProps> = ({
           onNext={handleOnboardingNext}
           onSkip={handleOnboardingSkip}
           onComplete={handleOnboardingComplete}
-          isActive={isActive}
-          currentElement={currentElement}
-          mousePosition={mousePosition}
+          isActive={isTraceActive}
+          currentElement={detectedElement}
+          mousePosition={cursorPosition}
           showInspectorOpen={openInspectors.length > 0}
-          showTerminal={showTerminal}
+          showTerminal={showTerminalPanel}
         />
       )}
 
       <MouseOverlay 
-        isActive={isActive}
-          currentElement={currentElement}
-          mousePosition={mousePosition}
+        isActive={isTraceActive}
+        currentElement={detectedElement}
+        mousePosition={cursorPosition}
         overlayRef={overlayRef}
-        />
+      />
 
       {/* Sticky Element Inspectors - supports up to 3 panels */}
       {openInspectors.map((inspector, index) => {
@@ -601,7 +602,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
             isVisible={true}
             currentElement={inspector.elementInfo}
             mousePosition={adjustedPosition}
-            onDebug={() => setShowDebugModal(true)}
+            onDebug={() => setShowAIDebugModal(true)}
             onClose={() => {
               setOpenInspectors(prev => prev.filter(i => i.id !== inspector.id));
             }}
@@ -619,27 +620,27 @@ const LogTrace: React.FC<LogTraceProps> = ({
       })}
 
       <DebugModal 
-        showDebugModal={showDebugModal}
-        setShowDebugModal={setShowDebugModal}
-        currentElement={currentElement}
-        mousePosition={mousePosition}
-        isAnalyzing={isAnalyzing}
+        showDebugModal={showAIDebugModal}
+        setShowDebugModal={setShowAIDebugModal}
+        currentElement={detectedElement}
+        mousePosition={cursorPosition}
+        isAnalyzing={isAIAnalyzing}
         analyzeWithAI={handleAnalyzeWithAI}
-        generateAdvancedPrompt={generateAdvancedPrompt}
+        generateAdvancedPrompt={generateElementPrompt}
         modalRef={modalRef}
-        terminalHeight={showTerminal ? terminalHeight : 0}
+        terminalHeight={showTerminalPanel ? terminalHeight : 0}
       />
 
       <MoreDetailsModal 
         element={detailsElement}
         open={showMoreDetails}
         onClose={() => setShowMoreDetails(false)}
-        terminalHeight={showTerminal ? terminalHeight : 0}
+        terminalHeight={showTerminalPanel ? terminalHeight : 0}
       />
 
-      {!showTerminal && (
+      {!showTerminalPanel && (
         <Button
-          onClick={() => setShowTerminal(true)}
+          onClick={() => setShowTerminalPanel(true)}
           className={`fixed ${isMobile ? 'bottom-6 right-6 w-16 h-16' : 'bottom-4 right-4 w-12 h-12'} z-30 bg-green-600 hover:bg-green-700 text-white rounded-full p-0 shadow-lg`}
         >
           <span style={{ 
@@ -653,7 +654,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
         </Button>
       )}
 
-      {showTerminal && (
+      {showTerminalPanel && (
         <div
           style={{
             position: 'fixed',
@@ -673,7 +674,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
             <div className="flex items-center justify-between p-4 bg-slate-900 border-b border-green-500/30">
               <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
               <Button
-                onClick={() => setShowTerminal(false)}
+                onClick={() => setShowTerminalPanel(false)}
                 variant="ghost"
                 size="sm"
                 className="text-gray-400 hover:text-white"
@@ -725,11 +726,11 @@ const LogTrace: React.FC<LogTraceProps> = ({
           
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <TabbedTerminal
-              showTerminal={showTerminal}
-              setShowTerminal={setShowTerminal}
-              events={events}
-              exportEvents={exportEvents}
-              clearEvents={clearEvents}
+              showTerminal={showTerminalPanel}
+              setShowTerminal={setShowTerminalPanel}
+              events={capturedEvents}
+              exportEvents={exportCapturedEvents}
+              clearEvents={clearCapturedEvents}
               debugResponses={debugResponses}
               clearDebugResponses={clearDebugResponses}
               terminalHeight={terminalHeight}

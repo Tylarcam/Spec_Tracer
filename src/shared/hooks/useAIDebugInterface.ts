@@ -1,6 +1,7 @@
 
 /**
- * Hook for managing debug modal functionality
+ * Hook for AI-powered element debugging functionality
+ * Handles AI analysis requests and debug modal management
  */
 
 import { useState, useCallback } from 'react';
@@ -8,16 +9,16 @@ import { ElementInfo } from '../types';
 import { callAIDebugFunction } from '../api';
 import { sanitizeText } from '@/utils/sanitization';
 
-export const useDebugModal = (
-  currentElement: ElementInfo | null,
-  mousePosition: { x: number; y: number },
-  addEvent: (event: any) => void
+export const useAIDebugInterface = (
+  detectedElement: ElementInfo | null,
+  cursorPosition: { x: number; y: number },
+  recordEvent: (event: any) => void
 ) => {
-  const [showDebugModal, setShowDebugModal] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showAIDebugModal, setShowAIDebugModal] = useState(false);
+  const [isAIAnalyzing, setIsAIAnalyzing] = useState(false);
 
-  const analyzeWithAI = async (prompt: string) => {
-    setIsAnalyzing(true);
+  const analyzeElementWithAI = async (prompt: string) => {
+    setIsAIAnalyzing(true);
     try {
       const MAX_RETRIES = 2;
       let attempt = 0;
@@ -25,7 +26,7 @@ export const useDebugModal = (
       let lastError: any = null;
       while (attempt <= MAX_RETRIES) {
         try {
-          response = await callAIDebugFunction(prompt, currentElement, mousePosition);
+          response = await callAIDebugFunction(prompt, detectedElement, cursorPosition);
           lastError = null;
           break;
         } catch (error) {
@@ -42,39 +43,39 @@ export const useDebugModal = (
         throw lastError;
       }
 
-      addEvent({
+      recordEvent({
         type: 'llm_response',
-        position: mousePosition,
+        position: cursorPosition,
         prompt: sanitizeText(prompt),
         response: sanitizeText(response),
-        element: currentElement ? {
-          tag: sanitizeText(currentElement.tag),
-          id: sanitizeText(currentElement.id),
-          classes: currentElement.classes.map(c => sanitizeText(c)),
-          text: sanitizeText(currentElement.text),
+        element: detectedElement ? {
+          tag: sanitizeText(detectedElement.tag),
+          id: sanitizeText(detectedElement.id),
+          classes: detectedElement.classes.map(c => sanitizeText(c)),
+          text: sanitizeText(detectedElement.text),
         } : undefined,
       });
-      setShowDebugModal(false);
+      setShowAIDebugModal(false);
       return response;
     } finally {
-      setIsAnalyzing(false);
+      setIsAIAnalyzing(false);
     }
   };
 
-  const generateAdvancedPrompt = useCallback((): string => {
-    if (!currentElement) return '';
+  const generateElementPrompt = useCallback((): string => {
+    if (!detectedElement) return '';
     
-    const element = currentElement.element;
+    const element = detectedElement.element;
     const styles = window.getComputedStyle(element);
-    const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(currentElement.tag) || 
+    const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(detectedElement.tag) || 
                          element.onclick !== null || 
                          styles.cursor === 'pointer';
 
     return `Debug this element in detail:
 
-Element: <${currentElement.tag}${currentElement.id ? ` id="${sanitizeText(currentElement.id)}"` : ''}${currentElement.classes.length ? ` class="${currentElement.classes.map(c => sanitizeText(c)).join(' ')}"` : ''}>
-Text: "${sanitizeText(currentElement.text)}"
-Position: x:${mousePosition.x}, y:${mousePosition.y}
+Element: <${detectedElement.tag}${detectedElement.id ? ` id="${sanitizeText(detectedElement.id)}"` : ''}${detectedElement.classes.length ? ` class="${detectedElement.classes.map(c => sanitizeText(c)).join(' ')}"` : ''}>
+Text: "${sanitizeText(detectedElement.text)}"
+Position: x:${cursorPosition.x}, y:${cursorPosition.y}
 Interactive: ${isInteractive ? 'Yes' : 'No'}
 Cursor: ${styles.cursor}
 Display: ${styles.display}
@@ -89,13 +90,13 @@ Consider:
 5. How could the user experience be improved?
 
 Provide specific, actionable debugging steps and potential solutions.`;
-  }, [currentElement, mousePosition]);
+  }, [detectedElement, cursorPosition]);
 
   return {
-    showDebugModal,
-    setShowDebugModal,
-    isAnalyzing,
-    analyzeWithAI,
-    generateAdvancedPrompt,
+    showAIDebugModal,
+    setShowAIDebugModal,
+    isAIAnalyzing,
+    analyzeElementWithAI,
+    generateElementPrompt,
   };
 };

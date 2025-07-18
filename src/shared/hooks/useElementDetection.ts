@@ -1,17 +1,18 @@
 
 /**
- * Hook for managing element inspection functionality
+ * Hook for detecting and analyzing DOM elements under cursor
+ * Handles element highlighting and information extraction
  */
 
 import { useState, useCallback } from 'react';
 import { ElementInfo } from '../types';
 import { sanitizeText } from '@/utils/sanitization';
 
-export const useElementInspection = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [currentElement, setCurrentElement] = useState<ElementInfo | null>(null);
+export const useElementDetection = () => {
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
+  const [detectedElement, setDetectedElement] = useState<ElementInfo | null>(null);
 
-  const extractElementInfo = useCallback((element: HTMLElement): ElementInfo => {
+  const extractElementDetails = useCallback((element: HTMLElement): ElementInfo => {
     const rect = element.getBoundingClientRect();
     const text = element.textContent || element.innerText || '';
     
@@ -39,17 +40,17 @@ export const useElementInspection = () => {
       classes: Array.from(element.classList).map(c => sanitizeText(c)),
       text: sanitizeText(text.slice(0, 100)), // Limit text length
       element: element,
-      parentPath, // Add this line
+      parentPath,
       attributes,
       size,
     };
   }, []);
 
   return {
-    mousePosition,
-    setMousePosition,
-    currentElement,
-    setCurrentElement,
-    extractElementInfo,
+    cursorPosition,
+    setCursorPosition,
+    detectedElement,
+    setDetectedElement,
+    extractElementDetails,
   };
 };

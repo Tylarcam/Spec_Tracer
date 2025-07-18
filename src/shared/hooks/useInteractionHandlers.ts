@@ -1,40 +1,45 @@
+/**
+ * Hook for handling mouse and keyboard interactions during LogTrace sessions
+ * Manages cursor tracking, element detection, and user input events
+ */
+
 import { useCallback, useEffect } from 'react';
 import { ElementInfo, LogEvent } from '../types';
 
-interface UseLogTraceEventHandlersProps {
-  isActive: boolean;
+interface UseInteractionHandlersProps {
+  isTraceActive: boolean;
   isHoverPaused: boolean;
-  currentElement: ElementInfo | null;
-  mousePosition: { x: number; y: number };
+  detectedElement: ElementInfo | null;
+  cursorPosition: { x: number; y: number };
   showInteractivePanel: boolean;
-  setMousePosition: (pos: { x: number; y: number }) => void;
-  setCurrentElement: (element: ElementInfo | null) => void;
+  setCursorPosition: (pos: { x: number; y: number }) => void;
+  setDetectedElement: (element: ElementInfo | null) => void;
   setShowInteractivePanel: (show: boolean) => void;
-  setShowDebugModal: (show: boolean) => void;
-  extractElementInfo: (target: HTMLElement) => ElementInfo;
-  addEvent: (event: Omit<LogEvent, 'id' | 'timestamp'>) => void;
-  handleEscape: () => void;
-  onElementClick?: () => void; // Callback for when element is clicked
+  setShowAIDebugModal: (show: boolean) => void;
+  extractElementDetails: (target: HTMLElement) => ElementInfo;
+  recordEvent: (event: Omit<LogEvent, 'id' | 'timestamp'>) => void;
+  handleEscapeKey: () => void;
+  onElementClick?: () => void;
 }
 
-export const useLogTraceEventHandlers = ({
-  isActive,
+export const useInteractionHandlers = ({
+  isTraceActive,
   isHoverPaused,
-  currentElement,
-  mousePosition,
+  detectedElement,
+  cursorPosition,
   showInteractivePanel,
-  setMousePosition,
-  setCurrentElement,
+  setCursorPosition,
+  setDetectedElement,
   setShowInteractivePanel,
-  setShowDebugModal,
-  extractElementInfo,
-  addEvent,
-  handleEscape,
+  setShowAIDebugModal,
+  extractElementDetails,
+  recordEvent,
+  handleEscapeKey,
   onElementClick,
-}: UseLogTraceEventHandlersProps) => {
+}: UseInteractionHandlersProps) => {
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isActive || isHoverPaused) return;
+  const handleCursorMovement = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isTraceActive || isHoverPaused) return;
 
     const target = e.target as HTMLElement;
     if (target && 
@@ -58,19 +63,19 @@ export const useLogTraceEventHandlers = ({
       
       // Only update element highlighting if cursor is not over an inspector panel
       if (!isOverInspector) {
-        setMousePosition({ x: e.clientX, y: e.clientY });
-        const elementInfo = extractElementInfo(target);
-        setCurrentElement(elementInfo);
+        setCursorPosition({ x: e.clientX, y: e.clientY });
+        const elementInfo = extractElementDetails(target);
+        setDetectedElement(elementInfo);
         
         if (showInteractivePanel) {
           setShowInteractivePanel(false);
         }
       }
     }
-  }, [isActive, isHoverPaused, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel, setShowInteractivePanel]);
+  }, [isTraceActive, isHoverPaused, extractElementDetails, setCursorPosition, setDetectedElement, showInteractivePanel, setShowInteractivePanel]);
 
-  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isActive) return;
+  const handleElementClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isTraceActive) return;
     
     const target = e.target as HTMLElement;
     if (target && 
@@ -97,8 +102,8 @@ export const useLogTraceEventHandlers = ({
       // Only allow element inspector creation if cursor is not over an inspector panel
       if (!isOverInspector) {
         // Check if the click is on the currently highlighted element
-        if (currentElement && currentElement.element) {
-          const elementRect = currentElement.element.getBoundingClientRect();
+        if (detectedElement && detectedElement.element) {
+          const elementRect = detectedElement.element.getBoundingClientRect();
           const clickX = e.clientX;
           const clickY = e.clientY;
           
@@ -106,7 +111,7 @@ export const useLogTraceEventHandlers = ({
           if (clickX >= elementRect.left && 
               clickX <= elementRect.right && 
               clickY >= elementRect.top && 
-              clickY <= elementRect.bottom) {
+              clickY >= elementRect.bottom) {
             // This is a click on the highlighted element - trigger element inspector
             if (onElementClick) {
               onElementClick();
@@ -115,23 +120,23 @@ export const useLogTraceEventHandlers = ({
         }
       }
       
-      addEvent({
+      recordEvent({
         type: 'click',
         position: { x: e.clientX, y: e.clientY },
-        element: currentElement ? {
-          tag: currentElement.tag,
-          id: currentElement.id,
-          classes: currentElement.classes,
-          text: currentElement.text,
-          parentPath: currentElement.parentPath,
-          attributes: currentElement.attributes,
-          size: currentElement.size,
+        element: detectedElement ? {
+          tag: detectedElement.tag,
+          id: detectedElement.id,
+          classes: detectedElement.classes,
+          text: detectedElement.text,
+          parentPath: detectedElement.parentPath,
+          attributes: detectedElement.attributes,
+          size: detectedElement.size,
         } : undefined,
       });
     }
-  }, [isActive, currentElement, addEvent, onElementClick]);
+  }, [isTraceActive, detectedElement, recordEvent, onElementClick]);
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+  const handleKeyboardInput = useCallback((e: KeyboardEvent) => {
     const activeElement = document.activeElement;
     if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
       return;
@@ -139,17 +144,17 @@ export const useLogTraceEventHandlers = ({
     
     // Only keep Escape key for closing modals/overlays
     if (e.key === 'Escape') {
-      handleEscape();
+      handleEscapeKey();
     }
-  }, [handleEscape]);
+  }, [handleEscapeKey]);
 
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+    document.addEventListener('keydown', handleKeyboardInput);
+    return () => document.removeEventListener('keydown', handleKeyboardInput);
+  }, [handleKeyboardInput]);
 
   return {
-    handleMouseMove,
-    handleClick,
+    handleCursorMovement,
+    handleElementClick,
   };
 };
