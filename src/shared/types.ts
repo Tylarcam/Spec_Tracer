@@ -33,9 +33,13 @@ export interface ElementInfo {
 }
 
 export interface LogTraceSettings {
-  apiKey?: string;
-  autoSave: boolean;
   maxEvents: number;
+  autoSave: boolean;
+  highlightColor: string;
+  showElementPath: boolean;
+  enableKeyboardShortcuts: boolean;
+  theme: 'dark' | 'light';
+  apiKey?: string;
   debugMode: boolean;
 }
 

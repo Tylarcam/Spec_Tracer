@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS: LogTraceSettings = {
   showElementPath: true,
   enableKeyboardShortcuts: true,
   theme: 'dark',
+  debugMode: false,
 };
 
 export const useLogTraceSettings = () => {
