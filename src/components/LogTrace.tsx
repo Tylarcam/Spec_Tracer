@@ -128,6 +128,17 @@ const LogTrace: React.FC<LogTraceProps> = ({
     clearDebugResponses,
   } = useDebugResponses();
 
+  // Fix: Sync contextCaptureEnabled with isActive properly
+  useEffect(() => {
+    setContextCaptureEnabled(isActive);
+  }, [isActive]);
+
+  // Handle capture toggle change
+  const handleCaptureToggle = useCallback((checked: boolean) => {
+    setContextCaptureEnabled(checked);
+    setIsActive(checked);
+  }, [setIsActive]);
+
   // Escape handler - only handles modals/overlays now
   const handleEscape = useCallback(() => {
     setOpenInspectors((prev) => prev.length > 0 ? prev.slice(0, -1) : prev);
@@ -153,27 +164,13 @@ const LogTrace: React.FC<LogTraceProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleEscape, mousePosition]);
 
-  // Element click handler - streamlined to directly open element inspector
+  // Element click handler - opens details modal directly
   const handleElementClick = useCallback(() => {
     if (!currentElement) return;
-    setShowDebugModal(false);
     
-    // Check if we already have 3 panels open (max limit)
-    if (openInspectors.length >= 3) {
-      // Show a simple alert for now, we'll enhance this later
-      alert('Maximum panels reached. Please close one of the existing inspector panels first.');
-      return;
-    }
-    
-    // Add new inspector panel
-    const newInspector = {
-      id: `inspector-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      elementInfo: currentElement,
-      mousePosition: mousePosition,
-      timestamp: Date.now(),
-    };
-    
-    setOpenInspectors(prev => [...prev, newInspector]);
+    // Directly open the details modal
+    setDetailsElement(currentElement);
+    setShowMoreDetails(true);
     
     addEvent({
       type: 'inspect',
@@ -185,7 +182,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
         text: currentElement.text,
       },
     });
-  }, [currentElement, mousePosition, addEvent, setShowDebugModal, openInspectors.length]);
+  }, [currentElement, mousePosition, addEvent, setShowMoreDetails, setDetailsElement]);
 
   // Quick Action handler
   const handleQuickAction = useCallback((action: 'screenshot' | 'context' | 'debug' | 'details' | { type: 'screenshot', mode: ScreenshotMode } | { type: 'context', mode: string, input: string }) => {
@@ -225,13 +222,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
   });
 
   const { toast } = useToast();
-
-  // Sync contextCaptureEnabled with isActive state
-  useEffect(() => {
-    if (contextCaptureEnabled && !isActive) {
-      setIsActive(true);
-    }
-  }, [contextCaptureEnabled, isActive, setIsActive]);
 
   // Watch for errors from useLogTrace and display toast
   useEffect(() => {
@@ -392,11 +382,11 @@ const LogTrace: React.FC<LogTraceProps> = ({
 
   const handleInspectorMouseEnter = () => {
     setIsInspectorHovered(true);
-          setIsHoverPaused(true);
+    setIsHoverPaused(true);
   };
   const handleInspectorMouseLeave = () => {
     setIsInspectorHovered(false);
-          setIsHoverPaused(false);
+    setIsHoverPaused(false);
   };
 
   useEffect(() => {
@@ -472,10 +462,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
                 <span className="text-xs text-gray-400">Capture:</span>
             <Switch
               checked={contextCaptureEnabled}
-              onCheckedChange={(checked) => {
-                setContextCaptureEnabled(checked);
-                setIsActive(checked);
-              }}
+              onCheckedChange={handleCaptureToggle}
               aria-label="Context Capture"
                   className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-600"
                 />
@@ -543,11 +530,11 @@ const LogTrace: React.FC<LogTraceProps> = ({
           </div>
         </div>
         <div className="text-sm text-gray-400 bg-slate-800/60 rounded p-3">
-          <p className="font-semibold text-cyan-400 mb-2">New Context Menu System:</p>
-          <p>• <strong>Right-click anywhere</strong> to access all LogTrace actions</p>
-          <p>• <strong>No more keyboard shortcuts</strong> - type freely without conflicts</p>
-          <p>• <strong>Context-aware options</strong> - different actions based on current state</p>
-          <p>• <strong>Element-specific actions</strong> when hovering over elements</p>
+          <p className="font-semibold text-cyan-400 mb-2">How to Use LogTrace:</p>
+          <p>• <strong>1. Right-click anywhere</strong> to open the LogTrace context menu</p>
+          <p>• <strong>2. Select "Start LogTrace"</strong> to begin element inspection (mouse overlay UI)</p>
+          <p>• <strong>3. Hover over elements</strong> to see live inspection data</p>
+          <p>• <strong>4. Click a highlighted element</strong> to open the pinned details UI</p>
         </div>
       </div>
 
@@ -577,8 +564,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
           mousePosition={mousePosition}
         overlayRef={overlayRef}
         />
-
-
 
       {/* Sticky Element Inspectors - supports up to 3 panels */}
       {openInspectors.map((inspector, index) => {
