@@ -78,61 +78,54 @@ export const useInteractionHandlers = ({
     if (!isTraceActive) return;
     
     const target = e.target as HTMLElement;
-    if (target && 
-        !target.closest('#logtrace-overlay') && 
-        !target.closest('#logtrace-modal') &&
-        !target.closest('[data-interactive-panel]') &&
-        !target.closest('[data-quick-actions]')) {
-      e.preventDefault();
+    
+    // Skip if clicking on LogTrace UI elements
+    if (target && (
+        target.closest('#logtrace-overlay') || 
+        target.closest('#logtrace-modal') ||
+        target.closest('[data-interactive-panel]') ||
+        target.closest('[data-quick-actions]') ||
+        target.closest('[data-inspector-panel]')
+    )) {
+      return;
+    }
+
+    // Only proceed if we have a detected element and the click is on a highlighted element
+    if (detectedElement && detectedElement.element) {
+      const elementRect = detectedElement.element.getBoundingClientRect();
+      const clickX = e.clientX;
+      const clickY = e.clientY;
       
-      // Check if cursor is over any inspector panel
-      const inspectorPanels = document.querySelectorAll('[data-inspector-panel]');
-      let isOverInspector = false;
-      
-      inspectorPanels.forEach(panel => {
-        const rect = panel.getBoundingClientRect();
-        if (e.clientX >= rect.left && 
-            e.clientX <= rect.right && 
-            e.clientY >= rect.top && 
-            e.clientY <= rect.bottom) {
-          isOverInspector = true;
-        }
-      });
-      
-      // Only allow element inspector creation if cursor is not over an inspector panel
-      if (!isOverInspector) {
-        // Check if the click is on the currently highlighted element
-        if (detectedElement && detectedElement.element) {
-          const elementRect = detectedElement.element.getBoundingClientRect();
-          const clickX = e.clientX;
-          const clickY = e.clientY;
-          
-          // Check if click is within the highlighted element's bounds
-          if (clickX >= elementRect.left && 
-              clickX <= elementRect.right && 
-              clickY >= elementRect.top && 
-              clickY >= elementRect.bottom) {
-            // This is a click on the highlighted element - trigger element inspector
-            if (onElementClick) {
-              onElementClick();
-            }
-          }
+      // Check if click is within the highlighted element's bounds
+      if (clickX >= elementRect.left && 
+          clickX <= elementRect.right && 
+          clickY >= elementRect.top && 
+          clickY <= elementRect.bottom) {
+        
+        // Prevent default behavior for element inspection
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Record the click event
+        recordEvent({
+          type: 'click',
+          position: { x: e.clientX, y: e.clientY },
+          element: {
+            tag: detectedElement.tag,
+            id: detectedElement.id,
+            classes: detectedElement.classes,
+            text: detectedElement.text,
+            parentPath: detectedElement.parentPath,
+            attributes: detectedElement.attributes,
+            size: detectedElement.size,
+          },
+        });
+        
+        // Trigger the element inspection
+        if (onElementClick) {
+          onElementClick();
         }
       }
-      
-      recordEvent({
-        type: 'click',
-        position: { x: e.clientX, y: e.clientY },
-        element: detectedElement ? {
-          tag: detectedElement.tag,
-          id: detectedElement.id,
-          classes: detectedElement.classes,
-          text: detectedElement.text,
-          parentPath: detectedElement.parentPath,
-          attributes: detectedElement.attributes,
-          size: detectedElement.size,
-        } : undefined,
-      });
     }
   }, [isTraceActive, detectedElement, recordEvent, onElementClick]);
 

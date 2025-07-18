@@ -177,6 +177,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const handleElementClick = useCallback(() => {
     if (!detectedElement) return;
     
+    console.log('Element clicked:', detectedElement); // Debug log
+    
     // Directly open the details modal
     setDetailsElement(detectedElement);
     setShowMoreDetails(true);
@@ -189,9 +191,20 @@ const LogTrace: React.FC<LogTraceProps> = ({
         id: detectedElement.id,
         classes: detectedElement.classes,
         text: detectedElement.text,
+        parentPath: detectedElement.parentPath,
+        attributes: detectedElement.attributes,
+        size: detectedElement.size,
       },
     });
-  }, [detectedElement, cursorPosition, recordEvent, setShowMoreDetails, setDetailsElement]);
+
+    // Also show a toast to confirm the action
+    toast({
+      title: 'Element Inspected',
+      description: `Opened details for ${detectedElement.tag} element`,
+      variant: 'success',
+      duration: 2000,
+    });
+  }, [detectedElement, cursorPosition, recordEvent, setShowMoreDetails, setDetailsElement, toast]);
 
   // Quick Action handler
   const handleQuickAction = useCallback((action: 'screenshot' | 'context' | 'debug' | 'details' | { type: 'screenshot', mode: ScreenshotMode } | { type: 'context', mode: string, input: string }) => {
@@ -213,7 +226,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
     }
   }, [detectedElement, setShowAIDebugModal, setShowMoreDetails, setDetailsElement, setActiveScreenshotOverlay]);
 
-  // Get mouse and click handlers from the renamed hook
+  // Get mouse and click handlers from the interaction handlers hook
   const { handleCursorMovement, handleElementClick: handleElementClickEvent } = useInteractionHandlers({
     isTraceActive,
     isHoverPaused,
@@ -227,7 +240,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
     extractElementDetails,
     recordEvent,
     handleEscapeKey,
-    onElementClick: handleElementClick,
+    onElementClick: handleElementClick, // Wire up our element click handler
   });
 
   const { toast } = useToast();

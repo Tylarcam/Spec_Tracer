@@ -23,7 +23,10 @@ export const useElementDetection = () => {
     while (parent && levels < 2) {
       const tag = parent.tagName.toLowerCase();
       const id = parent.id ? `#${parent.id}` : '';
-      const classes = parent.className ? `.${parent.className.split(' ').join('.')}` : '';
+      // Safe className handling - check if className exists and is a string
+      const classes = (parent.className && typeof parent.className === 'string') 
+        ? `.${parent.className.split(' ').filter(c => c.trim()).join('.')}` 
+        : '';
       parentPath = `${tag}${id}${classes}` + (parentPath ? ' > ' + parentPath : '');
       parent = parent.parentElement;
       levels++;
