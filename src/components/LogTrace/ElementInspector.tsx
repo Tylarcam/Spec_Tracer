@@ -196,6 +196,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   return (
     <div
       ref={panelRef}
+      data-inspector-panel="true"
       className={`fixed pointer-events-auto z-50 w-full max-w-md max-h-[80vh] overflow-y-auto ${isExtensionMode ? 'z-[10001]' : 'z-50'}`}
       style={positionStyle}
       onMouseEnter={onMouseEnter}

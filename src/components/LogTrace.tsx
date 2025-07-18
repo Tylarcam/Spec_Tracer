@@ -15,8 +15,8 @@ import MoreDetailsModal from './LogTrace/PinnedDetails';
 import OnboardingWalkthrough from './LogTrace/OnboardingWalkthrough';
 import SettingsDrawer from './LogTrace/SettingsDrawer';
 import UpgradeModal from './LogTrace/UpgradeModal';
-import ContextMenu from './LogTrace/ContextMenu';
 import FloatingHint from './LogTrace/FloatingHint';
+import QuickActionModal from './LogTrace/QuickActionModal';
 import { Button } from './ui/button';
 import html2canvas from 'html2canvas';
 import { Switch } from './ui/switch';
@@ -24,6 +24,8 @@ import RectScreenshotOverlay from './LogTrace/RectScreenshotOverlay';
 import FreeformScreenshotOverlay from './LogTrace/FreeformScreenshotOverlay';
 import { v4 as uuidv4 } from 'uuid';
 import { ElementInfo } from '@/shared/types';
+
+type ScreenshotMode = 'rectangle' | 'window' | 'fullscreen' | 'freeform';
 
 interface LogTraceProps {
   showOnboarding?: boolean;
@@ -48,11 +50,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
   
-  // Context menu state
-  const [contextMenuVisible, setContextMenuVisible] = useState(false);
-  const [contextMenuX, setContextMenuX] = useState(0);
-  const [contextMenuY, setContextMenuY] = useState(0);
-  
   // Use external onboarding state if provided, otherwise use local state
   const [localShowOnboarding, setLocalShowOnboarding] = useState(() => {
     return !localStorage.getItem('logtrace-onboarding-completed');
@@ -74,8 +71,12 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const logTraceRef = useRef<HTMLDivElement>(null);
   const [contextCaptureEnabled, setContextCaptureEnabled] = useState(false);
   const [activeScreenshotOverlay, setActiveScreenshotOverlay] = useState<null | 'rectangle' | 'freeform'>(null);
-  const [openInspectors, setOpenInspectors] = useState<Array<{ id: string, elementInfo: ElementInfo, mousePosition: { x: number, y: number } }>>([]);
+  const [openInspectors, setOpenInspectors] = useState<Array<{ id: string, elementInfo: ElementInfo, mousePosition: { x: number, y: number }, timestamp: number }>>([]);
   const [clipboardFallback, setClipboardFallback] = useState<{ response: string, open: boolean }>({ response: '', open: false });
+  
+  // Quick Action Modal state
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [quickActionPosition, setQuickActionPosition] = useState({ x: 0, y: 0 });
 
   // Usage tracking with new credits system
   const {
@@ -131,17 +132,49 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const handleEscape = useCallback(() => {
     setOpenInspectors((prev) => prev.length > 0 ? prev.slice(0, -1) : prev);
     setShowDebugModal(false);
-    setShowElementInspector(false);
     setShowSettingsDrawer(false);
-    setContextMenuVisible(false);
+    setShowQuickActions(false);
     if (showTerminal) setShowTerminal(false);
   }, [setShowDebugModal, showTerminal, setShowTerminal]);
+
+  // Keyboard shortcuts handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleEscape();
+      } else if (e.key === 'q' || e.key === 'Q') {
+        // Show quick actions at mouse position
+        setQuickActionPosition({ x: mousePosition.x, y: mousePosition.y });
+        setShowQuickActions(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleEscape, mousePosition]);
 
   // Element click handler - streamlined to directly open element inspector
   const handleElementClick = useCallback(() => {
     if (!currentElement) return;
     setShowDebugModal(false);
-    setShowElementInspector(true);
+    
+    // Check if we already have 3 panels open (max limit)
+    if (openInspectors.length >= 3) {
+      // Show a simple alert for now, we'll enhance this later
+      alert('Maximum panels reached. Please close one of the existing inspector panels first.');
+      return;
+    }
+    
+    // Add new inspector panel
+    const newInspector = {
+      id: `inspector-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      elementInfo: currentElement,
+      mousePosition: mousePosition,
+      timestamp: Date.now(),
+    };
+    
+    setOpenInspectors(prev => [...prev, newInspector]);
+    
     addEvent({
       type: 'inspect',
       position: mousePosition,
@@ -152,7 +185,27 @@ const LogTrace: React.FC<LogTraceProps> = ({
         text: currentElement.text,
       },
     });
-  }, [currentElement, mousePosition, addEvent, setShowDebugModal]);
+  }, [currentElement, mousePosition, addEvent, setShowDebugModal, openInspectors.length]);
+
+  // Quick Action handler
+  const handleQuickAction = useCallback((action: 'screenshot' | 'context' | 'debug' | 'details' | { type: 'screenshot', mode: ScreenshotMode } | { type: 'context', mode: string, input: string }) => {
+    setShowQuickActions(false);
+    
+    if (action === 'details') {
+      setShowMoreDetails(true);
+      setDetailsElement(currentElement);
+    } else if (action === 'debug') {
+      setShowDebugModal(true);
+    } else if (action === 'screenshot' || (typeof action === 'object' && action.type === 'screenshot')) {
+      const mode = typeof action === 'object' ? action.mode : 'window';
+      setActiveScreenshotOverlay(mode === 'freeform' ? 'freeform' : 'rectangle');
+    } else if (typeof action === 'object' && action.type === 'context') {
+      // Handle context generation
+      const prompt = `Context Action: ${action.mode}\nUser Input: ${action.input}\nElement: ${currentElement ? JSON.stringify(currentElement) : 'none'}`;
+      console.log('Context generation:', prompt);
+      // You can add AI call here if needed
+    }
+  }, [currentElement, setShowDebugModal, setShowMoreDetails, setDetailsElement, setActiveScreenshotOverlay]);
 
   // Get mouse and click handlers from the hook
   const { handleMouseMove, handleClick } = useLogTraceEventHandlers({
@@ -252,75 +305,16 @@ const LogTrace: React.FC<LogTraceProps> = ({
     }
   }, [toast]);
 
-  // Context menu action handler
-  const handleContextMenuAction = useCallback((action: string, ...args: any[]) => {
-    switch (action) {
-      case 'toggle-active':
-        setIsActive(!isActive);
-        break;
-      case 'toggle-pause':
-        setIsHoverPaused(!isHoverPaused);
-        if (!isHoverPaused && currentElement) {
-          setPausedElement(currentElement);
-          setPausedPosition(mousePosition);
-        }
-        break;
-      case 'reset':
-        clearEvents();
-        setIsActive(false);
-        setIsHoverPaused(false);
-        setOpenInspectors([]);
-        break;
-      case 'view-details':
-        if (currentElement) {
-          setDetailsElement(currentElement);
-          setShowMoreDetails(true);
-        }
-        break;
-      case 'ai-debug':
-        if (!canUseAiDebug) {
-          setShowUpgradeModal(true);
-          return;
-        }
-        if (currentElement) {
-          setShowDebugModal(true);
-        }
-        break;
-      case 'generate-context':
-        if (currentElement) {
-          // Generate context for current element
-          const prompt = generateAdvancedPrompt();
-          if (prompt) {
-            handleAnalyzeWithAI(prompt);
-          }
-        }
-        break;
-      case 'screenshot':
-        const mode = args[0];
-        if (mode === 'rectangle' || mode === 'freeform') {
-          setActiveScreenshotOverlay(mode);
-        } else {
-          handleScreenshot(mode);
-        }
-        break;
-      case 'toggle-terminal':
-        setShowTerminal(!showTerminal);
-        break;
-      case 'settings':
-        setShowSettingsDrawer(true);
-        break;
-      default:
-        console.warn('Unknown context menu action:', action);
+  // Right-click handler for quick actions
+  const handleRightClick = useCallback((e: React.MouseEvent) => {
+    if (currentElement) {
+      // Show quick actions for elements
+      setQuickActionPosition({ x: e.clientX, y: e.clientY });
+      setShowQuickActions(true);
     }
-  }, [isActive, setIsActive, isHoverPaused, setIsHoverPaused, currentElement, mousePosition, canUseAiDebug, clearEvents, setShowUpgradeModal, setShowDebugModal, setShowMoreDetails, generateAdvancedPrompt, setActiveScreenshotOverlay, handleScreenshot, showTerminal, setShowTerminal, setShowSettingsDrawer]);
-
-  // Handle right-click context menu
-  const handleContextMenu = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // No context menu for empty space - just prevent default
     e.preventDefault();
-    setContextMenuX(e.clientX);
-    setContextMenuY(e.clientY);
-    setContextMenuVisible(true);
-  }, []);
+  }, [currentElement]);
 
   // Onboarding handlers
   const handleOnboardingNext = () => {
@@ -398,11 +392,11 @@ const LogTrace: React.FC<LogTraceProps> = ({
 
   const handleInspectorMouseEnter = () => {
     setIsInspectorHovered(true);
-    setIsHoverPaused(true);
+          setIsHoverPaused(true);
   };
   const handleInspectorMouseLeave = () => {
     setIsInspectorHovered(false);
-    setIsHoverPaused(false);
+          setIsHoverPaused(false);
   };
 
   useEffect(() => {
@@ -418,7 +412,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
     };
     const handleMouseUp = () => {
       if (resizingRef.current) {
-        resizingRef.current = false;
+      resizingRef.current = false;
       }
     };
     document.addEventListener('mousemove', handleMouseMove);
@@ -435,19 +429,15 @@ const LogTrace: React.FC<LogTraceProps> = ({
       className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
       onMouseMove={handleMouseMove}
       onClick={handleClick}
-      onContextMenu={handleContextMenu}
+      onContextMenu={handleRightClick}
     >
-      {/* Context Menu */}
-      <ContextMenu
-        visible={contextMenuVisible}
-        x={contextMenuX}
-        y={contextMenuY}
-        onClose={() => setContextMenuVisible(false)}
-        isActive={isActive}
-        isHoverPaused={isHoverPaused}
-        showTerminal={showTerminal}
-        currentElement={currentElement}
-        onAction={handleContextMenuAction}
+      {/* Quick Action Modal */}
+      <QuickActionModal
+        visible={showQuickActions}
+        x={quickActionPosition.x}
+        y={quickActionPosition.y}
+        onClose={() => setShowQuickActions(false)}
+        onAction={handleQuickAction}
       />
 
       {/* Floating Hint */}
@@ -469,8 +459,17 @@ const LogTrace: React.FC<LogTraceProps> = ({
       <div className="relative z-10 p-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-green-400 font-bold text-2xl">LogTrace</h1>
+          <div className="flex items-center gap-4">
+            {/* Capture Toggle with Status */}
+            <div className="flex items-center gap-3 bg-slate-800/60 border border-green-500/30 rounded-lg px-4 py-2">
           <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">Remaining Uses: {remainingUses}</span>
+                <span className={`text-sm font-semibold ${isActive ? 'text-green-400' : 'text-gray-400'}`}>
+                  {isActive ? 'ACTIVE' : 'INACTIVE'}
+                </span>
+                <div className={`w-3 h-3 rounded-full ${isActive ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Capture:</span>
             <Switch
               checked={contextCaptureEnabled}
               onCheckedChange={(checked) => {
@@ -478,7 +477,23 @@ const LogTrace: React.FC<LogTraceProps> = ({
                 setIsActive(checked);
               }}
               aria-label="Context Capture"
-            />
+                  className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-600"
+                />
+              </div>
+            </div>
+            
+            {/* Credits Display */}
+            <div className="flex items-center gap-2 px-3 py-1 bg-slate-800 border border-green-500/30 rounded-full">
+              <span className="text-xs text-green-400 font-semibold">
+                {remainingUses}/5 credits
+              </span>
+              {waitlistBonusRemaining > 0 && (
+                <span className="flex items-center gap-1 ml-2 text-yellow-400 font-semibold text-xs">
+                  +{waitlistBonusRemaining} bonus
+                </span>
+              )}
+            </div>
+            
             <Button onClick={() => setShowSettingsDrawer(true)} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
               Settings
             </Button>
@@ -556,53 +571,47 @@ const LogTrace: React.FC<LogTraceProps> = ({
         />
       )}
 
-              <MouseOverlay
-          isActive={isActive}
+      <MouseOverlay 
+        isActive={isActive}
           currentElement={currentElement}
           mousePosition={mousePosition}
-          overlayRef={overlayRef}
+        overlayRef={overlayRef}
         />
 
-      {openInspectors.map((inspector) => (
-        <div data-interactive-panel key={inspector.id}>
+
+
+      {/* Sticky Element Inspectors - supports up to 3 panels */}
+      {openInspectors.map((inspector, index) => {
+        // Stagger positioning to avoid overlap
+        const offsetX = index * 20;
+        const offsetY = index * 20;
+        const adjustedPosition = {
+          x: inspector.mousePosition.x + offsetX,
+          y: inspector.mousePosition.y + offsetY,
+        };
+        
+        return (
         <ElementInspector
+            key={inspector.id}
             isVisible={true}
-            currentElement={isHoverPaused && pausedElement ? pausedElement : inspector.elementInfo}
-            mousePosition={isHoverPaused && pausedPosition ? pausedPosition : inspector.mousePosition}
-          onDebug={() => setShowDebugModal(true)}
-            onClose={() => setOpenInspectors((prev) => prev.filter((i) => i.id !== inspector.id))}
-          panelRef={interactivePanelRef}
+            currentElement={inspector.elementInfo}
+            mousePosition={adjustedPosition}
+            onDebug={() => setShowDebugModal(true)}
+            onClose={() => {
+              setOpenInspectors(prev => prev.filter(i => i.id !== inspector.id));
+            }}
+            panelRef={elementInspectorRef}
           onShowMoreDetails={() => {
               setDetailsElement(inspector.elementInfo);
             setShowMoreDetails(true);
           }}
           currentDebugCount={5 - remainingUses}
           maxDebugCount={5}
-          onMouseEnter={handleInspectorMouseEnter}
-          onMouseLeave={handleInspectorMouseLeave}
+            onMouseEnter={handleInspectorMouseEnter}
+            onMouseLeave={handleInspectorMouseLeave}
         />
-      </div>
-      ))}
-
-      {/* Element Inspector for clicked element */}
-      <ElementInspector
-        isVisible={showElementInspector}
-        currentElement={currentElement}
-        mousePosition={mousePosition}
-        onDebug={() => setShowDebugModal(true)}
-        onClose={() => {
-          setShowElementInspector(false);
-        }}
-        panelRef={elementInspectorRef}
-        onShowMoreDetails={() => {
-          setDetailsElement(currentElement);
-          setShowMoreDetails(true);
-        }}
-        currentDebugCount={5 - remainingUses}
-        maxDebugCount={5}
-        onMouseEnter={handleInspectorMouseEnter}
-        onMouseLeave={handleInspectorMouseLeave}
-      />
+        );
+      })}
 
       <DebugModal 
         showDebugModal={showDebugModal}

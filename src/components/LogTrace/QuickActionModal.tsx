@@ -98,6 +98,7 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({ visible, x, y, onCl
       style={{ position: 'absolute', left: x, top: y - 48, zIndex: 1000 }}
       className="flex items-center bg-slate-900/95 border border-cyan-700 rounded-full shadow-lg px-2 py-1 gap-1 animate-fade-in"
       tabIndex={-1}
+      data-quick-actions="true"
     >
       {actions.map(({ key, label, icon: Icon }) => {
         if (key === 'screenshot') {

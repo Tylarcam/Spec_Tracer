@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { MousePointer2, RotateCcw, Eye, Bug, Camera, Terminal } from 'lucide-react';
+import { MousePointer2, RotateCcw, Eye, Bug, Camera, Terminal, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const InstructionsCard: React.FC = () => {
   return (
@@ -72,9 +73,21 @@ const InstructionsCard: React.FC = () => {
 
       <div className="mt-4 text-xs text-gray-500">
         <p>
-          <strong>Pro tip:</strong> The context menu shows different options based on your current state and whether you're hovering over an element.
-          Only <kbd className="px-1 py-0.5 bg-slate-700 rounded">Esc</kbd> is preserved for closing modals.
+          <strong>Quick Actions:</strong> Press <kbd className="px-1 py-0.5 bg-slate-700 rounded">Q</kbd> or right-click on elements for quick access to View, Shot, Gen, and Fix actions.
         </p>
+        <p className="mt-2">
+          <strong>Keyboard Shortcuts:</strong> Use <kbd className="px-1 py-0.5 bg-slate-700 rounded">Esc</kbd> to close modals and <kbd className="px-1 py-0.5 bg-slate-700 rounded">Q</kbd> for quick actions.
+        </p>
+      </div>
+
+      {/* Demo Button */}
+      <div className="mt-4 flex justify-center">
+        <Link to="/interactive-demo">
+          <button className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg shadow transition-colors flex items-center gap-2">
+            <ExternalLink className="h-4 w-4" />
+            Try Interactive Demo
+          </button>
+        </Link>
       </div>
     </div>
   );

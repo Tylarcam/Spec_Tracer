@@ -41,12 +41,30 @@ export const useLogTraceEventHandlers = ({
         !target.closest('#logtrace-overlay') && 
         !target.closest('#logtrace-modal') &&
         !target.closest('[data-interactive-panel]')) {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-      const elementInfo = extractElementInfo(target);
-      setCurrentElement(elementInfo);
       
-      if (showInteractivePanel) {
-        setShowInteractivePanel(false);
+      // Check if cursor is over any inspector panel
+      const inspectorPanels = document.querySelectorAll('[data-inspector-panel]');
+      let isOverInspector = false;
+      
+      inspectorPanels.forEach(panel => {
+        const rect = panel.getBoundingClientRect();
+        if (e.clientX >= rect.left && 
+            e.clientX <= rect.right && 
+            e.clientY >= rect.top && 
+            e.clientY <= rect.bottom) {
+          isOverInspector = true;
+        }
+      });
+      
+      // Only update element highlighting if cursor is not over an inspector panel
+      if (!isOverInspector) {
+        setMousePosition({ x: e.clientX, y: e.clientY });
+        const elementInfo = extractElementInfo(target);
+        setCurrentElement(elementInfo);
+        
+        if (showInteractivePanel) {
+          setShowInteractivePanel(false);
+        }
       }
     }
   }, [isActive, isHoverPaused, extractElementInfo, setMousePosition, setCurrentElement, showInteractivePanel, setShowInteractivePanel]);
@@ -58,23 +76,41 @@ export const useLogTraceEventHandlers = ({
     if (target && 
         !target.closest('#logtrace-overlay') && 
         !target.closest('#logtrace-modal') &&
-        !target.closest('[data-interactive-panel]')) {
+        !target.closest('[data-interactive-panel]') &&
+        !target.closest('[data-quick-actions]')) {
       e.preventDefault();
       
-      // Check if the click is on the currently highlighted element
-      if (currentElement && currentElement.element) {
-        const elementRect = currentElement.element.getBoundingClientRect();
-        const clickX = e.clientX;
-        const clickY = e.clientY;
-        
-        // Check if click is within the highlighted element's bounds
-        if (clickX >= elementRect.left && 
-            clickX <= elementRect.right && 
-            clickY >= elementRect.top && 
-            clickY <= elementRect.bottom) {
-          // This is a click on the highlighted element - trigger element inspector
-          if (onElementClick) {
-            onElementClick();
+      // Check if cursor is over any inspector panel
+      const inspectorPanels = document.querySelectorAll('[data-inspector-panel]');
+      let isOverInspector = false;
+      
+      inspectorPanels.forEach(panel => {
+        const rect = panel.getBoundingClientRect();
+        if (e.clientX >= rect.left && 
+            e.clientX <= rect.right && 
+            e.clientY >= rect.top && 
+            e.clientY <= rect.bottom) {
+          isOverInspector = true;
+        }
+      });
+      
+      // Only allow element inspector creation if cursor is not over an inspector panel
+      if (!isOverInspector) {
+        // Check if the click is on the currently highlighted element
+        if (currentElement && currentElement.element) {
+          const elementRect = currentElement.element.getBoundingClientRect();
+          const clickX = e.clientX;
+          const clickY = e.clientY;
+          
+          // Check if click is within the highlighted element's bounds
+          if (clickX >= elementRect.left && 
+              clickX <= elementRect.right && 
+              clickY >= elementRect.top && 
+              clickY <= elementRect.bottom) {
+            // This is a click on the highlighted element - trigger element inspector
+            if (onElementClick) {
+              onElementClick();
+            }
           }
         }
       }

@@ -138,14 +138,7 @@ const NavBar: React.FC = () => {
 
           {/* Nav Links */}
           <div className="flex items-center gap-4">
-            <Link to="/interactive-demo">
-              <button
-                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg shadow transition-colors text-base focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2"
-                style={{ minWidth: 80 }}
-              >
-                Demo
-              </button>
-            </Link>
+            {/* Demo button moved to LogTrace pro tips section */}
           </div>
 
           {/* Rate/Credit Counter & Actions */}
