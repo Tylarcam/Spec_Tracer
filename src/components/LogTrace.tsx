@@ -35,11 +35,13 @@ const LogTrace: React.FC<LogTraceProps> = ({
   onOnboardingComplete: externalOnboardingComplete 
 }) => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
+  const [showElementInspector, setShowElementInspector] = useState(false);
   const [isInspectorHovered, setIsInspectorHovered] = useState(false);
   const [isHoverPaused, setIsHoverPaused] = useState(false);
   const [pausedElement, setPausedElement] = useState<ElementInfo | null>(null);
   const [pausedPosition, setPausedPosition] = useState<{ x: number; y: number } | null>(null);
   const interactivePanelRef = useRef<HTMLDivElement>(null);
+  const elementInspectorRef = useRef<HTMLDivElement>(null);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [detailsElement, setDetailsElement] = useState<any>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -129,7 +131,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const handleEscape = useCallback(() => {
     setOpenInspectors((prev) => prev.length > 0 ? prev.slice(0, -1) : prev);
     setShowDebugModal(false);
-    setIsHoverPaused(false);
+    setShowElementInspector(false);
     setShowSettingsDrawer(false);
     setContextMenuVisible(false);
     if (showTerminal) setShowTerminal(false);
@@ -325,11 +327,11 @@ const LogTrace: React.FC<LogTraceProps> = ({
     }
   };
 
-  // Element click handler
+  // Element click handler - streamlined to directly open element inspector
   const handleElementClick = useCallback(() => {
     if (!currentElement) return;
     setShowDebugModal(false);
-    setShowInteractivePanel(true);
+    setShowElementInspector(true);
     addEvent({
       type: 'inspect',
       position: mousePosition,
@@ -340,7 +342,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
         text: currentElement.text,
       },
     });
-  }, [currentElement, mousePosition, addEvent, setShowDebugModal, setShowInteractivePanel]);
+  }, [currentElement, mousePosition, addEvent, setShowDebugModal]);
 
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
     if (isPremium) {
@@ -581,6 +583,26 @@ const LogTrace: React.FC<LogTraceProps> = ({
         />
       </div>
       ))}
+
+      {/* Element Inspector for clicked element */}
+      <ElementInspector
+        isVisible={showElementInspector}
+        currentElement={currentElement}
+        mousePosition={mousePosition}
+        onDebug={() => setShowDebugModal(true)}
+        onClose={() => {
+          setShowElementInspector(false);
+        }}
+        panelRef={elementInspectorRef}
+        onShowMoreDetails={() => {
+          setDetailsElement(currentElement);
+          setShowMoreDetails(true);
+        }}
+        currentDebugCount={5 - remainingUses}
+        maxDebugCount={5}
+        onMouseEnter={handleInspectorMouseEnter}
+        onMouseLeave={handleInspectorMouseLeave}
+      />
 
       <DebugModal 
         showDebugModal={showDebugModal}
