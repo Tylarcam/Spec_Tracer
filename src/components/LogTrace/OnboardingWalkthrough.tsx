@@ -29,93 +29,79 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
 }) => {
   const navigate = useNavigate();
   const [userActions, setUserActions] = useState({
-    rightClicked: false,
-    startedLogTrace: false,
+    toggledCapture: false,
     hoveredElement: false,
-    openedElementActions: false,
+    clickedElement: false,
     openedTerminal: false,
   });
   const [waitingForAction, setWaitingForAction] = useState(true);
   const [showHighlight, setShowHighlight] = useState(true);
 
-  // Interactive steps configuration - Updated for right-click workflow
+  const isMobile = window.innerWidth < 768;
+
+  // Interactive steps configuration - Updated for new workflow
   const interactiveSteps = [
     {
-      title: "Right-click for Actions",
-      description: "Right-click anywhere on the page to open the LogTrace context menu",
-      mobileDescription: "Long-press anywhere on the page to open the LogTrace context menu",
-      action: "rightClicked",
-      requirement: "Right-click anywhere",
+      title: "Toggle Capture ON",
+      description: "Find the 'Capture' toggle in the top navigation bar and switch it to ON to activate LogTrace",
+      mobileDescription: "Find the 'Capture' toggle in the top bar and tap it to ON to activate LogTrace",
+      action: "toggledCapture",
+      requirement: "Toggle Capture ON",
       position: "center",
-      highlight: "Right-click to open menu",
+      highlight: "Toggle Capture in top nav",
     },
     {
-      title: "Start LogTrace",
-      description: "From the context menu, click 'Start LogTrace' to begin element inspection",
-      mobileDescription: "From the context menu, tap 'Start LogTrace' to begin element inspection",
-      action: "startedLogTrace",
-      requirement: "Click 'Start LogTrace'",
-      position: "center",
-      highlight: "Start LogTrace from menu",
-    },
-    {
-      title: "Hover over elements",
-      description: "Move your mouse over any element to see the green halo and real-time data",
-      mobileDescription: "Tap on elements to see real-time data and inspection details",
+      title: isMobile ? "Touch elements to inspect" : "Hover over elements",
+      description: isMobile 
+        ? "Touch any element on the page to see live inspection data and green highlights" 
+        : "Move your mouse over any element to see the green halo and real-time inspection data",
+      mobileDescription: "Touch any element on the page to see live inspection data and highlights",
       action: "hoveredElement", 
-      requirement: "Hover over an element",
+      requirement: isMobile ? "Touch an element" : "Hover over an element",
       position: "center",
-      highlight: "Move mouse over elements",
+      highlight: isMobile ? "Touch elements to inspect" : "Move mouse over elements",
     },
     {
-      title: "Element Actions",
-      description: "Right-click on an element to see element-specific actions like 'View Details' and 'AI Debug'",
-      mobileDescription: "Long-press on an element to see element-specific actions like 'View Details' and 'AI Debug'",
-      action: "openedElementActions",
-      requirement: "Right-click on element",
+      title: isMobile ? "Tap to open inspector" : "Click to open inspector panel",
+      description: isMobile 
+        ? "Tap on a highlighted element to open the inspector panel with detailed information"
+        : "Click on a highlighted element to open a sticky inspector panel that stays on screen",
+      mobileDescription: "Tap on a highlighted element to open the inspector panel",
+      action: "clickedElement",
+      requirement: isMobile ? "Tap on element" : "Click on element",
       position: "center",
-      highlight: "Right-click on element for actions",
+      highlight: isMobile ? "Tap element for inspector" : "Click element for sticky panel",
     },
     {
       title: "View Terminal",
-      description: "Right-click and select 'Open Terminal' to view your debug history and logs",
-      mobileDescription: "From the context menu, tap 'Open Terminal' to view your debug history and logs",
+      description: isMobile 
+        ? "Tap the terminal button (⌨) to view your debug history and logs"
+        : "Click the terminal button (>) in the bottom right to view your debug history and logs",
+      mobileDescription: "Tap the terminal button to view your debug history and logs",
       action: "openedTerminal",
-      requirement: "Open Terminal from menu",
+      requirement: "Open Terminal",
       position: "bottom",
-      highlight: "Open Terminal from context menu",
+      highlight: "Open Terminal for debug history",
     }
   ];
 
-  const isMobile = window.innerWidth < 768;
   const currentStepData = interactiveSteps[step];
-
-  // Listen for context menu events
-  useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => {
-      if (step === 0) {
-        setUserActions(prev => ({ ...prev, rightClicked: true }));
-      } else if (step === 3 && currentElement) {
-        setUserActions(prev => ({ ...prev, openedElementActions: true }));
-      }
-    };
-
-    document.addEventListener('contextmenu', handleContextMenu);
-    return () => document.removeEventListener('contextmenu', handleContextMenu);
-  }, [step, currentElement]);
 
   // Track LogTrace state changes
   useEffect(() => {
-    if (step === 1 && isActive) {
-      setUserActions(prev => ({ ...prev, startedLogTrace: true }));
+    if (step === 0 && isActive) {
+      setUserActions(prev => ({ ...prev, toggledCapture: true }));
     }
-    if (step === 2 && currentElement) {
+    if (step === 1 && currentElement) {
       setUserActions(prev => ({ ...prev, hoveredElement: true }));
     }
-    if (step === 4 && showTerminal) {
+    if (step === 2 && showInspectorOpen) {
+      setUserActions(prev => ({ ...prev, clickedElement: true }));
+    }
+    if (step === 3 && showTerminal) {
       setUserActions(prev => ({ ...prev, openedTerminal: true }));
     }
-  }, [step, isActive, currentElement, showTerminal]);
+  }, [step, isActive, currentElement, showInspectorOpen, showTerminal]);
 
   // Check if current step action is completed
   const isStepCompleted = () => {
@@ -180,8 +166,10 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
               Great job! You've mastered LogTrace
             </h3>
             <p className="text-gray-300 text-base leading-relaxed mb-6">
-              You can now debug any website using the powerful right-click context menu. 
-              No more keyboard conflicts - just right-click for all actions!
+              {isMobile 
+                ? 'You can now debug any website using touch gestures. Toggle capture, touch elements, and inspect with ease!'
+                : 'You can now debug any website with sticky inspector panels. Toggle capture, hover, click, and debug with powerful AI assistance!'
+              }
             </p>
 
             <div className="flex gap-3">
@@ -196,7 +184,7 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({
                 onClick={handleContinueToDemo}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white h-12"
               >
-                Continue to Interactive Demo
+                Continue to Demo
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>

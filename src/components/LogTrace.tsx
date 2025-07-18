@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
@@ -68,6 +67,9 @@ const LogTrace: React.FC<LogTraceProps> = ({
   // Mobile detection
   const isMobile = useIsMobile();
   
+  // Get max panels based on device type
+  const maxPanels = isMobile ? 1 : 3;
+
   // Terminal height - mobile vs desktop
   const [terminalHeight, setTerminalHeight] = useState(() => {
     const baseHeight = isMobile ? window.innerHeight * 0.6 : window.innerHeight * 0.4;
@@ -184,17 +186,19 @@ const LogTrace: React.FC<LogTraceProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleEscapeKey, cursorPosition]);
 
-  // Element click handler - opens sticky ElementInspector panel
+  // Element click handler - opens sticky ElementInspector panel with mobile optimization
   const handleElementClick = useCallback(() => {
     if (!detectedElement) return;
     
     console.log('Element clicked:', detectedElement); // Debug log
     
-    // Check if we already have 3 inspectors open (maximum limit)
-    if (openInspectors.length >= 3) {
+    // Check if we already have maximum panels open
+    if (openInspectors.length >= maxPanels) {
       toast({
-        title: 'Maximum Panels Reached',
-        description: 'You can only have 3 inspector panels open at once. Close one to open another.',
+        title: isMobile ? 'Panel Already Open' : 'Maximum Panels Reached',
+        description: isMobile 
+          ? 'Close the current panel to inspect another element.' 
+          : 'You can only have 3 inspector panels open at once. Close one to open another.',
         variant: 'destructive',
         duration: 3000,
       });
@@ -230,11 +234,11 @@ const LogTrace: React.FC<LogTraceProps> = ({
     // Show success toast
     toast({
       title: 'Element Inspector Opened',
-      description: `Opened sticky panel for ${detectedElement.tag} element`,
+      description: `Opened ${isMobile ? 'panel' : 'sticky panel'} for ${detectedElement.tag} element`,
       variant: 'success',
       duration: 2000,
     });
-  }, [detectedElement, cursorPosition, recordEvent, openInspectors.length, toast]);
+  }, [detectedElement, cursorPosition, recordEvent, openInspectors.length, maxPanels, isMobile, toast]);
 
   // Quick Action handler
   const handleQuickAction = useCallback((action: 'screenshot' | 'context' | 'debug' | 'details' | { type: 'screenshot', mode: ScreenshotMode } | { type: 'context', mode: string, input: string }) => {
@@ -593,15 +597,15 @@ const LogTrace: React.FC<LogTraceProps> = ({
         </div>
         <div className="text-xs md:text-sm text-gray-400 bg-slate-800/60 rounded p-3">
           <p className="font-semibold text-cyan-400 mb-2">How to Use LogTrace:</p>
-          <p>• <strong>1. Toggle capture</strong> in the navbar or here to begin</p>
-          <p>• <strong>2. Hover over elements</strong> to see live inspection data</p>
-          <p>• <strong>3. Click a highlighted element</strong> to open a sticky inspector panel</p>
-          <p>• <strong>4. Use right-click</strong> for quick actions and screenshots</p>
-          <p>• <strong>5. Press Escape or click X</strong> to close inspector panels</p>
+          <p>• <strong>1. Toggle capture ON</strong> in the navbar to begin element inspection</p>
+          <p>• <strong>2. {isMobile ? 'Touch and hold or tap' : 'Hover over'} elements</strong> to see live inspection data</p>
+          <p>• <strong>3. {isMobile ? 'Tap' : 'Click'} a highlighted element</strong> to open {isMobile ? 'an' : 'a sticky'} inspector panel</p>
+          <p>• <strong>4. Press Escape or tap X</strong> to close inspector panels</p>
+          {!isMobile && <p>• <strong>5. Use right-click</strong> for quick actions and screenshots</p>}
+          {isMobile && <p>• <strong>5. Use long press</strong> for additional options and actions</p>}
         </div>
       </div>
 
-      {/* All existing components remain the same */}
       <SettingsDrawer 
         isOpen={showSettingsDrawer}
         onClose={() => setShowSettingsDrawer(false)}
@@ -628,15 +632,25 @@ const LogTrace: React.FC<LogTraceProps> = ({
         overlayRef={overlayRef}
       />
 
-      {/* Sticky Element Inspectors - supports up to 3 panels */}
+      {/* Sticky Element Inspectors - Mobile optimized positioning */}
       {openInspectors.map((inspector, index) => {
-        // Stagger positioning to avoid overlap
-        const offsetX = index * 30;
-        const offsetY = index * 30;
-        const adjustedPosition = {
-          x: Math.min(inspector.mousePosition.x + offsetX, window.innerWidth - 350),
-          y: Math.min(inspector.mousePosition.y + offsetY, window.innerHeight - 450),
-        };
+        // Mobile: center the single panel, Desktop: stagger positioning
+        let adjustedPosition;
+        if (isMobile) {
+          // Center the panel on mobile
+          adjustedPosition = {
+            x: Math.max(10, Math.min(window.innerWidth - 350, (window.innerWidth - 320) / 2)),
+            y: Math.max(10, Math.min(window.innerHeight - 500, 100)),
+          };
+        } else {
+          // Stagger positioning for desktop to avoid overlap
+          const offsetX = index * 30;
+          const offsetY = index * 30;
+          adjustedPosition = {
+            x: Math.min(inspector.mousePosition.x + offsetX, window.innerWidth - 350),
+            y: Math.min(inspector.mousePosition.y + offsetY, window.innerHeight - 450),
+          };
+        }
         
         return (
           <ElementInspector
