@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Target, User, Crown, Zap, LogOut, LogIn } from 'lucide-react';
+import { Target, User, Crown, Zap, LogOut, LogIn, Play, Square } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,10 +9,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Github, Mail, ArrowLeft, Monitor } from 'lucide-react';
+import { Github, Mail, Switch as SwitchIcon } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 
-const NavBar: React.FC = () => {
+interface NavBarProps {
+  captureActive?: boolean;
+  onCaptureToggle?: (active: boolean) => void;
+}
+
+const NavBar: React.FC<NavBarProps> = ({ 
+  captureActive = false, 
+  onCaptureToggle 
+}) => {
   const navigate = useNavigate();
   const { user, signUp, signIn, signInWithGitHub, signOut } = useAuth();
   const {
@@ -31,17 +41,8 @@ const NavBar: React.FC = () => {
   const [defaultTab, setDefaultTab] = useState<'signin' | 'signup'>('signin');
 
   // Placeholder for bonus/stacking logic
-  // In a real app, you would fetch bonus/stacking state from backend or localStorage
-  const bonusCredits = user ? 25 : 0; // Example: 25 bonus on signup
-  const dailyLimit = user ? 5 : 3;
-  const stackingDays = user ? 30 : 0;
-  const stackedCredits = user ? Math.min(5 * stackingDays, 150) : 0;
-  // For demo: show bonus if user just signed up
+  const bonusCredits = user ? 25 : 0;
   const showBonus = user && bonusCredits > 0;
-
-  const handleShare = () => {
-    alert('Share with a friend to get 5 extra credits! (Demo only)');
-  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,89 +128,104 @@ const NavBar: React.FC = () => {
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-green-500/30">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="container mx-auto px-2 md:px-4 py-2 md:py-3 flex items-center justify-between">
           {/* Logo/Home */}
           <Link to="/" className="flex items-center gap-2 hover:opacity-80">
-            <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-2 rounded-lg">
-              <Target className="h-6 w-6 text-white" />
+            <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-1.5 md:p-2 rounded-lg">
+              <Target className="h-4 w-4 md:h-6 md:w-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-white">LogTrace</span>
+            <span className="text-lg md:text-xl font-bold text-white">LogTrace</span>
           </Link>
 
-          {/* Nav Links */}
-          <div className="flex items-center gap-4">
-            {/* Demo button moved to LogTrace pro tips section */}
-          </div>
+          {/* Center - Capture Toggle (visible on debug page) */}
+          {onCaptureToggle && (
+            <div className="flex items-center gap-2 md:gap-3 bg-slate-800/60 border border-green-500/30 rounded-lg px-2 md:px-4 py-1 md:py-2">
+              <div className="flex items-center gap-1 md:gap-2">
+                <span className={`text-xs md:text-sm font-semibold ${captureActive ? 'text-green-400' : 'text-gray-400'}`}>
+                  {captureActive ? 'CAPTURING' : 'INACTIVE'}
+                </span>
+                <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full ${captureActive ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></div>
+              </div>
+              <div className="flex items-center gap-1 md:gap-2">
+                <span className="text-xs text-gray-400 hidden sm:inline">Capture:</span>
+                <Switch
+                  checked={captureActive}
+                  onCheckedChange={onCaptureToggle}
+                  aria-label="Context Capture"
+                  className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-600 scale-75 md:scale-100"
+                />
+              </div>
+            </div>
+          )}
 
-          {/* Rate/Credit Counter & Actions */}
-          <div className="flex items-center gap-3">
-            {/* Rate/Credit Counter */}
-            <div className="flex items-center gap-2 px-3 py-1 bg-slate-800 border border-green-500/30 rounded-full">
-              <Zap className="h-4 w-4 text-green-400" />
+          {/* Right side actions */}
+          <div className="flex items-center gap-1 md:gap-3">
+            {/* Credits Display */}
+            <div className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 bg-slate-800 border border-green-500/30 rounded-full">
+              <Zap className="h-3 w-3 md:h-4 md:w-4 text-green-400" />
               <span className="text-xs text-green-400 font-semibold">
-                {user ? `${remainingUses}/5` : `${remainingUses}/3`} credits
+                {user ? `${remainingUses}/5` : `${remainingUses}/3`}
               </span>
               {showBonus && (
-                <span className="flex items-center gap-1 ml-2 text-yellow-400 font-semibold text-xs">
-                  <Crown className="h-4 w-4" /> +{bonusCredits} bonus
+                <span className="hidden sm:flex items-center gap-1 ml-1 text-yellow-400 font-semibold text-xs">
+                  <Crown className="h-3 w-3" /> +{bonusCredits}
                 </span>
               )}
             </div>
             
             {/* Upgrade */}
-            <button
-              className="bg-yellow-600 hover:bg-yellow-700 text-black px-3 py-1 rounded-full flex items-center gap-1 text-sm font-semibold"
-              title="Upgrade to Pro"
+            <Button
+              className="bg-yellow-600 hover:bg-yellow-700 text-black px-2 md:px-3 py-1 rounded-full flex items-center gap-1 text-xs md:text-sm font-semibold h-7 md:h-8"
               onClick={() => navigate('/upgrade')}
             >
-              <Crown className="h-4 w-4" />
+              <Crown className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Pro</span>
-            </button>
+            </Button>
             
-            {/* Quick Sign In/Out */}
-            <button
-              className={`p-2 rounded-full flex items-center gap-1 text-sm font-medium transition-colors ${
+            {/* Auth Button */}
+            <Button
+              className={`p-1.5 md:p-2 rounded-full flex items-center gap-1 text-xs md:text-sm font-medium transition-colors h-7 md:h-8 ${
                 user 
-                  ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10' 
-                  : 'text-green-400 hover:text-green-300 hover:bg-green-500/10'
+                  ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10 bg-slate-800 border border-red-500/30' 
+                  : 'text-green-400 hover:text-green-300 hover:bg-green-500/10 bg-slate-800 border border-green-500/30'
               }`}
-              title={user ? "Sign Out" : "Sign In"}
               onClick={handleAuthButtonClick}
+              variant="ghost"
             >
               {user ? (
                 <>
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-3 w-3 md:h-5 md:w-5" />
                   <span className="hidden sm:inline">Out</span>
                 </>
               ) : (
                 <>
-                  <LogIn className="h-5 w-5" />
+                  <LogIn className="h-3 w-3 md:h-5 md:w-5" />
                   <span className="hidden sm:inline">In</span>
                 </>
               )}
-            </button>
+            </Button>
             
             {/* Account/Profile (only show when signed in) */}
             {user && (
-              <button
-                className="text-cyan-300 hover:text-cyan-400 p-2 rounded-full"
-                title="Account"
+              <Button
+                className="text-cyan-300 hover:text-cyan-400 p-1.5 md:p-2 rounded-full bg-slate-800 border border-cyan-500/30 h-7 md:h-8"
                 onClick={() => navigate('/settings')}
+                variant="ghost"
               >
-                <User className="h-5 w-5" />
-              </button>
+                <User className="h-3 w-3 md:h-5 md:w-5" />
+              </Button>
             )}
           </div>
         </div>
       </nav>
 
-      {/* Auth Modal Popup */}
+      {/* Auth Modal Popup - Dark themed */}
       {showAuthModal && (
         <div 
-          className="fixed inset-0 bg-black/70 z-[2147483650] flex items-center justify-center"
+          className="fixed inset-0 bg-black/70 z-[2147483650] flex items-center justify-center p-4"
           onClick={handleOverlayClick}
         >
-          <Card className="w-full max-w-md p-0" onClick={handleAuthModalClick}>
+          <Card className="w-full max-w-md bg-slate-800 border-slate-700 text-white" onClick={handleAuthModalClick}>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl text-green-400">Welcome to LogTrace</CardTitle>
               <CardDescription className="text-slate-300">
@@ -218,39 +234,39 @@ const NavBar: React.FC = () => {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue={defaultTab} onValueChange={v => setDefaultTab(v as 'signin' | 'signup')} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="signin">Sign In</TabsTrigger>
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-700 border-slate-600">
+                  <TabsTrigger value="signin" className="text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white">Sign In</TabsTrigger>
+                  <TabsTrigger value="signup" className="text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white">Sign Up</TabsTrigger>
                 </TabsList>
                 <TabsContent value="signin">
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="signin-email">Email</Label>
+                      <Label htmlFor="signin-email" className="text-slate-300">Email</Label>
                       <Input
                         id="signin-email"
                         type="email"
                         placeholder="your@email.com"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        className="bg-slate-700 border-slate-600"
+                        className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="signin-password">Password</Label>
+                      <Label htmlFor="signin-password" className="text-slate-300">Password</Label>
                       <Input
                         id="signin-password"
                         type="password"
                         placeholder="••••••••"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        className="bg-slate-700 border-slate-600"
+                        className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
                         required
                       />
                     </div>
                     <Button
                       type="submit"
-                      className="w-full bg-green-600 hover:bg-green-700"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
                       disabled={isLoading}
                     >
                       <Mail className="mr-2 h-4 w-4" />
@@ -261,32 +277,32 @@ const NavBar: React.FC = () => {
                 <TabsContent value="signup">
                   <form onSubmit={handleSignUp} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
+                      <Label htmlFor="signup-email" className="text-slate-300">Email</Label>
                       <Input
                         id="signup-email"
                         type="email"
                         placeholder="your@email.com"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        className="bg-slate-700 border-slate-600"
+                        className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="signup-password">Password</Label>
+                      <Label htmlFor="signup-password" className="text-slate-300">Password</Label>
                       <Input
                         id="signup-password"
                         type="password"
                         placeholder="••••••••"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        className="bg-slate-700 border-slate-600"
+                        className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
                         required
                       />
                     </div>
                     <Button
                       type="submit"
-                      className="w-full bg-green-600 hover:bg-green-700"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
                       disabled={isLoading}
                     >
                       <Mail className="mr-2 h-4 w-4" />
@@ -307,7 +323,7 @@ const NavBar: React.FC = () => {
                 <Button
                   variant="outline"
                   onClick={handleGitHubSignIn}
-                  className="w-full mt-4 bg-slate-700 border-slate-600 hover:bg-slate-600"
+                  className="w-full mt-4 bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
                   disabled={isLoading}
                 >
                   <Github className="mr-2 h-4 w-4" />
@@ -320,8 +336,8 @@ const NavBar: React.FC = () => {
                   setEmail('');
                   setPassword('');
                 }} 
-                className="mt-6 w-full" 
-                variant="ghost"
+                className="mt-6 w-full bg-slate-700 hover:bg-slate-600 text-white border border-slate-600" 
+                variant="outline"
               >
                 Close
               </Button>

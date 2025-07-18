@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,12 +26,31 @@ const queryClient = new QueryClient({
   },
 });
 
+// Create a context for capture state management
+const CaptureContext = React.createContext<{
+  captureActive: boolean;
+  setCaptureActive: (active: boolean) => void;
+}>({
+  captureActive: false,
+  setCaptureActive: () => {},
+});
+
+export const useCaptureContext = () => React.useContext(CaptureContext);
+
 const AppRoutes = () => {
   const location = useLocation();
   const isLanding = location.pathname === "/";
+  const isDebugPage = location.pathname === "/debug";
+  const [captureActive, setCaptureActive] = useState(false);
+
   return (
-    <>
-      {!isLanding && <NavBar />}
+    <CaptureContext.Provider value={{ captureActive, setCaptureActive }}>
+      {!isLanding && (
+        <NavBar 
+          captureActive={isDebugPage ? captureActive : undefined}
+          onCaptureToggle={isDebugPage ? setCaptureActive : undefined}
+        />
+      )}
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/interactive-demo" element={<InteractiveDemo />} />
@@ -42,7 +61,7 @@ const AppRoutes = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </>
+    </CaptureContext.Provider>
   );
 };
 

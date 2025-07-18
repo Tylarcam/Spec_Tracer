@@ -30,11 +30,15 @@ type ScreenshotMode = 'rectangle' | 'window' | 'fullscreen' | 'freeform';
 interface LogTraceProps {
   showOnboarding?: boolean;
   onOnboardingComplete?: () => void;
+  captureActive?: boolean;
+  onCaptureToggle?: (active: boolean) => void;
 }
 
 const LogTrace: React.FC<LogTraceProps> = ({ 
   showOnboarding: externalShowOnboarding, 
-  onOnboardingComplete: externalOnboardingComplete 
+  onOnboardingComplete: externalOnboardingComplete,
+  captureActive: externalCaptureActive,
+  onCaptureToggle: externalOnCaptureToggle
 }) => {
   const [showInteractivePanel, setShowInteractivePanel] = useState(false);
   const [showElementInspector, setShowElementInspector] = useState(false);
@@ -128,16 +132,20 @@ const LogTrace: React.FC<LogTraceProps> = ({
     clearDebugResponses,
   } = useDebugResponses();
 
-  // Fix: Sync contextCaptureEnabled with isActive properly
+  // Use external capture state if provided, otherwise use local state
+  const [localCaptureActive, setLocalCaptureActive] = useState(false);
+  const captureActive = externalCaptureActive !== undefined ? externalCaptureActive : localCaptureActive;
+  const setCaptureActive = externalOnCaptureToggle || setLocalCaptureActive;
+
+  // Sync capture state with LogTrace isActive
   useEffect(() => {
-    setContextCaptureEnabled(isActive);
-  }, [isActive]);
+    setIsActive(captureActive);
+  }, [captureActive, setIsActive]);
 
   // Handle capture toggle change
   const handleCaptureToggle = useCallback((checked: boolean) => {
-    setContextCaptureEnabled(checked);
-    setIsActive(checked);
-  }, [setIsActive]);
+    setCaptureActive(checked);
+  }, [setCaptureActive]);
 
   // Escape handler - only handles modals/overlays now
   const handleEscape = useCallback(() => {
@@ -446,46 +454,58 @@ const LogTrace: React.FC<LogTraceProps> = ({
         }} />
       </div>
 
-      <div className="relative z-10 p-6">
+      <div className="relative z-10 p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-green-400 font-bold text-2xl">LogTrace</h1>
-          <div className="flex items-center gap-4">
-            {/* Capture Toggle with Status */}
-            <div className="flex items-center gap-3 bg-slate-800/60 border border-green-500/30 rounded-lg px-4 py-2">
-          <div className="flex items-center gap-2">
-                <span className={`text-sm font-semibold ${isActive ? 'text-green-400' : 'text-gray-400'}`}>
-                  {isActive ? 'ACTIVE' : 'INACTIVE'}
-                </span>
-                <div className={`w-3 h-3 rounded-full ${isActive ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></div>
+          <h1 className="text-green-400 font-bold text-xl md:text-2xl">LogTrace</h1>
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* Only show capture toggle if not controlled externally */}
+            {!externalOnCaptureToggle && (
+              <div className="flex items-center gap-2 md:gap-3 bg-slate-800/60 border border-green-500/30 rounded-lg px-3 md:px-4 py-1 md:py-2">
+                <div className="flex items-center gap-1 md:gap-2">
+                  <span className={`text-xs md:text-sm font-semibold ${captureActive ? 'text-green-400' : 'text-gray-400'}`}>
+                    {captureActive ? 'ACTIVE' : 'INACTIVE'}
+                  </span>
+                  <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full ${captureActive ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></div>
+                </div>
+                <div className="flex items-center gap-1 md:gap-2">
+                  <span className="text-xs text-gray-400 hidden sm:inline">Capture:</span>
+                  <Switch
+                    checked={captureActive}
+                    onCheckedChange={handleCaptureToggle}
+                    aria-label="Context Capture"
+                    className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-600 scale-75 md:scale-100"
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400">Capture:</span>
-            <Switch
-              checked={contextCaptureEnabled}
-              onCheckedChange={handleCaptureToggle}
-              aria-label="Context Capture"
-                  className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-600"
-                />
-              </div>
-            </div>
+            )}
             
-            {/* Credits Display */}
-            <div className="flex items-center gap-2 px-3 py-1 bg-slate-800 border border-green-500/30 rounded-full">
+            {/* Credits Display - Mobile optimized */}
+            <div className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 bg-slate-800 border border-green-500/30 rounded-full">
               <span className="text-xs text-green-400 font-semibold">
                 {remainingUses}/5 credits
               </span>
               {waitlistBonusRemaining > 0 && (
-                <span className="flex items-center gap-1 ml-2 text-yellow-400 font-semibold text-xs">
+                <span className="hidden sm:flex items-center gap-1 ml-1 md:ml-2 text-yellow-400 font-semibold text-xs">
                   +{waitlistBonusRemaining} bonus
                 </span>
               )}
             </div>
             
-            <Button onClick={() => setShowSettingsDrawer(true)} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-              Settings
+            <Button 
+              onClick={() => setShowSettingsDrawer(true)} 
+              variant="ghost" 
+              size="sm" 
+              className="text-gray-400 hover:text-white bg-slate-800 border border-slate-600 hover:bg-slate-700 px-2 md:px-3 h-7 md:h-9"
+            >
+              <span className="text-xs md:text-sm">Settings</span>
             </Button>
-            <Button onClick={() => setShowUpgradeModal(true)} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-              Upgrade
+            <Button 
+              onClick={() => setShowUpgradeModal(true)} 
+              variant="ghost" 
+              size="sm" 
+              className="text-gray-400 hover:text-white bg-slate-800 border border-slate-600 hover:bg-slate-700 px-2 md:px-3 h-7 md:h-9"
+            >
+              <span className="text-xs md:text-sm">Upgrade</span>
             </Button>
           </div>
         </div>
@@ -503,38 +523,38 @@ const LogTrace: React.FC<LogTraceProps> = ({
         <InstructionsCard />
       </div>
 
-      {/* Test components section */}
-      <div className="p-6 mt-6 bg-slate-800/40 rounded-xl border border-cyan-500/20">
-        <h3 className="text-cyan-400 font-semibold mb-4">Test These Components</h3>
-        <div className="flex items-center gap-6 mb-6">
-          <button
-            className="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
+      {/* Test components section - Mobile optimized */}
+      <div className="p-4 md:p-6 mt-4 md:mt-6 bg-slate-800/40 rounded-xl border border-cyan-500/20 mx-4 md:mx-0">
+        <h3 className="text-cyan-400 font-semibold mb-4 text-sm md:text-base">Test These Components</h3>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 mb-4 md:mb-6">
+          <Button
+            className="px-3 md:px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition text-sm md:text-base"
             onClick={() => alert('Test Button Clicked!')}
           >
             Test Button
-          </button>
+          </Button>
           <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">Pill Slider:</span>
+            <span className="text-gray-400 text-xs md:text-sm">Pill Slider:</span>
             <button
               type="button"
-              className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none ${pillOn ? 'bg-green-500' : 'bg-gray-400'}`}
+              className={`relative w-10 h-5 md:w-12 md:h-6 rounded-full transition-colors duration-200 focus:outline-none ${pillOn ? 'bg-green-500' : 'bg-gray-400'}`}
               onClick={() => setPillOn(v => !v)}
               aria-pressed={pillOn}
             >
               <span
-                className={`absolute left-0 top-0 w-6 h-6 bg-white rounded-full shadow transform transition-transform duration-200 ${pillOn ? 'translate-x-6' : ''}`}
+                className={`absolute left-0 top-0 w-5 h-5 md:w-6 md:h-6 bg-white rounded-full shadow transform transition-transform duration-200 ${pillOn ? 'translate-x-5 md:translate-x-6' : ''}`}
                 style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}
               />
             </button>
-            <span className={`ml-2 text-sm font-semibold ${pillOn ? 'text-green-500' : 'text-gray-400'}`}>{pillOn ? 'ON' : 'OFF'}</span>
+            <span className={`ml-2 text-xs md:text-sm font-semibold ${pillOn ? 'text-green-500' : 'text-gray-400'}`}>{pillOn ? 'ON' : 'OFF'}</span>
           </div>
         </div>
-        <div className="text-sm text-gray-400 bg-slate-800/60 rounded p-3">
+        <div className="text-xs md:text-sm text-gray-400 bg-slate-800/60 rounded p-3">
           <p className="font-semibold text-cyan-400 mb-2">How to Use LogTrace:</p>
-          <p>• <strong>1. Right-click anywhere</strong> to open the LogTrace context menu</p>
-          <p>• <strong>2. Select "Start LogTrace"</strong> to begin element inspection (mouse overlay UI)</p>
-          <p>• <strong>3. Hover over elements</strong> to see live inspection data</p>
-          <p>• <strong>4. Click a highlighted element</strong> to open the pinned details UI</p>
+          <p>• <strong>1. Toggle capture</strong> in the navbar or here to begin</p>
+          <p>• <strong>2. Hover over elements</strong> to see live inspection data</p>
+          <p>• <strong>3. Click a highlighted element</strong> to open the pinned details UI</p>
+          <p>• <strong>4. Use right-click</strong> for quick actions and screenshots</p>
         </div>
       </div>
 
