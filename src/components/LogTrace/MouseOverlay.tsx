@@ -59,7 +59,6 @@ interface MouseOverlayProps {
   currentElement: ElementInfo | null; // The element currently hovered/inspected
   mousePosition: { x: number; y: number }; // Current mouse position
   overlayRef: React.RefObject<HTMLDivElement>; // Ref for the overlay div
-  onElementClick: () => void; // Handler for clicking the overlay (show details)
 }
 
 /**
@@ -72,7 +71,6 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
   currentElement,
   mousePosition,
   overlayRef,
-  onElementClick,
 }) => {
   // Don't render overlay if not active
   if (!isActive) return null;
@@ -142,7 +140,7 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
         />
       )}
 
-      {/* Info overlay card - shows element details near the cursor */}
+      {/* Info overlay card - shows element details near the cursor (read-only) */}
       {currentElement && (
         <div
           id="logtrace-overlay"
@@ -150,12 +148,11 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
             if (cardRef) cardRef.current = node;
             if (overlayRef && 'current' in overlayRef) (overlayRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
           }}
-          className={`fixed pointer-events-auto z-40 cursor-pointer transform -translate-x-1/2 ${cardPos.below ? '' : '-translate-y-full'}`}
+          className={`fixed pointer-events-none z-40 transform -translate-x-1/2 ${cardPos.below ? '' : '-translate-y-full'}`}
           style={{
             left: cardPos.left,
             top: cardPos.top,
           }}
-          onClick={onElementClick}
         >
           <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl hover:border-cyan-400/70 transition-colors">
             <div className="p-3 text-xs">

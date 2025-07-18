@@ -137,6 +137,23 @@ const LogTrace: React.FC<LogTraceProps> = ({
     if (showTerminal) setShowTerminal(false);
   }, [setShowDebugModal, showTerminal, setShowTerminal]);
 
+  // Element click handler - streamlined to directly open element inspector
+  const handleElementClick = useCallback(() => {
+    if (!currentElement) return;
+    setShowDebugModal(false);
+    setShowElementInspector(true);
+    addEvent({
+      type: 'inspect',
+      position: mousePosition,
+      element: {
+        tag: currentElement.tag,
+        id: currentElement.id,
+        classes: currentElement.classes,
+        text: currentElement.text,
+      },
+    });
+  }, [currentElement, mousePosition, addEvent, setShowDebugModal]);
+
   // Get mouse and click handlers from the hook
   const { handleMouseMove, handleClick } = useLogTraceEventHandlers({
     isActive,
@@ -151,6 +168,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
     extractElementInfo,
     addEvent,
     handleEscape,
+    onElementClick: handleElementClick,
   });
 
   const { toast } = useToast();
@@ -326,23 +344,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
       localStorage.setItem('logtrace-onboarding-completed', 'true');
     }
   };
-
-  // Element click handler - streamlined to directly open element inspector
-  const handleElementClick = useCallback(() => {
-    if (!currentElement) return;
-    setShowDebugModal(false);
-    setShowElementInspector(true);
-    addEvent({
-      type: 'inspect',
-      position: mousePosition,
-      element: {
-        tag: currentElement.tag,
-        id: currentElement.id,
-        classes: currentElement.classes,
-        text: currentElement.text,
-      },
-    });
-  }, [currentElement, mousePosition, addEvent, setShowDebugModal]);
 
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
     if (isPremium) {
@@ -555,13 +556,12 @@ const LogTrace: React.FC<LogTraceProps> = ({
         />
       )}
 
-      <MouseOverlay 
-        isActive={isActive}
-        currentElement={currentElement}
-        mousePosition={mousePosition}
-        overlayRef={overlayRef}
-        onElementClick={handleElementClick}
-      />
+              <MouseOverlay
+          isActive={isActive}
+          currentElement={currentElement}
+          mousePosition={mousePosition}
+          overlayRef={overlayRef}
+        />
 
       {openInspectors.map((inspector) => (
         <div data-interactive-panel key={inspector.id}>

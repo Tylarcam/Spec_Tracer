@@ -14,6 +14,7 @@ interface UseLogTraceEventHandlersProps {
   extractElementInfo: (target: HTMLElement) => ElementInfo;
   addEvent: (event: Omit<LogEvent, 'id' | 'timestamp'>) => void;
   handleEscape: () => void;
+  onElementClick?: () => void; // Callback for when element is clicked
 }
 
 export const useLogTraceEventHandlers = ({
@@ -29,6 +30,7 @@ export const useLogTraceEventHandlers = ({
   extractElementInfo,
   addEvent,
   handleEscape,
+  onElementClick,
 }: UseLogTraceEventHandlersProps) => {
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -59,6 +61,24 @@ export const useLogTraceEventHandlers = ({
         !target.closest('[data-interactive-panel]')) {
       e.preventDefault();
       
+      // Check if the click is on the currently highlighted element
+      if (currentElement && currentElement.element) {
+        const elementRect = currentElement.element.getBoundingClientRect();
+        const clickX = e.clientX;
+        const clickY = e.clientY;
+        
+        // Check if click is within the highlighted element's bounds
+        if (clickX >= elementRect.left && 
+            clickX <= elementRect.right && 
+            clickY >= elementRect.top && 
+            clickY <= elementRect.bottom) {
+          // This is a click on the highlighted element - trigger element inspector
+          if (onElementClick) {
+            onElementClick();
+          }
+        }
+      }
+      
       addEvent({
         type: 'click',
         position: { x: e.clientX, y: e.clientY },
@@ -73,7 +93,7 @@ export const useLogTraceEventHandlers = ({
         } : undefined,
       });
     }
-  }, [isActive, currentElement, addEvent]);
+  }, [isActive, currentElement, addEvent, onElementClick]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     const activeElement = document.activeElement;
