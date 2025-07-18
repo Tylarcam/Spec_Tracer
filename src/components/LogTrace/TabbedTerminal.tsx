@@ -47,11 +47,10 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 ${isMobile ? 'z-100' : 'z-50'}`}
-      style={terminalHeight ? { height: terminalHeight, minHeight: 0 } : {}}
+      className={`w-full h-full ${isMobile ? 'z-100' : 'z-50'}`}
     >
-      <Card className={`bg-slate-900/95 border-green-500/50 ${isMobile ? 'rounded-none border-x-0 border-b-0' : 'rounded-t-lg border-b-0'}`} style={terminalHeight ? { height: '100%' } : {}}>
-        <div className={`${isMobile ? 'p-2' : 'p-4'}`} style={terminalHeight ? { height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 } : {}}>
+      <Card className={`bg-slate-900/95 border-green-500/50 ${isMobile ? 'rounded-none border-x-0 border-b-0' : 'rounded-t-lg border-b-0'} h-full`}>
+        <div className={`${isMobile ? 'p-2' : 'p-4'} h-full flex flex-col min-h-0`}>
           {!isMobile && (
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>

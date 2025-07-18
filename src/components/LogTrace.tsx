@@ -405,12 +405,18 @@ const LogTrace: React.FC<LogTraceProps> = ({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (resizingRef.current) {
+        // Calculate height from bottom of viewport to mouse position
         const newHeight = Math.max(window.innerHeight - e.clientY, terminalMinHeight);
-        setTerminalHeight(newHeight);
+        // Also ensure it doesn't exceed 80% of viewport height
+        const maxHeight = window.innerHeight * 0.8;
+        const clampedHeight = Math.min(newHeight, maxHeight);
+        setTerminalHeight(clampedHeight);
       }
     };
     const handleMouseUp = () => {
-      resizingRef.current = false;
+      if (resizingRef.current) {
+        resizingRef.current = false;
+      }
     };
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
@@ -418,7 +424,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, []);
+  }, [terminalMinHeight]);
 
   return (
     <div
@@ -644,18 +650,41 @@ const LogTrace: React.FC<LogTraceProps> = ({
           {!isMobile && (
             <div
               style={{
-                height: 8,
+                height: 12,
                 cursor: 'ns-resize',
-                background: 'rgba(34,197,94,0.15)',
+                background: 'rgba(34,197,94,0.2)',
                 borderTopLeftRadius: 8,
                 borderTopRightRadius: 8,
                 zIndex: 101,
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                MozUserSelect: 'none',
+                msUserSelect: 'none',
               }}
               onMouseDown={(e) => {
                 e.preventDefault();
                 resizingRef.current = true;
               }}
-            />
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(34,197,94,0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(34,197,94,0.2)';
+              }}
+            >
+              <div
+                style={{
+                  width: 40,
+                  height: 4,
+                  background: 'rgba(34,197,94,0.6)',
+                  borderRadius: 2,
+                }}
+              />
+            </div>
           )}
           
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
@@ -667,6 +696,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
               clearEvents={clearEvents}
               debugResponses={debugResponses}
               clearDebugResponses={clearDebugResponses}
+              terminalHeight={terminalHeight}
             />
           </div>
         </div>
