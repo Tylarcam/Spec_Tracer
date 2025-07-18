@@ -327,14 +327,11 @@ const LogTrace: React.FC<LogTraceProps> = ({
     }
   };
 
-  // Element click handler - streamlined to directly open pinned details
+  // Element click handler - streamlined to directly open element inspector
   const handleElementClick = useCallback(() => {
     if (!currentElement) return;
-    
-    // Immediately open the pinned details modal
-    setDetailsElement(currentElement);
-    setShowMoreDetails(true);
-    
+    setShowDebugModal(false);
+    setShowElementInspector(true);
     addEvent({
       type: 'inspect',
       position: mousePosition,
@@ -345,7 +342,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
         text: currentElement.text,
       },
     });
-  }, [currentElement, mousePosition, addEvent, setShowMoreDetails, setDetailsElement]);
+  }, [currentElement, mousePosition, addEvent, setShowDebugModal]);
 
   const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
     if (isPremium) {
