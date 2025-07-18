@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Target, User, Crown, Zap, LogOut, LogIn, Play, Square } from 'lucide-react';
+import { Target, User, Crown, Zap, LogOut, LogIn, Github, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Github, Mail, Switch as SwitchIcon } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 
