@@ -24,39 +24,79 @@ const FloatingHint: React.FC<FloatingHintProps> = ({ isActive, currentElement })
     // Reset dismissed state when LogTrace becomes active
     if (isActive) {
       setDismissed(false);
+      // Auto-dismiss after 5 seconds
+      const timer = setTimeout(() => setDismissed(true), 5000);
+      return () => clearTimeout(timer);
     }
   }, [isActive]);
 
+  // Dismiss when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[data-floating-hint]')) {
+        setDismissed(true);
+      }
+    };
+
+    if (isActive && !dismissed) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isActive, dismissed]);
+
   if (dismissed || !isActive) return null;
+
+  // Check if mobile
+  const isMobile = window.innerWidth <= 768;
 
   return (
     <>
-      {/* Main hint - always visible when active */}
-      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40 bg-slate-900/95 border border-cyan-500/30 rounded-lg px-4 py-2 shadow-lg backdrop-blur-sm animate-fade-in">
+      {/* Main hint - positioned lower on mobile */}
+      <div 
+        data-floating-hint
+        className={`fixed left-1/2 transform -translate-x-1/2 z-40 bg-slate-900/95 border border-cyan-500/30 rounded-lg px-3 py-2 shadow-lg backdrop-blur-sm animate-fade-in ${
+          isMobile ? 'top-20' : 'top-4'
+        }`}
+        style={{
+          maxWidth: isMobile ? 'calc(100vw - 32px)' : 'auto',
+          width: isMobile ? 'calc(100vw - 32px)' : 'auto'
+        }}
+      >
         <div className="flex items-center gap-2">
-          <MousePointer2 className="h-4 w-4 text-cyan-400" />
-          <span className="text-cyan-300 text-sm font-medium">Right-click anywhere for actions</span>
+          <MousePointer2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-cyan-400 flex-shrink-0`} />
+          <span className={`text-cyan-300 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+            Right-click anywhere for actions
+          </span>
           <button
             onClick={() => setDismissed(true)}
-            className="ml-2 p-1 hover:bg-slate-700 rounded"
+            className={`ml-2 p-1 hover:bg-slate-700 rounded flex-shrink-0 ${isMobile ? 'min-w-[24px] min-h-[24px]' : ''}`}
+            aria-label="Dismiss hint"
           >
-            <X className="h-3 w-3 text-gray-400" />
+            <X className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'} text-gray-400`} />
           </button>
         </div>
       </div>
 
       {/* Element-specific hint */}
       {showElementHint && currentElement && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40 bg-green-900/95 border border-green-500/30 rounded-lg px-4 py-2 shadow-lg backdrop-blur-sm animate-fade-in">
+        <div 
+          data-floating-hint
+          className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40 bg-green-900/95 border border-green-500/30 rounded-lg px-4 py-2 shadow-lg backdrop-blur-sm animate-fade-in"
+          style={{
+            maxWidth: isMobile ? 'calc(100vw - 32px)' : 'auto',
+            width: isMobile ? 'calc(100vw - 32px)' : 'auto'
+          }}
+        >
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-green-300 text-sm font-medium">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse flex-shrink-0"></div>
+            <span className={`text-green-300 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
               Element detected: {currentElement.tag}
               {currentElement.id && `#${currentElement.id}`}
               {currentElement.classes.length > 0 && `.${currentElement.classes[0]}`}
             </span>
           </div>
-          <div className="text-xs text-green-200 mt-1">
+          <div className={`text-green-200 mt-1 ${isMobile ? 'text-xs' : 'text-xs'}`}>
             Right-click for element actions
           </div>
         </div>
