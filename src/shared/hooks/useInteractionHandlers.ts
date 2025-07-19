@@ -1,4 +1,3 @@
-
 /**
  * Hook for handling mouse and keyboard interactions during LogTrace sessions
  * Manages cursor tracking, element detection, and user input events
@@ -44,15 +43,14 @@ export const useInteractionHandlers = ({
 }: UseInteractionHandlersProps) => {
   const isMobile = useIsMobile();
 
-  // Mobile touch interaction handlers
-  const handleMobileDoubleTap = useCallback((element: ElementInfo | null, position: { x: number; y: number }) => {
-    if (element && onElementClick) {
+  // Mobile touch interaction handlers - simplified to single tap only
+  const handleMobileSingleTap = useCallback((element: ElementInfo | null, position: { x: number; y: number }) => {
+    if (element) {
       setCursorPosition(position);
       setDetectedElement(element);
-      onElementClick();
       
       recordEvent({
-        type: 'inspect',
+        type: 'tap',
         position,
         element: {
           tag: element.tag,
@@ -65,37 +63,14 @@ export const useInteractionHandlers = ({
         },
       });
     }
-  }, [onElementClick, setCursorPosition, setDetectedElement, recordEvent]);
-
-  const handleMobileLongPressStart = useCallback((element: ElementInfo | null, position: { x: number; y: number }) => {
-    if (element) {
-      setCursorPosition(position);
-      setDetectedElement(element);
-    }
-  }, [setCursorPosition, setDetectedElement]);
-
-  const handleMobileLongPressEnd = useCallback((selectedAction: string | null) => {
-    if (selectedAction && detectedElement && onQuickAction) {
-      onQuickAction(selectedAction, detectedElement);
-    }
-  }, [detectedElement, onQuickAction]);
-
-  const handleMobileTouchMove = useCallback((position: { x: number; y: number }) => {
-    setCursorPosition(position);
-  }, [setCursorPosition]);
+  }, [setCursorPosition, setDetectedElement, recordEvent]);
 
   const {
     handleTouchStart,
-    handleTouchMove,
     handleTouchEnd,
-    isLongPressActive,
-    isDoubleTapDetected,
   } = useMobileTouchInteractions({
     isActive: isTraceActive && isMobile,
-    onDoubleTap: handleMobileDoubleTap,
-    onLongPressStart: handleMobileLongPressStart,
-    onLongPressEnd: handleMobileLongPressEnd,
-    onTouchMove: handleMobileTouchMove,
+    onSingleTap: handleMobileSingleTap,
     extractElementDetails,
   });
 
@@ -211,9 +186,6 @@ export const useInteractionHandlers = ({
     handleCursorMovement,
     handleElementClick,
     handleTouchStart: isMobile ? handleTouchStart : undefined,
-    handleTouchMove: isMobile ? handleTouchMove : undefined,
     handleTouchEnd: isMobile ? handleTouchEnd : undefined,
-    isLongPressActive,
-    isDoubleTapDetected,
   };
 };
