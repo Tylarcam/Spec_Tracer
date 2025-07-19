@@ -39,22 +39,34 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
 
   return (
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-      {/* Action buttons - arranged in an upward arc only (above the menu button) */}
+      {/* Action buttons - arranged in upward semi-circle arc from 225° to -45° (315°) */}
       {isExpanded && (
-        <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2">
+        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2">
           {quickActions.map((action, index) => {
-            // Create an upward arc from 135° to 45° (top-left to top-right, above the button)
-            const startAngle = 135; // Top-left
-            const endAngle = 45; // Top-right
+            // Create upward semi-circle arc from 225° to -45° (315°)
+            const startAngle = 225; // Bottom-left
+            const endAngle = -45; // Top-right (equivalent to 315°)
             
-            // Calculate the total arc span
-            const totalAngle = startAngle - endAngle; // 90° total arc
+            // Calculate total arc span (270° clockwise)
+            let totalAngle;
+            if (endAngle < 0) {
+              totalAngle = startAngle - endAngle; // 225 - (-45) = 270°
+            } else {
+              totalAngle = startAngle + (360 - endAngle);
+            }
+            
             const angleStep = totalAngle / (quickActions.length - 1);
-            const angle = startAngle - (index * angleStep);
+            let angle = startAngle - (index * angleStep);
             
-            const distance = 120; // Distance from center
-            const x = Math.cos((angle * Math.PI) / 180) * distance;
-            const y = Math.sin((angle * Math.PI) / 180) * distance;
+            // Normalize angle to 0-360 range
+            if (angle < 0) angle += 360;
+            
+            const radius = 120; // Distance from FAB center
+            
+            // Convert to radians and calculate position
+            const radian = (angle * Math.PI) / 180;
+            const x = Math.cos(radian) * radius;
+            const y = -Math.sin(radian) * radius; // Negative because CSS Y increases downward
             
             return (
               <div
@@ -73,15 +85,15 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
             );
           })}
           
-          {/* Background overlay for swipe area - adjusted for upward arc only */}
+          {/* Background overlay for visual feedback */}
           <div 
-            className="absolute inset-0 w-80 h-40 -left-40 -top-40 rounded-b-full bg-cyan-900/20 border-2 border-cyan-500/30 border-b-0"
+            className="absolute inset-0 w-80 h-80 -left-40 -top-40 rounded-full bg-cyan-900/10 border border-cyan-500/20"
             style={{ pointerEvents: 'none' }}
           />
         </div>
       )}
       
-      {/* Main centered toggle button */}
+      {/* Main centered FAB toggle button */}
       <button
         onClick={handleToggle}
         className={`w-16 h-16 bg-cyan-400 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 border-4 border-cyan-300/50 ${
