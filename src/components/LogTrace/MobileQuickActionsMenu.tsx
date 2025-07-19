@@ -39,13 +39,19 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
 
   return (
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-      {/* Action buttons - arranged in a fan pattern when expanded */}
+      {/* Action buttons - arranged in a horizontal rainbow arc when expanded */}
       {isExpanded && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2">
           {quickActions.map((action, index) => {
-            // Create a fan pattern spreading upward and to the sides
-            const angle = (index * 45) - 90; // Fan from -90° to +90°
-            const distance = 100;
+            // Create a horizontal rainbow arc pattern
+            // Start from -60° (left) to +60° (right) for a 120° arc
+            const startAngle = -60;
+            const endAngle = 60;
+            const totalAngle = endAngle - startAngle;
+            const angleStep = totalAngle / (quickActions.length - 1);
+            const angle = startAngle + (index * angleStep);
+            
+            const distance = 120; // Distance from center
             const x = Math.cos((angle * Math.PI) / 180) * distance;
             const y = Math.sin((angle * Math.PI) / 180) * distance;
             
@@ -66,9 +72,9 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
             );
           })}
           
-          {/* Background overlay for swipe area */}
+          {/* Background overlay for swipe area - adjusted for horizontal layout */}
           <div 
-            className="absolute inset-0 w-64 h-64 -left-32 -top-32 rounded-full bg-cyan-900/20 border-2 border-cyan-500/30"
+            className="absolute inset-0 w-80 h-40 -left-40 -top-20 rounded-full bg-cyan-900/20 border-2 border-cyan-500/30"
             style={{ pointerEvents: 'none' }}
           />
         </div>
