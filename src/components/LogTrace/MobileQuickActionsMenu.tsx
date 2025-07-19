@@ -39,16 +39,16 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
 
   return (
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-      {/* Action buttons - arranged in an upward semi-circle arc when expanded */}
+      {/* Action buttons - arranged in an upward arc only (above the menu button) */}
       {isExpanded && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2">
           {quickActions.map((action, index) => {
-            // Create an upward semi-circle arc from 225° to -45° (bottom-left to top-right)
-            const startAngle = 225; // Bottom-left
-            const endAngle = -45; // Top-right (315° in standard notation)
+            // Create an upward arc from 135° to 45° (top-left to top-right, above the button)
+            const startAngle = 135; // Top-left
+            const endAngle = 45; // Top-right
             
-            // Calculate the total arc span (accounting for crossing 0°)
-            const totalAngle = startAngle - endAngle; // 270° total arc
+            // Calculate the total arc span
+            const totalAngle = startAngle - endAngle; // 90° total arc
             const angleStep = totalAngle / (quickActions.length - 1);
             const angle = startAngle - (index * angleStep);
             
@@ -73,9 +73,9 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
             );
           })}
           
-          {/* Background overlay for swipe area - adjusted for semi-circle layout */}
+          {/* Background overlay for swipe area - adjusted for upward arc only */}
           <div 
-            className="absolute inset-0 w-80 h-80 -left-40 -top-40 rounded-full bg-cyan-900/20 border-2 border-cyan-500/30"
+            className="absolute inset-0 w-80 h-40 -left-40 -top-40 rounded-b-full bg-cyan-900/20 border-2 border-cyan-500/30 border-b-0"
             style={{ pointerEvents: 'none' }}
           />
         </div>
@@ -98,15 +98,6 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
           </div>
         )}
       </button>
-      
-      {/* Action labels that appear when expanded */}
-      {isExpanded && (
-        <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 text-center">
-          <p className="text-cyan-300 text-sm font-medium bg-slate-900/80 px-3 py-1 rounded-full">
-            Swipe to select action
-          </p>
-        </div>
-      )}
     </div>
   );
 };
