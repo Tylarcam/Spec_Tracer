@@ -39,17 +39,18 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
 
   return (
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-      {/* Action buttons - arranged in a horizontal rainbow arc when expanded */}
+      {/* Action buttons - arranged in an upward semi-circle arc when expanded */}
       {isExpanded && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2">
           {quickActions.map((action, index) => {
-            // Create a horizontal rainbow arc pattern
-            // Start from -60° (left) to +60° (right) for a 120° arc
-            const startAngle = -60;
-            const endAngle = 60;
-            const totalAngle = endAngle - startAngle;
+            // Create an upward semi-circle arc from 225° to -45° (bottom-left to top-right)
+            const startAngle = 225; // Bottom-left
+            const endAngle = -45; // Top-right (315° in standard notation)
+            
+            // Calculate the total arc span (accounting for crossing 0°)
+            const totalAngle = startAngle - endAngle; // 270° total arc
             const angleStep = totalAngle / (quickActions.length - 1);
-            const angle = startAngle + (index * angleStep);
+            const angle = startAngle - (index * angleStep);
             
             const distance = 120; // Distance from center
             const x = Math.cos((angle * Math.PI) / 180) * distance;
@@ -72,9 +73,9 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
             );
           })}
           
-          {/* Background overlay for swipe area - adjusted for horizontal layout */}
+          {/* Background overlay for swipe area - adjusted for semi-circle layout */}
           <div 
-            className="absolute inset-0 w-80 h-40 -left-40 -top-20 rounded-full bg-cyan-900/20 border-2 border-cyan-500/30"
+            className="absolute inset-0 w-80 h-80 -left-40 -top-40 rounded-full bg-cyan-900/20 border-2 border-cyan-500/30"
             style={{ pointerEvents: 'none' }}
           />
         </div>
