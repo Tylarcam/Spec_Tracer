@@ -39,22 +39,22 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
 
   return (
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-      {/* Action buttons - arranged in an upward arc only (above the menu button) */}
+      {/* Action buttons in upward semi-circle arc */}
       {isExpanded && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2">
           {quickActions.map((action, index) => {
-            // Create an upward arc from 135° to 45° (top-left to top-right, above the button)
-            const startAngle = 135; // Top-left
-            const endAngle = 45; // Top-right
+            // Create upward semi-circle from 225° to -45° (or 315°)
+            const startAngle = 225; // Bottom-left
+            const endAngle = -45; // Top-right (same as 315°)
             
-            // Calculate the total arc span
-            const totalAngle = startAngle - endAngle; // 90° total arc
+            // Calculate angle span (270° total)
+            const totalAngle = startAngle - endAngle;
             const angleStep = totalAngle / (quickActions.length - 1);
             const angle = startAngle - (index * angleStep);
             
-            const distance = 120; // Distance from center
-            const x = Math.cos((angle * Math.PI) / 180) * distance;
-            const y = Math.sin((angle * Math.PI) / 180) * distance;
+            const radius = 120;
+            const x = Math.cos((angle * Math.PI) / 180) * radius;
+            const y = Math.sin((angle * Math.PI) / 180) * radius;
             
             return (
               <div
@@ -72,12 +72,6 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
               </div>
             );
           })}
-          
-          {/* Background overlay for swipe area - adjusted for upward arc only */}
-          <div 
-            className="absolute inset-0 w-80 h-40 -left-40 -top-40 rounded-b-full bg-cyan-900/20 border-2 border-cyan-500/30 border-b-0"
-            style={{ pointerEvents: 'none' }}
-          />
         </div>
       )}
       
