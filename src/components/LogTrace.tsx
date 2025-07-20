@@ -5,7 +5,7 @@ import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator'
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
 import { InteractivePanel } from './InteractivePanel';
 import { LogEvent } from '@/shared/types';
-import { MobileQuickActionsMenu } from './LogTrace/MobileQuickActionsMenu';
+import MobileQuickActionsMenu from './LogTrace/MobileQuickActionsMenu';
 import { InspectorPanel } from './InspectorPanel';
 import { TerminalPanel } from './TerminalPanel';
 import { AIDebugModal } from './AIDebugModal';
