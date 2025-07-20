@@ -6,7 +6,7 @@ interface InteractivePanelProps {
   detectedElement: ElementInfo | null;
   cursorPosition: { x: number; y: number };
   onClose: () => void;
-  onAnalyzeWithAI: () => void;
+  onAnalyzeWithAI: (prompt: string) => Promise<any>;
   isAIAnalyzing: boolean;
   generateElementPrompt: () => string;
 }
@@ -20,6 +20,11 @@ const InteractivePanel: React.FC<InteractivePanelProps> = ({
   generateElementPrompt,
 }) => {
   if (!detectedElement) return null;
+
+  const handleAnalyzeClick = () => {
+    const prompt = generateElementPrompt();
+    onAnalyzeWithAI(prompt);
+  };
 
   return (
     <div className="fixed z-50 bg-gray-800 rounded-lg p-4 shadow-lg">
@@ -41,7 +46,7 @@ const InteractivePanel: React.FC<InteractivePanelProps> = ({
         {detectedElement.text && <p>Text: {detectedElement.text}</p>}
       </div>
       <button
-        onClick={onAnalyzeWithAI}
+        onClick={handleAnalyzeClick}
         disabled={isAIAnalyzing}
         className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
       >

@@ -8,7 +8,7 @@ interface AIDebugModalProps {
   onClose: () => void;
   element: ElementInfo | null;
   position: { x: number; y: number };
-  analyzeElementWithAI: () => void;
+  analyzeElementWithAI: (prompt: string) => Promise<any>;
   isAIAnalyzing: boolean;
   generateElementPrompt: () => string;
 }
@@ -23,6 +23,11 @@ const AIDebugModal: React.FC<AIDebugModalProps> = ({
   generateElementPrompt,
 }) => {
   if (!isOpen || !element) return null;
+
+  const handleAnalyzeClick = () => {
+    const prompt = generateElementPrompt();
+    analyzeElementWithAI(prompt);
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -51,7 +56,7 @@ const AIDebugModal: React.FC<AIDebugModalProps> = ({
             </div>
           </div>
           <button
-            onClick={analyzeElementWithAI}
+            onClick={handleAnalyzeClick}
             disabled={isAIAnalyzing}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-2 px-4 rounded"
           >
