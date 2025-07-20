@@ -1,3 +1,4 @@
+
 /**
  * Hook for managing LogTrace configuration settings
  * Handles settings persistence and validation
@@ -15,7 +16,6 @@ const DEFAULT_SETTINGS: LogTraceSettings = {
   enableKeyboardShortcuts: true,
   theme: 'dark',
   debugMode: false,
-  warnOnExit: true,
 };
 
 export const useLogTraceSettings = () => {

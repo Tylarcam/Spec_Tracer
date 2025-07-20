@@ -41,7 +41,6 @@ export interface LogTraceSettings {
   theme: 'dark' | 'light';
   apiKey?: string;
   debugMode: boolean;
-  warnOnExit: boolean;
 }
 
 export interface DebugContext {

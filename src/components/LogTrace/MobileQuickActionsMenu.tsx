@@ -37,13 +37,13 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
 
   if (!isVisible) return null;
 
-  // Calculate positions for fan layout - semi-circle above the main button
+  // Calculate positions for fan layout - centered over main button
   const getActionPosition = (index: number) => {
     const totalActions = quickActions.length;
     const radius = 80; // Distance from center button
-    const startAngle = 180; // Start angle in degrees (left)
-    const endAngle = 0; // End angle in degrees (right)
-    const angleRange = startAngle - endAngle; // 180 degrees total for semi-circle
+    const startAngle = 225; // Start angle in degrees (bottom-left)
+    const endAngle = -45; // End angle in degrees (top-right)
+    const angleRange = startAngle - endAngle; // 270 degrees total
     const angleStep = angleRange / (totalActions - 1);
     const angle = (startAngle - (index * angleStep)) * (Math.PI / 180); // Convert to radians
     
@@ -55,9 +55,9 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
 
   return (
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-      {/* Fan Action Icons - positioned above the center button */}
+      {/* Fan Action Icons - positioned relative to center button */}
       {isExpanded && (
-        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4">
+        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           {quickActions.map((action, index) => {
             const position = getActionPosition(index);
             
@@ -67,7 +67,7 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
                 className="absolute w-12 h-12 bg-gray-700 rounded-full shadow-lg flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-110 border-2 border-white/20 hover:border-white/40"
                 style={{
                   left: position.x,
-                  top: -position.y, // Negative Y to position above
+                  top: position.y,
                   transform: 'translate(-50%, -50%)',
                   animation: `fadeInScale 0.3s ease-out ${index * 0.05}s both`,
                 }}
@@ -98,7 +98,7 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
       </button>
 
       {/* Custom animations */}
-      <style>{`
+      <style jsx>{`
         @keyframes fadeInScale {
           0% {
             opacity: 0;
