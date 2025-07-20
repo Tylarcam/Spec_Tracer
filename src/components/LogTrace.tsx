@@ -269,29 +269,90 @@ const LogTrace: React.FC<LogTraceProps> = ({
     }
   }, [detectedElement, setShowAIDebugModal, setShowMoreDetails, setDetailsElement, setActiveScreenshotOverlay]);
 
-  // Mobile-specific quick action handler - simplified
+  // Mobile-specific quick action handler - enhanced functionality
   const handleMobileQuickAction = useCallback((action: string) => {
     switch (action) {
       case 'inspector':
         if (detectedElement) {
           handleElementClick();
+          toast({
+            title: 'Element Inspector',
+            description: 'Opened inspector panel for selected element',
+            variant: 'success',
+            duration: 2000,
+          });
+        } else {
+          toast({
+            title: 'No Element Selected',
+            description: 'Hover over an element first to inspect it',
+            variant: 'destructive',
+            duration: 3000,
+          });
         }
         break;
       case 'screenshot':
         setActiveScreenshotOverlay('rectangle');
+        toast({
+          title: 'Screenshot Mode',
+          description: 'Select area to capture screenshot',
+          variant: 'default',
+          duration: 2000,
+        });
         break;
       case 'context':
-        // Handle context generation
-        console.log('Context generation for mobile');
+        if (detectedElement) {
+          // Generate context for the detected element
+          const contextPrompt = generateElementPrompt(detectedElement);
+          if (contextPrompt) {
+            // Call analyzeElementWithAI directly instead of handleAnalyzeWithAI
+            analyzeElementWithAI(contextPrompt).then(() => {
+              toast({
+                title: 'Context Generation',
+                description: 'Generating context for selected element...',
+                variant: 'default',
+                duration: 2000,
+              });
+            }).catch((error) => {
+              toast({
+                title: 'Context Generation Failed',
+                description: error.message || 'Failed to generate context',
+                variant: 'destructive',
+                duration: 3000,
+              });
+            });
+          }
+        } else {
+          toast({
+            title: 'No Element Selected',
+            description: 'Hover over an element first to generate context',
+            variant: 'destructive',
+            duration: 3000,
+          });
+        }
         break;
       case 'debug':
         setShowAIDebugModal(true);
+        toast({
+          title: 'AI Debug Modal',
+          description: 'Opened AI debug interface',
+          variant: 'default',
+          duration: 2000,
+        });
         break;
       case 'terminal':
         setShowTerminalPanel(true);
+        toast({
+          title: 'Terminal Panel',
+          description: 'Opened debug terminal',
+          variant: 'default',
+          duration: 2000,
+        });
+        break;
+      default:
+        console.log('Unknown action:', action);
         break;
     }
-  }, [detectedElement, handleElementClick, setShowAIDebugModal, setShowTerminalPanel, setActiveScreenshotOverlay]);
+  }, [detectedElement, handleElementClick, setShowAIDebugModal, setShowTerminalPanel, setActiveScreenshotOverlay, generateElementPrompt, analyzeElementWithAI, toast]);
 
   // Get mouse and click handlers from the interaction handlers hook - simplified
   const { 

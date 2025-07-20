@@ -1,6 +1,7 @@
 
+
 import React, { useState } from 'react';
-import { Camera, Sparkles, Bug, Eye, Terminal, X, Monitor, Search, Plus, ChevronLeft, ChevronRight, Home } from 'lucide-react';
+import { Camera, Sparkles, Bug, Eye, X, Search, Menu, Plus } from 'lucide-react';
 
 interface MobileQuickActionsMenuProps {
   isVisible: boolean;
@@ -9,11 +10,11 @@ interface MobileQuickActionsMenuProps {
 }
 
 const quickActions = [
-  { id: 'inspector', label: 'Element Inspector', icon: Eye, color: 'bg-white' },
-  { id: 'screenshot', label: 'Screenshot', icon: Camera, color: 'bg-white' },
-  { id: 'context', label: 'AI Context', icon: Sparkles, color: 'bg-white' },
-  { id: 'debug', label: 'AI Debug', icon: Bug, color: 'bg-white' },
-  { id: 'terminal', label: 'Terminal', icon: Terminal, color: 'bg-white' },
+  { id: 'inspector', label: 'Inspector', icon: Eye },      // Open element inspector
+  { id: 'screenshot', label: 'Screenshot', icon: Camera }, // Take screenshot
+  { id: 'context', label: 'Context', icon: Sparkles },     // Generate context
+  { id: 'debug', label: 'Debug', icon: Bug },              // Open AI debug modal
+  { id: 'terminal', label: 'Terminal', icon: Search },     // Open terminal panel
 ];
 
 const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
@@ -39,83 +40,53 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
 
   return (
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-      {/* Horizontal Fan Background */}
+      {/* Main Fan Component */}
       {isExpanded && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2">
-          {/* Semi-circular cyan fan background */}
+          {/* Semi-circular fan background - adjusted to 240x108 */}
           <div 
-            className="w-80 h-40 bg-gradient-to-t from-cyan-500 to-cyan-600 rounded-t-full shadow-2xl border-2 border-cyan-400/30"
+            className="w-60 h-27 bg-gradient-to-t from-cyan-400 to-cyan-500 shadow-lg border border-cyan-300/50"
             style={{
-              clipPath: 'polygon(0 100%, 100% 100%, 100% 0, 50% 50%, 0 0)',
+              clipPath: 'polygon(0 100%, 100% 100%, 100% 40%, 85% 25%, 70% 15%, 50% 8%, 30% 15%, 15% 25%, 0 40%)',
+              borderRadius: '50% 50% 0 0 / 100% 100% 0 0',
             }}
           />
           
-          {/* Action buttons distributed along horizontal arc */}
-          {quickActions.map((action, index) => {
-            // Create horizontal arc from 180° to 0° (left to right)
-            const startAngle = 180; // Left
-            const endAngle = 0; // Right
-            const totalAngle = Math.abs(endAngle - startAngle);
-            const angleStep = totalAngle / (quickActions.length - 1);
-            const angle = startAngle + (index * angleStep);
-            
-            const radius = 140; // Slightly larger radius for better distribution
-            const x = Math.cos((angle * Math.PI) / 180) * radius;
-            const y = Math.sin((angle * Math.PI) / 180) * radius;
-            
-            return (
-              <div
-                key={action.id}
-                className={`absolute w-12 h-12 ${action.color} rounded-full shadow-lg flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-110 border-2 border-cyan-200/50`}
-                style={{
-                  left: x,
-                  top: y,
-                  transform: 'translate(-50%, -50%)',
-                  animationDelay: `${index * 100}ms`,
-                }}
-                onClick={() => handleActionSelect(action.id)}
-              >
-                <action.icon className="text-slate-800" size={20} />
-              </div>
-            );
-          })}
-          
-          {/* Navigation and control buttons within the fan */}
-          <div className="absolute inset-0 flex items-center justify-between px-8">
-            {/* Left side controls */}
-            <div className="flex items-center gap-3">
-              <button className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                <ChevronLeft className="w-4 h-4 text-slate-800" />
-              </button>
-              <button className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                <X className="w-4 h-4 text-slate-800" />
-              </button>
-            </div>
-            
-            {/* Center controls */}
-            <div className="flex items-center gap-3">
-              <button className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                <Search className="w-4 h-4 text-slate-800" />
-              </button>
-              <button className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                <Plus className="w-4 h-4 text-slate-800" />
-              </button>
-            </div>
-            
-            {/* Right side controls */}
-            <div className="flex items-center gap-3">
-              <button className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                <Home className="w-4 h-4 text-slate-800" />
-              </button>
-              <button className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                <ChevronRight className="w-4 h-4 text-slate-800" />
-              </button>
-            </div>
+          {/* Grouped Action Icons - positioned to align with center button */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            {quickActions.map((action, index) => {
+              // Position 5 icons along the fan curve, perfectly aligned with center button
+              const positions = [
+                { x: -70, y: -30 },  // Left side - inspector icon
+                { x: -35, y: -35 },  // Left center - screenshot icon
+                { x: 0, y: -40 },    // Center - context icon (directly above button)
+                { x: 35, y: -35 },   // Right center - debug icon
+                { x: 70, y: -30 },   // Right side - terminal icon
+              ];
+              
+              const position = positions[index];
+              
+              return (
+                <div
+                  key={action.id}
+                  className="absolute w-10 h-10 bg-gray-700 rounded-full shadow-md flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-110 border border-white/30"
+                  style={{
+                    left: position.x,
+                    top: position.y,
+                    transform: 'translate(-50%, -50%)',
+                    animationDelay: `${index * 100}ms`,
+                  }}
+                  onClick={() => handleActionSelect(action.id)}
+                >
+                  <action.icon className="text-white" size={16} />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
       
-      {/* Main centered toggle button */}
+      {/* Single centered toggle button */}
       <button
         onClick={handleToggle}
         className={`w-16 h-16 bg-cyan-500 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 border-4 border-cyan-400/50 hover:bg-cyan-600 ${
@@ -123,13 +94,9 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
         }`}
       >
         {isExpanded ? (
-          <X className="text-white" size={28} />
+          <Plus className="text-white" size={24} />
         ) : (
-          <div className="flex flex-col space-y-1">
-            <div className="w-5 h-0.5 bg-white rounded"></div>
-            <div className="w-5 h-0.5 bg-white rounded"></div>
-            <div className="w-5 h-0.5 bg-white rounded"></div>
-          </div>
+          <Menu className="text-white" size={24} />
         )}
       </button>
     </div>
