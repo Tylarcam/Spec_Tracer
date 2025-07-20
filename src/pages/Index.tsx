@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import LogTrace from '@/components/LogTrace';
+import InstructionsCard from '@/components/LogTrace/InstructionsCard';
 import { useCaptureContext } from '@/App';
 
 const Index: React.FC = () => {
@@ -21,6 +22,11 @@ const Index: React.FC = () => {
 
   return (
     <div className="min-h-screen pt-14 md:pt-16">
+      {!captureActive && (
+        <div className="container mx-auto px-4 py-8">
+          <InstructionsCard />
+        </div>
+      )}
       <LogTrace />
     </div>
   );

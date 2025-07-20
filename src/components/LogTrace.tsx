@@ -167,63 +167,8 @@ const LogTrace: React.FC = () => {
 
       {/* Main LogTrace Interface */}
       <div className="min-h-screen bg-background">
-        {!isTraceActive ? (
-          // Inactive State - Show Welcome Screen
-          <div className="flex items-center justify-center min-h-screen p-8">
-            <div className="max-w-2xl text-center space-y-6">
-              <div className="space-y-2">
-                <h1 className="text-4xl font-bold text-foreground">Welcome to LogTrace</h1>
-                <p className="text-xl text-muted-foreground">
-                  Debug and analyze your web application with AI-powered element inspection
-                </p>
-              </div>
-              
-              <div className="bg-card border rounded-lg p-6 space-y-4">
-                <div className="flex items-center gap-2 text-primary">
-                  <Info className="h-5 w-5" />
-                  <h3 className="font-semibold">How to get started:</h3>
-                </div>
-                <ul className="text-left space-y-2 text-muted-foreground">
-                  <li>• Click "Start Tracing" to begin element inspection</li>
-                  <li>• Hover over any element to see detailed information</li>
-                  <li>• Click on elements to analyze them with AI</li>
-                  <li>• Use keyboard shortcuts for quick actions</li>
-                </ul>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
-                  onClick={() => setIsTraceActive(true)}
-                  className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                  <Play className="h-5 w-5" />
-                  Start Tracing
-                </button>
-                <button
-                  onClick={() => setShowSettingsPanel(true)}
-                  className="flex items-center gap-2 bg-secondary text-secondary-foreground px-6 py-3 rounded-lg hover:bg-secondary/90 transition-colors"
-                >
-                  Settings
-                </button>
-              </div>
-
-              {capturedEvents.length > 0 && (
-                <div className="bg-muted rounded-lg p-4">
-                  <p className="text-sm text-muted-foreground">
-                    You have {capturedEvents.length} captured events from previous sessions.
-                  </p>
-                  <button
-                    onClick={() => setShowTerminalPanel(true)}
-                    className="mt-2 text-primary hover:underline text-sm"
-                  >
-                    View Event History
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          // Active State - Show Control Modal
+        {/* LogTrace Control Modal - Always visible when active */}
+        {isTraceActive && (
           <div
             id="logtrace-modal"
             ref={modalRef}
