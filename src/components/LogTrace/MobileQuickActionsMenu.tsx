@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { Camera, Sparkles, Bug, Eye, X, Search, Menu, Plus } from 'lucide-react';
 
@@ -10,11 +9,11 @@ interface MobileQuickActionsMenuProps {
 }
 
 const quickActions = [
-  { id: 'inspector', label: 'Inspector', icon: Eye },      // Open element inspector
-  { id: 'screenshot', label: 'Screenshot', icon: Camera }, // Take screenshot
-  { id: 'context', label: 'Context', icon: Sparkles },     // Generate context
-  { id: 'debug', label: 'Debug', icon: Bug },              // Open AI debug modal
-  { id: 'terminal', label: 'Terminal', icon: Search },     // Open terminal panel
+  { id: 'inspector', label: 'Inspector', icon: Eye },
+  { id: 'screenshot', label: 'Screenshot', icon: Camera },
+  { id: 'context', label: 'Context', icon: Sparkles },
+  { id: 'debug', label: 'Debug', icon: Bug },
+  { id: 'terminal', label: 'Terminal', icon: Search },
 ];
 
 const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
@@ -38,60 +37,58 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
 
   if (!isVisible) return null;
 
+  // Calculate positions for fan layout - centered over main button
+  const getActionPosition = (index: number) => {
+    const totalActions = quickActions.length;
+    const radius = 80; // Distance from center button
+    const startAngle = 225; // Start angle in degrees (bottom-left)
+    const endAngle = -45; // End angle in degrees (top-right)
+    const angleRange = startAngle - endAngle; // 270 degrees total
+    const angleStep = angleRange / (totalActions - 1);
+    const angle = (startAngle - (index * angleStep)) * (Math.PI / 180); // Convert to radians
+    
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    
+    return { x, y };
+  };
+
   return (
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-      {/* Main Fan Component */}
+      {/* Fan Action Icons - positioned relative to center button */}
       {isExpanded && (
-        <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2">
-          {/* Semi-circular fan background - adjusted to 240x108 */}
-          <div 
-            className="w-60 h-27 bg-gradient-to-t from-cyan-400 to-cyan-500 shadow-lg border border-cyan-300/50"
-            style={{
-              clipPath: 'polygon(0 100%, 100% 100%, 100% 40%, 85% 25%, 70% 15%, 50% 8%, 30% 15%, 15% 25%, 0 40%)',
-              borderRadius: '50% 50% 0 0 / 100% 100% 0 0',
-            }}
-          />
-          
-          {/* Grouped Action Icons - positioned to align with center button */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            {quickActions.map((action, index) => {
-              // Position 5 icons along the fan curve, perfectly aligned with center button
-              const positions = [
-                { x: -70, y: -30 },  // Left side - inspector icon
-                { x: -35, y: -35 },  // Left center - screenshot icon
-                { x: 0, y: -40 },    // Center - context icon (directly above button)
-                { x: 35, y: -35 },   // Right center - debug icon
-                { x: 70, y: -30 },   // Right side - terminal icon
-              ];
-              
-              const position = positions[index];
-              
-              return (
-                <div
-                  key={action.id}
-                  className="absolute w-10 h-10 bg-gray-700 rounded-full shadow-md flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-110 border border-white/30"
-                  style={{
-                    left: position.x,
-                    top: position.y,
-                    transform: 'translate(-50%, -50%)',
-                    animationDelay: `${index * 100}ms`,
-                  }}
-                  onClick={() => handleActionSelect(action.id)}
-                >
-                  <action.icon className="text-white" size={16} />
-                </div>
-              );
-            })}
-          </div>
+        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+          {quickActions.map((action, index) => {
+            const position = getActionPosition(index);
+            
+            return (
+              <div
+                key={action.id}
+                className="absolute w-12 h-12 bg-gray-700 rounded-full shadow-lg flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-110 border-2 border-white/20 hover:border-white/40"
+                style={{
+                  left: position.x,
+                  top: position.y,
+                  transform: 'translate(-50%, -50%)',
+                  animation: `fadeInScale 0.3s ease-out ${index * 0.05}s both`,
+                }}
+                onClick={() => handleActionSelect(action.id)}
+              >
+                <action.icon className="text-white" size={18} />
+              </div>
+            );
+          })}
         </div>
       )}
       
-      {/* Single centered toggle button */}
+      {/* Main center toggle button */}
       <button
         onClick={handleToggle}
         className={`w-16 h-16 bg-cyan-500 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 border-4 border-cyan-400/50 hover:bg-cyan-600 ${
-          isExpanded ? 'rotate-45 bg-cyan-600' : ''
+          isExpanded ? 'rotate-45 bg-cyan-600 scale-110' : 'hover:scale-105'
         }`}
+        style={{
+          boxShadow: '0 8px 32px rgba(6, 182, 212, 0.3)',
+        }}
       >
         {isExpanded ? (
           <Plus className="text-white" size={24} />
@@ -99,6 +96,20 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
           <Menu className="text-white" size={24} />
         )}
       </button>
+
+      {/* Custom animations */}
+      <style jsx>{`
+        @keyframes fadeInScale {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.3);
+          }
+          100% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 };
