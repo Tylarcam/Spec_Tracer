@@ -165,138 +165,135 @@ const LogTrace: React.FC = () => {
         </div>
       )}
 
-      {/* Main LogTrace Interface */}
-      <div className="min-h-screen bg-background">
-        {/* LogTrace Control Modal - Always visible when active */}
-        {isTraceActive && (
-          <div
-            id="logtrace-modal"
-            ref={modalRef}
-            className="fixed top-4 right-4 z-[10000] bg-gray-800 bg-opacity-70 rounded-md shadow-lg p-4 data-[interactive-panel]:pointer-events-auto"
-            data-interactive-panel={showInteractivePanel}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold text-white">LogTrace Active</h2>
-              <button 
-                onClick={() => setIsTraceActive(false)} 
-                className="text-gray-500 hover:text-gray-300"
-                title="Stop Tracing"
-              >
-                <Pause className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Error Display */}
-            {hasAnyErrors && (
-              <div className="mb-4 p-3 bg-red-700 text-white rounded-md">
-                <p>
-                  <strong>Errors:</strong>
-                </p>
-                {allErrors.settings && <p>Settings: {allErrors.settings}</p>}
-                {allErrors.storage && <p>Storage: {allErrors.storage}</p>}
-                {allErrors.loading && <p>Loading: {allErrors.loading}</p>}
-                <button onClick={clearAllErrors} className="mt-2 text-sm underline">
-                  Clear Errors
-                </button>
-                {allErrors.settings && (
-                  <button onClick={retrySettingsLoad} className="mt-2 ml-4 text-sm underline">
-                    Retry Load
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Settings Panel Toggle */}
-            <button
-              onClick={() => setShowSettingsPanel(!showSettingsPanel)}
-              className="block text-white hover:text-gray-300 mb-2"
+      {/* LogTrace Control Modal - Only when active */}
+      {isTraceActive && (
+        <div
+          id="logtrace-modal"
+          ref={modalRef}
+          className="fixed top-4 right-4 z-[10000] bg-gray-800 bg-opacity-70 rounded-md shadow-lg p-4 data-[interactive-panel]:pointer-events-auto"
+          data-interactive-panel={showInteractivePanel}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-white">LogTrace Active</h2>
+            <button 
+              onClick={() => setIsTraceActive(false)} 
+              className="text-gray-500 hover:text-gray-300"
+              title="Stop Tracing"
             >
-              {showSettingsPanel ? 'Hide Settings' : 'Show Settings'}
+              <Pause className="h-5 w-5" />
             </button>
-
-            <div className="text-sm text-gray-300">
-              <p>Hover over elements to inspect them</p>
-              <p>Click elements for detailed analysis</p>
-            </div>
-
-            {/* Mobile Quick Actions Menu */}
-            {isMobile && (
-              <MobileQuickActionsMenu
-                isVisible={showMobileQuickActions}
-                onToggle={() => setShowMobileQuickActions(!showMobileQuickActions)}
-                onAction={handleQuickAction}
-              />
-            )}
           </div>
-        )}
 
-        {/* Settings Panel */}
-        {showSettingsPanel && (
-          <div className="fixed top-4 left-4 right-4 z-[10001] bg-card border rounded-lg shadow-lg">
-            <SettingsPanel
-              traceSettings={traceSettings}
-              updateTraceSettings={updateTraceSettings}
-              isLoading={isLoading}
-            />
-            <div className="p-4 border-t">
-              <button
-                onClick={() => setShowSettingsPanel(false)}
-                className="bg-primary text-primary-foreground px-4 py-2 rounded hover:bg-primary/90"
-              >
-                Close Settings
+          {/* Error Display */}
+          {hasAnyErrors && (
+            <div className="mb-4 p-3 bg-red-700 text-white rounded-md">
+              <p>
+                <strong>Errors:</strong>
+              </p>
+              {allErrors.settings && <p>Settings: {allErrors.settings}</p>}
+              {allErrors.storage && <p>Storage: {allErrors.storage}</p>}
+              {allErrors.loading && <p>Loading: {allErrors.loading}</p>}
+              <button onClick={clearAllErrors} className="mt-2 text-sm underline">
+                Clear Errors
               </button>
+              {allErrors.settings && (
+                <button onClick={retrySettingsLoad} className="mt-2 ml-4 text-sm underline">
+                  Retry Load
+                </button>
+              )}
             </div>
+          )}
+
+          {/* Settings Panel Toggle */}
+          <button
+            onClick={() => setShowSettingsPanel(!showSettingsPanel)}
+            className="block text-white hover:text-gray-300 mb-2"
+          >
+            {showSettingsPanel ? 'Hide Settings' : 'Show Settings'}
+          </button>
+
+          <div className="text-sm text-gray-300">
+            <p>Hover over elements to inspect them</p>
+            <p>Click elements for detailed analysis</p>
           </div>
-        )}
 
-        {/* Interactive Panel */}
-        {showInteractivePanel && (
-          <InteractivePanel
-            detectedElement={detectedElement}
-            cursorPosition={cursorPosition}
-            onClose={() => {
-              setShowInteractivePanel(false);
-              setIsHoverPaused(false);
-            }}
-            onAnalyzeWithAI={analyzeElementWithAI}
-            isAIAnalyzing={isAIAnalyzing}
-            generateElementPrompt={generateElementPrompt}
-          />
-        )}
+          {/* Mobile Quick Actions Menu */}
+          {isMobile && (
+            <MobileQuickActionsMenu
+              isVisible={showMobileQuickActions}
+              onToggle={() => setShowMobileQuickActions(!showMobileQuickActions)}
+              onAction={handleQuickAction}
+            />
+          )}
+        </div>
+      )}
 
-        {/* Inspector Panel */}
-        {showInspectorPanel && isTraceActive && (
-          <InspectorPanel
-            element={detectedElement}
-            onClose={() => setShowInspectorPanel(false)}
+      {/* Settings Panel */}
+      {showSettingsPanel && (
+        <div className="fixed top-4 left-4 right-4 z-[10001] bg-card border rounded-lg shadow-lg">
+          <SettingsPanel
+            traceSettings={traceSettings}
+            updateTraceSettings={updateTraceSettings}
+            isLoading={isLoading}
           />
-        )}
+          <div className="p-4 border-t">
+            <button
+              onClick={() => setShowSettingsPanel(false)}
+              className="bg-primary text-primary-foreground px-4 py-2 rounded hover:bg-primary/90"
+            >
+              Close Settings
+            </button>
+          </div>
+        </div>
+      )}
 
-        {/* Terminal Panel */}
-        {showTerminalPanel && (
-          <TerminalPanel
-            events={capturedEvents}
-            onClose={() => setShowTerminalPanel(false)}
-            onClear={clearCapturedEvents}
-            onExport={exportCapturedEvents}
-            debugContext={debugContext}
-          />
-        )}
+      {/* Interactive Panel */}
+      {showInteractivePanel && (
+        <InteractivePanel
+          detectedElement={detectedElement}
+          cursorPosition={cursorPosition}
+          onClose={() => {
+            setShowInteractivePanel(false);
+            setIsHoverPaused(false);
+          }}
+          onAnalyzeWithAI={analyzeElementWithAI}
+          isAIAnalyzing={isAIAnalyzing}
+          generateElementPrompt={generateElementPrompt}
+        />
+      )}
 
-        {/* AI Debug Modal */}
-        {showAIDebugModal && (
-          <AIDebugModal
-            isOpen={showAIDebugModal}
-            onClose={() => setShowAIDebugModal(false)}
-            element={detectedElement}
-            position={cursorPosition}
-            analyzeElementWithAI={analyzeElementWithAI}
-            isAIAnalyzing={isAIAnalyzing}
-            generateElementPrompt={generateElementPrompt}
-          />
-        )}
-      </div>
+      {/* Inspector Panel */}
+      {showInspectorPanel && isTraceActive && (
+        <InspectorPanel
+          element={detectedElement}
+          onClose={() => setShowInspectorPanel(false)}
+        />
+      )}
+
+      {/* Terminal Panel */}
+      {showTerminalPanel && (
+        <TerminalPanel
+          events={capturedEvents}
+          onClose={() => setShowTerminalPanel(false)}
+          onClear={clearCapturedEvents}
+          onExport={exportCapturedEvents}
+          debugContext={debugContext}
+        />
+      )}
+
+      {/* AI Debug Modal */}
+      {showAIDebugModal && (
+        <AIDebugModal
+          isOpen={showAIDebugModal}
+          onClose={() => setShowAIDebugModal(false)}
+          element={detectedElement}
+          position={cursorPosition}
+          analyzeElementWithAI={analyzeElementWithAI}
+          isAIAnalyzing={isAIAnalyzing}
+          generateElementPrompt={generateElementPrompt}
+        />
+      )}
     </>
   );
 };
