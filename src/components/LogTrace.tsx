@@ -3,13 +3,13 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { X } from 'lucide-react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
-import { InteractivePanel } from './InteractivePanel';
+import InteractivePanel from './InteractivePanel';
 import { LogEvent } from '@/shared/types';
 import MobileQuickActionsMenu from './LogTrace/MobileQuickActionsMenu';
-import { InspectorPanel } from './InspectorPanel';
-import { TerminalPanel } from './TerminalPanel';
-import { AIDebugModal } from './AIDebugModal';
-import { SettingsPanel } from './SettingsPanel';
+import InspectorPanel from './InspectorPanel';
+import TerminalPanel from './TerminalPanel';
+import AIDebugModal from './AIDebugModal';
+import SettingsPanel from './SettingsPanel';
 
 const LogTrace: React.FC = () => {
   const {
