@@ -40,7 +40,7 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
   // Calculate positions for fan layout - centered over main button
   const getActionPosition = (index: number) => {
     const totalActions = quickActions.length;
-    const radius = 80; // Distance from center button
+    const radius = 100; // Distance from center button
     const startAngle = 225; // Start angle in degrees (bottom-left)
     const endAngle = -45; // End angle in degrees (top-right)
     const angleRange = startAngle - endAngle; // 270 degrees total
@@ -57,7 +57,7 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
       {/* Fan Action Icons - positioned relative to center button */}
       {isExpanded && (
-        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <div className="absolute bottom-1/2 left-1/2 transform -translate-x-1/2 translate-y-1/2">
           {quickActions.map((action, index) => {
             const position = getActionPosition(index);
             
@@ -98,7 +98,7 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
       </button>
 
       {/* Custom animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes fadeInScale {
           0% {
             opacity: 0;
