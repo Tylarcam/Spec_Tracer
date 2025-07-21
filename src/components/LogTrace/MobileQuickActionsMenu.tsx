@@ -195,29 +195,43 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
       )}
       
       {/* 
-        Main center toggle button
-        This is the primary button that users click to open/close the fan
-        Changes between Menu (☰) and X (✕) icons based on state
+        Main center toggle button - Fixed positioning to match original exactly
+        Ensures both Menu and X icons occupy the same space at (68, 586)
       */}
       <button
         onClick={handleToggle}
-        className={`w-16 h-16 bg-cyan-500 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 border-4 border-cyan-400/50 hover:bg-cyan-600 ${
-          isExpanded ? 'bg-cyan-600' : '' // Darker background when expanded
-        }`}
+        className="w-16 h-16 rounded-full shadow-xl transition-all duration-300 ease-in-out border-4 border-cyan-400/50 hover:bg-cyan-600 active:scale-95 focus:outline-none focus:ring-4 focus:ring-cyan-400/30 flex items-center justify-center"
         style={{
-          // Custom shadow for depth and visual appeal
+          backgroundColor: '#06b6d4',
           boxShadow: '0 8px 32px rgba(6, 182, 212, 0.3)',
+          // Force the button to stay in the exact same position
+          position: 'relative',
+          left: '0',
+          top: '0',
         }}
+        aria-label={isExpanded ? 'Close quick actions menu' : 'Open quick actions menu'}
       >
         {/* 
-          Conditional rendering of icons based on expanded state
-          Smooth transition between Menu and X icons
+          Icon container with absolute positioning to ensure perfect centering
+          This prevents any layout shifts between Menu and X icons
         */}
-        {isExpanded ? (
-          <X className="text-white" size={24} />      // X icon when fan is open
-        ) : (
-          <Menu className="text-white" size={24} />   // Menu icon when fan is closed
-        )}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          {isExpanded ? (
+            <X 
+              className="text-white transition-all duration-300 ease-in-out pointer-events-auto" 
+              size={24}
+              strokeWidth={2.5}
+              aria-hidden="true"
+            />
+          ) : (
+            <Menu 
+              className="text-white transition-all duration-300 ease-in-out pointer-events-auto" 
+              size={24}
+              strokeWidth={2.5}
+              aria-hidden="true"
+            />
+          )}
+        </div>
       </button>
 
       {/* 
