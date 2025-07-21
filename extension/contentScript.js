@@ -465,7 +465,7 @@ function showHoverOverlay(element, mouseX, mouseY) {
     value: attr.value
   }));
 
-  // Card content matching web app exactly
+  // Card content matching web UI exactly
   const cardHTML = `
     <div style="
       background: rgba(15, 23, 42, 0.95);
@@ -483,11 +483,11 @@ function showHoverOverlay(element, mouseX, mouseY) {
       <!-- Header: tag, event listeners, errors -->
       <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
         <!-- Tag name badge -->
-        <span style="background: rgba(6, 182, 212, 0.2); color: #06b6d4; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 500;">${element.tagName.toLowerCase()}</span>
+        <span style="background: #22c55e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 500;">${element.tagName.toLowerCase()}</span>
         <!-- Event Listeners badge: shows count or 'No events' -->
-        <span style="border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${eventCount > 0 ? eventCount + ' events' : 'No events'}</span>
+        <span style="background: #22c55e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${eventCount > 0 ? eventCount + ' events' : 'No events'}</span>
         <!-- Console Errors badge: placeholder for error count -->
-        <span style="border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Errors: None</span>
+        <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Errors: None</span>
       </div>
       
       <!-- Color palette: up to 3 squares for main colors -->
@@ -496,13 +496,12 @@ function showHoverOverlay(element, mouseX, mouseY) {
       <!-- Basic Info Section -->
       <div style="margin-bottom: 4px;">
         <!-- data-lov-id value -->
-        ${attributes.some(attr => attr.name === 'data-lov-id') ? `<span style="color: #c084fc; display: block; margin-bottom: 4px; font-size: 11px;">data-lov-id: ${attributes.find(attr => attr.name === 'data-lov-id')?.value}</span>` : ''}
+        ${attributes.some(attr => attr.name === 'data-lov-id') ? `<span style="color: #c084fc; display: block; margin-bottom: 4px; font-size: 11px; font-family: monospace;">data-lov-id: ${attributes.find(attr => attr.name === 'data-lov-id')?.value}</span>` : ''}
         <!-- data-component-line value -->
-        ${attributes.some(attr => attr.name === 'data-component-line') ? `<span style="color: #06b6d4; display: block; margin-bottom: 4px; font-size: 11px;">data-component-line: ${attributes.find(attr => attr.name === 'data-component-line')?.value}</span>` : ''}
-        ${element.id ? `<span style="border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px;">#${sanitizeText(element.id)}</span>` : ''}
-        ${element.className ? `<span style="color: #22c55e; display: block; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px;">class: .${element.className.split(' ').map(c => sanitizeText(c)).join(' .')}</span>` : ''}
+        ${attributes.some(attr => attr.name === 'data-component-line') ? `<span style="color: #06b6d4; display: block; margin-bottom: 4px; font-size: 11px; font-family: monospace;">data-component-line: ${attributes.find(attr => attr.name === 'data-component-line')?.value}</span>` : ''}
+        ${element.className ? `<span style="color: #22c55e; display: block; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-family: monospace;">class: .${element.className.split(' ').map(c => sanitizeText(c)).join(' .')}</span>` : ''}
         <!-- Position (x, y) -->
-        <span style="color: #fdba74; display: block; margin-bottom: 4px; font-size: 11px;">Position: (${mouseX}, ${mouseY})</span>
+        <span style="color: #fdba74; display: block; margin-bottom: 4px; font-size: 11px; font-family: monospace;">Position: (${mouseX}, ${mouseY})</span>
       </div>
     </div>
   `;
@@ -625,7 +624,7 @@ function handleKeyDown(e) {
     return; // Don't intercept shortcuts when typing or in input fields
   }
   
-eve  // Ctrl+S: Start/Stop tracingt 
+  // Ctrl+S: Start/Stop tracing 
   if (e.ctrlKey && e.key.toLowerCase() === 's') {
     e.preventDefault();
     if (!isLogTraceActive) {
@@ -2160,7 +2159,7 @@ function sanitizeText(text, maxLength = 500) {
     .slice(0, maxLength);
 }
 
-// Utility to extract up to 3 unique colors from computed styles (matching web app)
+// Utility to extract up to 3 unique colors from computed styles (matching web UI)
 function extractColorsFromElement(element) {
   if (!element) return [];
   const styles = window.getComputedStyle(element);
@@ -2184,7 +2183,8 @@ function extractColorsFromElement(element) {
       value &&
       value !== 'transparent' &&
       value !== 'rgba(0, 0, 0, 0)' &&
-      value !== 'initial'
+      value !== 'initial' &&
+      value !== 'inherit'
     ) {
       colors.push({
         property,
