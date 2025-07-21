@@ -608,46 +608,49 @@ function handleClick(e) {
   }
 }
 
+// Helper function to check if an element is in an input field
+function isInInputField(element) {
+  if (!element) return false;
+  
+  return (
+    // Standard input elements
+    element.tagName === 'INPUT' ||
+    element.tagName === 'TEXTAREA' ||
+    element.tagName === 'SELECT' ||
+    // Content editable elements
+    element.isContentEditable ||
+    // Any element with contenteditable attribute
+    element.getAttribute('contenteditable') === 'true' ||
+    // Check if element is inside a form
+    element.closest('form') ||
+    // Check if element is inside any input-related container
+    element.closest('[role="textbox"]') ||
+    element.closest('[role="searchbox"]') ||
+    element.closest('[role="combobox"]') ||
+    // LogTrace UI elements
+    element.closest('#log-trace-terminal') ||
+    element.closest('#log-trace-info-panel') ||
+    element.closest('#log-trace-hover-overlay') ||
+    element.closest('.debug-modal') ||
+    element.closest('.quick-actions-menu') ||
+    // Check for common input-related classes
+    element.classList.contains('input') ||
+    element.classList.contains('textarea') ||
+    element.classList.contains('editor') ||
+    // Check if element has input-related attributes
+    element.hasAttribute('data-input') ||
+    element.hasAttribute('data-editor')
+  );
+}
+
 // Handle keyboard shortcuts
 function handleKeyDown(e) {
   // Ignore shortcuts while the user is typing or inside any input field
-  const activeElement = document.activeElement;
-  if (
-    activeElement &&
-    (
-      // Standard input elements
-      activeElement.tagName === 'INPUT' ||
-      activeElement.tagName === 'TEXTAREA' ||
-      activeElement.tagName === 'SELECT' ||
-      // Content editable elements
-      activeElement.isContentEditable ||
-      // Any element with contenteditable attribute
-      activeElement.getAttribute('contenteditable') === 'true' ||
-      // Check if element is inside a form
-      activeElement.closest('form') ||
-      // Check if element is inside any input-related container
-      activeElement.closest('[role="textbox"]') ||
-      activeElement.closest('[role="searchbox"]') ||
-      activeElement.closest('[role="combobox"]') ||
-      // LogTrace UI elements
-      activeElement.closest('#log-trace-terminal') ||
-      activeElement.closest('#log-trace-info-panel') ||
-      activeElement.closest('#log-trace-hover-overlay') ||
-      activeElement.closest('.debug-modal') ||
-      activeElement.closest('.quick-actions-menu') ||
-      // Check for common input-related classes
-      activeElement.classList.contains('input') ||
-      activeElement.classList.contains('textarea') ||
-      activeElement.classList.contains('editor') ||
-      // Check if element has input-related attributes
-      activeElement.hasAttribute('data-input') ||
-      activeElement.hasAttribute('data-editor')
-    )
-  ) {
+  if (isInInputField(document.activeElement)) {
     return; // Don't intercept shortcuts when typing or in input fields
   }
   
-  // Ctrl+S: Start/Stop tracing
+eve  // Ctrl+S: Start/Stop tracingt 
   if (e.ctrlKey && e.key.toLowerCase() === 's') {
     e.preventDefault();
     if (!isLogTraceActive) {
@@ -1092,7 +1095,7 @@ function updateInfoPanel(element) {
               <button onclick="navigator.clipboard.writeText('${attr.value}'); this.style.color='#22c55e'; setTimeout(()=>this.style.color='#64748b', 1000);" style="background: none; border: none; color: #64748b; cursor: pointer; padding: 2px;" title="Copy value">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect width="14" height="20" x="8" y="2" rx="2" ry="2"></rect>
-                  <path d="M22 20c.552 0 1-.448 1-1V9c0-.552-.448-1-1h-6.626c-.437 0-.853.174-1.162.484l-3.374 3.374A1.64 1.64 0 0 1 10 12.374V20c0 .552.448 1 1 1h11z"></path>
+                  <path d="M22 20c.552 0 1-.448 1-1V9c0-.552-.448-1-1-1h-6.626c-.437 0-.853.174-1.162.484l-3.374 3.374A1.64 1.64 0 0 1 10 12.374V20c0 .552.448 1 1 1h11z"></path>
                 </svg>
               </button>
             </td>
@@ -1240,7 +1243,7 @@ function openDebugModal(element) {
   
   // Add keyboard shortcuts
   modal.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && !isInInputField(document.activeElement)) {
       modal.remove();
     } else if (e.key === 'Enter' && e.ctrlKey) {
       const activeElement = document.activeElement;
@@ -1251,6 +1254,8 @@ function openDebugModal(element) {
       }
     }
   });
+
+  document.body.appendChild(modal);
 }
 
 // Generate advanced debugging prompt
@@ -1944,7 +1949,7 @@ function createSignInModal() {
 
   // Close on Escape key
   const handleEscape = (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && !isInInputField(document.activeElement)) {
       modal.remove();
       document.removeEventListener('keydown', handleEscape);
     }
@@ -2142,8 +2147,6 @@ function debouncedOverlayMouseMove(e) {
     }
   }, 10);
 }
-
-// Keyboard shortcuts are now handled in the main handleKeyDown function
 
 // --- Ensure overlays are only shown when active ---
 // Remove any overlays/highlights on page load
@@ -2358,7 +2361,7 @@ function showQuickActionsMenu(element, x, y) {
 
   // Close on Escape key
   const closeOnEscape = (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && !isInInputField(document.activeElement)) {
       menu.remove();
       document.removeEventListener('keydown', closeOnEscape);
     }
@@ -2558,7 +2561,7 @@ function createModal(title, content) {
 
   // Close on Escape key
   const closeOnEscape = (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && !isInInputField(document.activeElement)) {
       modal.remove();
       document.removeEventListener('keydown', closeOnEscape);
     }
