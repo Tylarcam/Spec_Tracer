@@ -156,11 +156,9 @@ function createLogTraceOverlay() {
   highlighter.style.cssText = `
     position: fixed;
     border: 2px solid #06b6d4;
-    background: rgba(6, 182, 212, 0.1);
     pointer-events: none;
     z-index: 9998;
     display: none;
-    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
   `;
   document.body.appendChild(highlighter);
   
@@ -451,18 +449,23 @@ function showHoverOverlay(element, mouseX, mouseY) {
   overlay.style.cssText = `
     position: fixed;
     z-index: 10002;
-    pointer-events: auto;
-    cursor: pointer;
+    pointer-events: none;
     transform: translate(-50%, -100%);
   `;
 
-  // Position the overlay
+  // Position the overlay (matching web app logic)
   const padding = 8;
   let left = mouseX;
   let top = mouseY - 10;
+  let below = false;
 
-  // Card content with enhanced styling matching web app
-  const parentPath = element.parentElement ? element.parentElement.tagName.toLowerCase() + (element.parentElement.className ? '.' + String(element.parentElement.className).split(' ').join('.') : '') : '';
+  // Get element attributes for specific data attributes
+  const attributes = Array.from(element.attributes).map(attr => ({
+    name: attr.name,
+    value: attr.value
+  }));
+
+  // Card content matching web app exactly
   const cardHTML = `
     <div style="
       background: rgba(15, 23, 42, 0.95);
@@ -476,90 +479,62 @@ function showHoverOverlay(element, mouseX, mouseY) {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 12px;
       color: #e2e8f0;
-      position: relative;
     ">
-      <div style="
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        box-shadow: 0 0 32px 12px rgba(34,211,238,0.35), 0 0 0 4px rgba(34,211,238,0.15);
-        background: radial-gradient(circle, rgba(34,211,238,0.18) 0%, rgba(34,211,238,0.08) 80%, transparent 100%);
-        pointer-events: none;
-        z-index: -1;
-      "></div>
-      
-      <!-- Header with badges -->
+      <!-- Header: tag, event listeners, errors -->
       <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+        <!-- Tag name badge -->
         <span style="background: rgba(6, 182, 212, 0.2); color: #06b6d4; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 500;">${element.tagName.toLowerCase()}</span>
-        ${element.id ? `<span style="border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 11px;">#${element.id}</span>` : ''}
+        <!-- Event Listeners badge: shows count or 'No events' -->
         <span style="border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${eventCount > 0 ? eventCount + ' events' : 'No events'}</span>
+        <!-- Console Errors badge: placeholder for error count -->
         <span style="border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Errors: None</span>
       </div>
       
-      <!-- Color palette -->
-      ${colors.length > 0 ? `<div style="display: flex; gap: 4px; margin-bottom: 8px;">${colors.map(color => `<div style="width: 16px; height: 16px; border-radius: 2px; border: 1px solid #475569; background-color: ${color.value};" title="${color.property}: ${color.value}"></div>`).join('')}</div>` : ''}
+      <!-- Color palette: up to 3 squares for main colors -->
+      ${colors.length > 0 ? `<div style="display: flex; gap: 4px; margin-bottom: 8px;">${colors.map((color, i) => `<div style="width: 16px; height: 16px; border-radius: 2px; border: 1px solid #475569; background-color: ${color.value};" title="${color.property}: ${color.value}"></div>`).join('')}</div>` : ''}
       
-      <!-- Element details -->
-      ${element.className ? `<div style="color: #22c55e; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px;">.${element.className.split(' ').join('.').slice(0, 60)}${element.className.length > 60 ? '…' : ''}</div>` : ''}
-      ${element.textContent ? `<div style="color: #d1d5db; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px;">"${element.textContent.trim().replace(/\s+/g, ' ').slice(0, 60)}${element.textContent.length > 60 ? '…' : ''}"</div>` : ''}
-      ${parentPath ? `<div style="color: #a3e635; font-size: 10px; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Parent: ${parentPath.slice(0, 60)}${parentPath.length > 60 ? '…' : ''}</div>` : ''}
-      
-      <!-- Instructions -->
-      <div style="color: #a855f7; font-size: 11px; margin-bottom: 4px;">Press Ctrl+P to pause details</div>
-      <div style="color: #06b6d4; font-size: 11px;">Click for details</div>
+      <!-- Basic Info Section -->
+      <div style="margin-bottom: 4px;">
+        <!-- data-lov-id value -->
+        ${attributes.some(attr => attr.name === 'data-lov-id') ? `<span style="color: #c084fc; display: block; margin-bottom: 4px; font-size: 11px;">data-lov-id: ${attributes.find(attr => attr.name === 'data-lov-id')?.value}</span>` : ''}
+        <!-- data-component-line value -->
+        ${attributes.some(attr => attr.name === 'data-component-line') ? `<span style="color: #06b6d4; display: block; margin-bottom: 4px; font-size: 11px;">data-component-line: ${attributes.find(attr => attr.name === 'data-component-line')?.value}</span>` : ''}
+        ${element.id ? `<span style="border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px;">#${sanitizeText(element.id)}</span>` : ''}
+        ${element.className ? `<span style="color: #22c55e; display: block; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px;">class: .${element.className.split(' ').map(c => sanitizeText(c)).join(' .')}</span>` : ''}
+        <!-- Position (x, y) -->
+        <span style="color: #fdba74; display: block; margin-bottom: 4px; font-size: 11px;">Position: (${mouseX}, ${mouseY})</span>
+      </div>
     </div>
   `;
   overlay.innerHTML = cardHTML;
   document.body.appendChild(overlay);
 
-  // Position overlay in viewport
+  // Position overlay in viewport (matching web app logic)
   const overlayRect = overlay.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
+  
+  // Horizontal overflow handling
   if (left + overlayRect.width / 2 > viewportWidth - padding) {
     left = viewportWidth - overlayRect.width / 2 - padding;
   }
   if (left - overlayRect.width / 2 < padding) {
     left = overlayRect.width / 2 + padding;
   }
+  
+  // Vertical overflow handling
   if (top - overlayRect.height < padding) {
     top = mouseY + 20;
-    overlay.style.transform = 'translate(-50%, 0)';
+    below = true;
   }
   if (top + overlayRect.height > viewportHeight - padding) {
     top = viewportHeight - overlayRect.height - padding;
   }
+  
+  // Apply positioning with dynamic transform
   overlay.style.left = `${left}px`;
   overlay.style.top = `${top}px`;
-
-  // On click, show detailed info panel and remove overlay
-  overlay.addEventListener('click', () => {
-    updateInfoPanel(element);
-    const panel = document.getElementById('log-trace-info-panel');
-    if (panel) {
-      const rect = element.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const panelWidth = 350; // Increased width to match web app
-      let left = rect.right + 10;
-      if (left + panelWidth > viewportWidth - 20) {
-        left = Math.max(20, rect.left - panelWidth - 10);
-      }
-      let top = rect.top;
-      if (top + 450 > viewportHeight - 20) { // Increased height
-        top = Math.max(20, viewportHeight - 470);
-      }
-      panel.style.left = `${left}px`;
-      panel.style.top = `${top}px`;
-      panel.style.right = 'auto';
-      panel.style.display = 'block';
-    }
-    overlay.remove();
-  });
+  overlay.style.transform = `translate(-50%, ${below ? '0' : '-100%'})`;
 }
 
 // Handle click
@@ -881,17 +856,13 @@ function highlightElement(element) {
   if (!highlighter) return;
   
   const rect = element.getBoundingClientRect();
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   
   highlighter.style.cssText = `
     position: fixed;
     border: 2px solid #06b6d4;
-    background: rgba(6, 182, 212, 0.1);
     pointer-events: none;
     z-index: 9998;
     display: block;
-    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
     left: ${rect.left}px;
     top: ${rect.top}px;
     width: ${rect.width}px;
@@ -1482,13 +1453,15 @@ function gatherElementContext(element) {
 function getEventListenerInfo(element) {
   const listeners = [];
   
-  // Check for common event properties
-  const commonEvents = ['onclick', 'onmouseover', 'onmouseout', 'onmousedown', 'onmouseup', 
-                       'onkeydown', 'onkeyup', 'onkeypress', 'onfocus', 'onblur', 'onchange', 
-                       'onsubmit', 'onload', 'onerror', 'onresize', 'onscroll'];
+  // Check for common event properties (matching web app)
+  const commonEvents = [
+    'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmouseout',
+    'onmouseenter', 'onmouseleave', 'onkeydown', 'onkeyup', 'oninput',
+    'onchange', 'onfocus', 'onblur', 'onsubmit', 'onload', 'onerror'
+  ];
   
   commonEvents.forEach(event => {
-    if (element[event]) {
+    if (typeof element[event] === 'function') {
       listeners.push({
         type: event.replace('on', ''),
         handler: 'attached'
@@ -2143,7 +2116,7 @@ function debouncedOverlayMouseMove(e) {
     const el = e.target;
     if (!el.closest('#log-trace-hover-overlay')) {
       highlightElement(el);
-      showOverlayCard(el, e.clientX, e.clientY);
+      showHoverOverlay(el, e.clientX, e.clientY);
     }
   }, 10);
 }
@@ -2175,7 +2148,19 @@ function removeOverlayUI() {
   if (highlighter) highlighter.style.display = 'none';
 }
 
-// Utility to extract up to 3 unique colors from computed styles (getComputedStyle only)
+// Sanitization utility (matching web app)
+function sanitizeText(text, maxLength = 500) {
+  if (!text || typeof text !== 'string') return '';
+  
+  return text
+    .replace(/[<>]/g, '') // Remove potential HTML tags
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .trim()
+    .slice(0, maxLength);
+}
+
+// Utility to extract up to 3 unique colors from computed styles (matching web app)
 function extractColorsFromElement(element) {
   if (!element) return [];
   const styles = window.getComputedStyle(element);
@@ -2183,6 +2168,10 @@ function extractColorsFromElement(element) {
     'color',
     'background-color',
     'border-color',
+    'border-top-color',
+    'border-right-color',
+    'border-bottom-color',
+    'border-left-color',
     'outline-color',
     'text-decoration-color',
     'fill',
@@ -2195,70 +2184,22 @@ function extractColorsFromElement(element) {
       value &&
       value !== 'transparent' &&
       value !== 'rgba(0, 0, 0, 0)' &&
-      value !== 'initial' &&
-      !colors.includes(value.trim())
+      value !== 'initial'
     ) {
-      colors.push(value.trim());
+      colors.push({
+        property,
+        value: value.trim()
+      });
     }
   });
-  return colors.slice(0, 3);
+  // Remove duplicates and limit to 3
+  const uniqueColors = colors.filter((color, idx, arr) =>
+    arr.findIndex(c => c.value === color.value) === idx
+  );
+  return uniqueColors.slice(0, 3);
 }
 
-function showOverlayCard(element, x, y) {
-  // Remove old card
-  let card = document.getElementById('log-trace-hover-overlay');
-  if (card) card.remove();
 
-  // Extract info
-  const tag = element.tagName ? element.tagName.toLowerCase() : '';
-  const id = element.id ? `#${element.id}` : '';
-  const classes = element.className ? '.' + String(element.className).split(' ').join('.') : '';
-  const text = element.textContent ? element.textContent.trim().replace(/\s+/g, ' ').slice(0, 60) : '';
-  const parent = element.parentElement ? element.parentElement.tagName.toLowerCase() : '';
-  const parentClasses = element.parentElement && element.parentElement.className ? '.' + String(element.parentElement.className).split(' ').join('.') : '';
-  const parentPath = parent ? `${parent}${parentClasses}` : '';
-  const colors = extractColorsFromElement(element);
-
-  // Create card
-  card = document.createElement('div');
-  card.id = 'log-trace-hover-overlay';
-  card.className = 'log-trace-hover-overlay';
-  card.style.cssText = `
-    position: fixed;
-    z-index: 10002;
-    pointer-events: auto;
-    cursor: pointer;
-    transform: translate(-50%, -100%);
-    left: ${x}px;
-    top: ${y - 10}px;
-    background: rgba(15, 23, 42, 0.95);
-    border: 1px solid rgba(6, 182, 212, 0.5);
-    border-radius: 8px;
-    padding: 12px;
-    backdrop-filter: blur(16px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    min-width: 200px;
-    max-width: 320px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 12px;
-    color: #e2e8f0;
-    position: fixed;
-  `;
-  // Card content
-  card.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-      <span style="background: rgba(6, 182, 212, 0.2); color: #06b6d4; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 500;">${tag}</span>
-      ${id ? `<span style=\"border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 11px;\">${id}</span>` : ''}
-      ${classes ? `<span style=\"color: #22c55e; font-size: 11px;\">${classes.slice(0, 40)}${classes.length > 40 ? '…' : ''}</span>` : ''}
-    </div>
-    ${colors.length > 0 ? `<div style=\"display: flex; gap: 4px; margin-bottom: 8px;\">${colors.map(color => `<div style=\\"width: 16px; height: 16px; border-radius: 2px; border: 1px solid #475569; background-color: ${color.value};\\" title=\\"${color.property}: ${color.value}\\"></div>`).join('')}</div>` : ''}
-    ${text ? `<div style=\"color: #d1d5db; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px;\">\"${text}${element.textContent.length > 60 ? '…' : ''}\"</div>` : ''}
-    ${parentPath ? `<div style=\"color: #a3e635; font-size: 10px; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\">Parent: ${parentPath.slice(0, 60)}${parentPath.length > 60 ? '…' : ''}</div>` : ''}
-    <div style=\"color: #a855f7; font-size: 11px; margin-bottom: 4px;\">Press D to pause details</div>
-    <div style=\"color: #06b6d4; font-size: 11px;\">Click for details</div>
-  `;
-  document.body.appendChild(card);
-}
 
 // Show quick actions menu at specified position
 function showQuickActionsMenu(element, x, y) {
