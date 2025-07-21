@@ -610,18 +610,41 @@ function handleClick(e) {
 
 // Handle keyboard shortcuts
 function handleKeyDown(e) {
-  // Ignore shortcuts while the user is typing or inside the terminal
+  // Ignore shortcuts while the user is typing or inside any input field
   const activeElement = document.activeElement;
   if (
     activeElement &&
     (
+      // Standard input elements
       activeElement.tagName === 'INPUT' ||
       activeElement.tagName === 'TEXTAREA' ||
+      activeElement.tagName === 'SELECT' ||
+      // Content editable elements
       activeElement.isContentEditable ||
-      activeElement.closest('#log-trace-terminal')
+      // Any element with contenteditable attribute
+      activeElement.getAttribute('contenteditable') === 'true' ||
+      // Check if element is inside a form
+      activeElement.closest('form') ||
+      // Check if element is inside any input-related container
+      activeElement.closest('[role="textbox"]') ||
+      activeElement.closest('[role="searchbox"]') ||
+      activeElement.closest('[role="combobox"]') ||
+      // LogTrace UI elements
+      activeElement.closest('#log-trace-terminal') ||
+      activeElement.closest('#log-trace-info-panel') ||
+      activeElement.closest('#log-trace-hover-overlay') ||
+      activeElement.closest('.debug-modal') ||
+      activeElement.closest('.quick-actions-menu') ||
+      // Check for common input-related classes
+      activeElement.classList.contains('input') ||
+      activeElement.classList.contains('textarea') ||
+      activeElement.classList.contains('editor') ||
+      // Check if element has input-related attributes
+      activeElement.hasAttribute('data-input') ||
+      activeElement.hasAttribute('data-editor')
     )
   ) {
-    return; // Don't intercept shortcuts when typing
+    return; // Don't intercept shortcuts when typing or in input fields
   }
   
   // Ctrl+S: Start/Stop tracing
