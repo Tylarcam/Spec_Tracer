@@ -45,17 +45,20 @@ const AppRoutes = () => {
   const [tracingActive, setTracingActive] = useState(false);
   const [isHoverEnabled, setIsHoverEnabled] = useState(true);
   const [eventCount, setEventCount] = useState(0);
+  const [showTerminal, setShowTerminal] = useState(false);
 
   return (
     <TracingContext.Provider value={{ tracingActive, setTracingActive }}>
       {!isLanding && (
         <NavBar 
-          tracingActive={isDebugPage ? tracingActive : undefined}
-          onTracingToggle={isDebugPage ? () => setTracingActive(!tracingActive) : undefined}
-          isHoverEnabled={isDebugPage ? isHoverEnabled : undefined}
-          onToggleHover={isDebugPage ? () => setIsHoverEnabled(!isHoverEnabled) : undefined}
-          eventCount={isDebugPage ? eventCount : undefined}
-          onOpenSettings={isDebugPage ? () => navigate('/settings') : undefined}
+          isTracing={isDebugPage ? tracingActive : false}
+          onToggleTracing={isDebugPage ? () => setTracingActive(!tracingActive) : () => {}}
+          isHoverEnabled={isDebugPage ? isHoverEnabled : true}
+          onToggleHover={isDebugPage ? () => setIsHoverEnabled(!isHoverEnabled) : () => {}}
+          eventCount={isDebugPage ? eventCount : 0}
+          onOpenSettings={isDebugPage ? () => navigate('/settings') : () => {}}
+          onToggleTerminal={isDebugPage ? () => setShowTerminal(!showTerminal) : () => {}}
+          showTerminal={isDebugPage ? showTerminal : false}
         />
       )}
       <Routes>
