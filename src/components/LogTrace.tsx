@@ -20,7 +20,7 @@ import InstructionsCard from './LogTrace/InstructionsCard';
 import { useTracingContext } from '@/App';
 import { QuickActionType } from '@/shared/types';
 
-const LogTrace: React.FC = () => {
+const LogTrace: React.FC = React.memo(() => {
   const { tracingActive, setTracingActive } = useTracingContext();
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
@@ -78,21 +78,19 @@ const LogTrace: React.FC = () => {
     position: { x: number; y: number };
   }>>([]);
 
-  // Sync with tracing context - memoized to prevent unnecessary re-renders
-  const syncTracingState = useCallback(() => {
+  // Single source of truth for tracing state - only sync once on mount
+  useEffect(() => {
     if (tracingActive !== isTraceActive) {
       setIsTraceActive(tracingActive);
     }
-  }, [tracingActive, isTraceActive, setIsTraceActive]);
+  }, [tracingActive]); // Only depend on tracingActive from context
 
-  const syncContextState = useCallback(() => {
+  // Update context when internal state changes
+  useEffect(() => {
     if (isTraceActive !== tracingActive) {
       setTracingActive(isTraceActive);
     }
-  }, [isTraceActive, tracingActive, setTracingActive]);
-
-  React.useEffect(syncTracingState, [syncTracingState]);
-  React.useEffect(syncContextState, [syncContextState]);
+  }, [isTraceActive]); // Only depend on isTraceActive
 
   // Handle onboarding from URL parameter
   useEffect(() => {
@@ -353,8 +351,8 @@ const LogTrace: React.FC = () => {
       {/* Terminal Panel */}
       {showTerminalPanel && (
         <TabbedTerminal
-          showTerminal={showTerminalPanel}
-          setShowTerminal={setShowTerminalPanel}
+          isOpen={showTerminalPanel}
+          onClose={() => setShowTerminalPanel(false)}
           events={capturedEvents}
           exportEvents={exportCapturedEvents}
           clearEvents={clearCapturedEvents}
@@ -432,6 +430,8 @@ const LogTrace: React.FC = () => {
       )}
     </div>
   );
-};
+});
+
+LogTrace.displayName = 'LogTrace';
 
 export default LogTrace;

@@ -1,9 +1,4 @@
 
-/**
- * Main LogTrace orchestrator hook - coordinates all LogTrace functionality
- * This is the primary hook that other components should use
- */
-
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { DebugContext } from '../types';
 import { storage, STORAGE_KEYS } from '../storage';
@@ -54,7 +49,7 @@ export const useLogTraceOrchestrator = () => {
     generateElementPrompt,
   } = useAIDebugInterface(detectedElement, cursorPosition, recordEvent);
 
-  // Stable event loading function
+  // Stable event loading function with proper dependencies
   const loadCapturedEvents = useCallback(async () => {
     try {
       setLoadingError(null);
@@ -79,7 +74,7 @@ export const useLogTraceOrchestrator = () => {
     }
   }, [loadCapturedEvents, isSettingsLoading]);
 
-  // Stable save function
+  // Stable save function with proper dependencies
   const saveCapturedEvents = useCallback(async () => {
     if (traceSettings.autoSave && capturedEvents.length > 0) {
       try {
@@ -122,7 +117,7 @@ export const useLogTraceOrchestrator = () => {
     setLoadingError(null);
   }, [clearSettingsError, clearStorageError]);
 
-  // Memoized return object to prevent unnecessary re-renders
+  // Memoized return object to prevent unnecessary re-renders with all dependencies
   return useMemo(() => ({
     // Primary State
     isTraceActive,
