@@ -110,11 +110,8 @@ const NavBar: React.FC<NavBarProps> = ({
         toast({ title: 'Signed out', description: 'You have been signed out successfully.' });
       }
     } catch (error) {
-      if (error) {
-        toast({ title: 'Sign Out Error', description: error.message, variant: 'destructive' });
-      } else {
-        toast({ title: 'Signed out', description: 'You have been signed out successfully.' });
-      }    }
+      toast({ title: 'Sign Out Error', description: 'An unexpected error occurred during sign out.', variant: 'destructive' });
+    }
   };
 
   const handleAuthModalClick = (e: React.MouseEvent) => {
