@@ -51,9 +51,9 @@ const AppRoutes = () => {
       {!isLanding && (
         <NavBar 
           tracingActive={isDebugPage ? tracingActive : undefined}
-          onTracingToggle={isDebugPage ? setTracingActive : undefined}
+          onTracingToggle={isDebugPage ? () => setTracingActive(!tracingActive) : undefined}
           isHoverEnabled={isDebugPage ? isHoverEnabled : undefined}
-          onToggleHover={isDebugPage ? setIsHoverEnabled : undefined}
+          onToggleHover={isDebugPage ? () => setIsHoverEnabled(!isHoverEnabled) : undefined}
           eventCount={isDebugPage ? eventCount : undefined}
           onOpenSettings={isDebugPage ? () => navigate('/settings') : undefined}
         />

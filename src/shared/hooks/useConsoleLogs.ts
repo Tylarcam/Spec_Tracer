@@ -7,5 +7,6 @@ export const useConsoleLogs = () => {
     clearLogs: () => {},
     associateWithElement: false,
     setAssociateWithElement: () => {},
+    getFilteredLogs: () => [], // Add missing function that returns empty array
   };
 };
