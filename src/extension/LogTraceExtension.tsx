@@ -3,7 +3,7 @@ import ExtensionMouseOverlay from './components/ExtensionMouseOverlay';
 import PinnedDetails from './components/PinnedDetails';
 import ExtensionTerminalWrapper from './components/ExtensionTerminalWrapper';
 import { usePinnedDetails } from '@/shared/hooks/usePinnedDetails';
-import { ElementInfo, LogEvent, ExtendedActionType } from '@/shared/types';
+import { ElementInfo, LogEvent } from '@/shared/types';
 import ExtensionAuthModal from './components/ExtensionAuthModal';
 import { useExtensionAuth } from './hooks/useExtensionAuth';
 import { callAIDebugFunction } from '@/shared/api';
@@ -77,10 +77,10 @@ export const LogTraceExtension: React.FC = () => {
   const handleClearEvents = () => setEvents([]);
   const handleClearDebugResponses = () => setDebugResponses([]);
 
-  // Updated Quick Action handler with proper typing
-  const handleQuickAction = useCallback(async (
-    action: ExtendedActionType,
-    element: ElementInfo | null = null
+  // Quick Action handler
+  const handleQuickAction = async (
+    action: 'details' | 'screenshot' | 'context' | 'debug' | { type: 'context', mode: string, input: string },
+    element: ElementInfo | null
   ) => {
     const timestamp = new Date().toISOString();
 
@@ -119,16 +119,11 @@ export const LogTraceExtension: React.FC = () => {
       return;
     }
 
-    // Handle regular actions
-    const actionType = typeof action === 'string' ? action : 'debug';
-    
     // Map action to allowed LogEvent type
     let eventType: LogEvent['type'] = 'inspect';
-    if (actionType === 'debug' || actionType === 'context') eventType = 'debug';
-    else if (actionType === 'screenshot') eventType = 'click';
-    else if (actionType === 'details') eventType = 'inspect';
-    else if (actionType === 'copy') eventType = 'click';
-    
+    if (action === 'debug' || action === 'context') eventType = 'debug';
+    else if (action === 'screenshot') eventType = 'click';
+    else if (action === 'details') eventType = 'inspect';
     // Log to events
     setEvents(prev => [
       ...prev,
@@ -148,30 +143,28 @@ export const LogTraceExtension: React.FC = () => {
         } : undefined,
       },
     ]);
-    
     // Log to console
     setConsoleLogs(prev => [
       ...prev,
-      `[${timestamp}] QuickAction: ${actionType} on ${element ? element.tag : 'unknown'}`
+      `[${timestamp}] QuickAction: ${action} on ${element ? element.tag : 'unknown'}`
     ]);
-    
     // Simulate AI response for debug/context
-    if (actionType === 'debug' || actionType === 'context') {
+    if (action === 'debug' || action === 'context') {
       setTimeout(() => {
         setDebugResponses(prev => [
           ...prev,
           {
-            response: `Simulated AI response for ${actionType} on ${element ? element.tag : 'unknown'}`,
+            response: `Simulated AI response for ${action} on ${element ? element.tag : 'unknown'}`,
             timestamp,
           },
         ]);
         setConsoleLogs(prev => [
           ...prev,
-          `[${timestamp}] AI Response: Simulated response for ${actionType}`
+          `[${timestamp}] AI Response: Simulated response for ${action}`
         ]);
       }, 800);
     }
-  }, [mousePosition]);
+  };
 
   // Check if user needs authentication for certain features
   const handleAuthRequired = useCallback(() => {

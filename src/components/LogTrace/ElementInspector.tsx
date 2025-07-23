@@ -270,7 +270,6 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                 <Code className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
               </Button>
               <Button
-                data-close-button
                 onClick={onClose}
                 size="sm"
                 variant="ghost"

@@ -1,12 +1,16 @@
 
-import { useState, useCallback, useRef } from 'react';
+/**
+ * Hook for capturing and managing user interaction events
+ * Handles event recording, storage, and export functionality
+ */
+
+import { useState, useCallback } from 'react';
 import { LogEvent } from '../types';
 import { storage, STORAGE_KEYS } from '../storage';
 
 export const useEventCapture = (maxEventCount: number, autoSaveEnabled: boolean) => {
   const [capturedEvents, setCapturedEvents] = useState<LogEvent[]>([]);
   const [storageError, setStorageError] = useState<string | null>(null);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const recordEvent = useCallback((eventData: Omit<LogEvent, 'id' | 'timestamp'>) => {
     const event: LogEvent = {
@@ -17,23 +21,9 @@ export const useEventCapture = (maxEventCount: number, autoSaveEnabled: boolean)
 
     setCapturedEvents(prev => {
       const newEvents = [event, ...prev].slice(0, maxEventCount);
-      
-      // Debounced save to storage
-      if (autoSaveEnabled) {
-        if (saveTimeoutRef.current) {
-          clearTimeout(saveTimeoutRef.current);
-        }
-        saveTimeoutRef.current = setTimeout(() => {
-          storage.set(STORAGE_KEYS.EVENTS, JSON.stringify(newEvents)).catch(error => {
-            console.error('Error saving events to storage:', error);
-            setStorageError('Failed to save events to storage');
-          });
-        }, 1000); // Debounce by 1 second
-      }
-      
       return newEvents;
     });
-  }, [maxEventCount, autoSaveEnabled]);
+  }, [maxEventCount]);
 
   const clearCapturedEvents = useCallback(() => {
     setCapturedEvents([]);

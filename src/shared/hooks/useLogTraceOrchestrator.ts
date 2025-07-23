@@ -1,5 +1,10 @@
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+/**
+ * Main LogTrace orchestrator hook - coordinates all LogTrace functionality
+ * This is the primary hook that other components should use
+ */
+
+import { useState, useRef, useEffect } from 'react';
 import { DebugContext } from '../types';
 import { storage, STORAGE_KEYS } from '../storage';
 import { useEventCapture } from './useEventCapture';
@@ -10,7 +15,6 @@ import { useLogTraceSettings } from './useLogTraceSettings';
 export const useLogTraceOrchestrator = () => {
   const [isTraceActive, setIsTraceActive] = useState(false);
   const [showTerminalPanel, setShowTerminalPanel] = useState(false);
-  const [showAIDebugModal, setShowAIDebugModal] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -44,81 +48,74 @@ export const useLogTraceOrchestrator = () => {
   } = useElementDetection();
 
   const {
+    showAIDebugModal,
+    setShowAIDebugModal,
     isAIAnalyzing,
     analyzeElementWithAI,
     generateElementPrompt,
   } = useAIDebugInterface(detectedElement, cursorPosition, recordEvent);
 
-  // Stable event loading function with proper dependencies
-  const loadCapturedEvents = useCallback(async () => {
-    try {
-      setLoadingError(null);
-      const savedEvents = await storage.get(STORAGE_KEYS.EVENTS);
-      if (savedEvents) {
-        const parsed = JSON.parse(savedEvents);
-        if (Array.isArray(parsed)) {
-          setCapturedEvents(parsed);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading saved events:', error);
-      setLoadingError('Failed to load saved events. Starting with empty history.');
-      setCapturedEvents([]);
-    }
-  }, [setCapturedEvents]);
-
   // Load events from storage with error handling
   useEffect(() => {
+    const loadCapturedEvents = async () => {
+      try {
+        setLoadingError(null);
+        const savedEvents = await storage.get(STORAGE_KEYS.EVENTS);
+        if (savedEvents) {
+          const parsed = JSON.parse(savedEvents);
+          if (Array.isArray(parsed)) {
+            setCapturedEvents(parsed);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved events:', error);
+        setLoadingError('Failed to load saved events. Starting with empty history.');
+        setCapturedEvents([]);
+      }
+    };
+
     if (!isSettingsLoading) {
       loadCapturedEvents();
     }
-  }, [loadCapturedEvents, isSettingsLoading]);
-
-  // Stable save function with proper dependencies
-  const saveCapturedEvents = useCallback(async () => {
-    if (traceSettings.autoSave && capturedEvents.length > 0) {
-      try {
-        await storage.set(STORAGE_KEYS.EVENTS, JSON.stringify(capturedEvents));
-      } catch (error) {
-        console.error('Error saving events:', error);
-        // Error is handled by useEventCapture storageError state
-      }
-    }
-  }, [capturedEvents, traceSettings.autoSave]);
+  }, [setCapturedEvents, isSettingsLoading]);
 
   // Save events to storage with error handling
   useEffect(() => {
-    saveCapturedEvents();
-  }, [saveCapturedEvents]);
+    if (traceSettings.autoSave && capturedEvents.length > 0) {
+      const saveCapturedEvents = async () => {
+        try {
+          await storage.set(STORAGE_KEYS.EVENTS, JSON.stringify(capturedEvents));
+        } catch (error) {
+          console.error('Error saving events:', error);
+          // Error is handled by useEventCapture storageError state
+        }
+      };
+      saveCapturedEvents();
+    }
+  }, [capturedEvents, traceSettings.autoSave]);
 
-  // Memoized debug context to prevent unnecessary re-renders
-  const debugContext: DebugContext = useMemo(() => ({
+  const debugContext: DebugContext = {
     element: detectedElement,
     position: cursorPosition,
     events: capturedEvents,
     settings: traceSettings,
-  }), [detectedElement, cursorPosition, capturedEvents, traceSettings]);
+  };
 
   // Combined error state for easy checking
-  const hasAnyErrors = useMemo(() => 
-    !!(settingsError || storageError || loadingError), 
-    [settingsError, storageError, loadingError]
-  );
-
-  const allErrors = useMemo(() => ({
+  const hasAnyErrors = !!(settingsError || storageError || loadingError);
+  const allErrors = {
     settings: settingsError,
     storage: storageError,
     loading: loadingError,
-  }), [settingsError, storageError, loadingError]);
+  };
 
-  const clearAllErrors = useCallback(() => {
+  const clearAllErrors = () => {
     clearSettingsError();
     clearStorageError();
     setLoadingError(null);
-  }, [clearSettingsError, clearStorageError]);
+  };
 
-  // Memoized return object to prevent unnecessary re-renders with all dependencies
-  return useMemo(() => ({
+  return {
     // Primary State
     isTraceActive,
     setIsTraceActive,
@@ -156,29 +153,5 @@ export const useLogTraceOrchestrator = () => {
     
     // Context
     debugContext,
-  }), [
-    isTraceActive,
-    cursorPosition,
-    setCursorPosition,
-    detectedElement,
-    setDetectedElement,
-    showAIDebugModal,
-    showTerminalPanel,
-    capturedEvents,
-    traceSettings,
-    updateTraceSettings,
-    isAIAnalyzing,
-    isSettingsLoading,
-    hasAnyErrors,
-    allErrors,
-    clearAllErrors,
-    retrySettingsLoad,
-    recordEvent,
-    extractElementDetails,
-    analyzeElementWithAI,
-    clearCapturedEvents,
-    exportCapturedEvents,
-    generateElementPrompt,
-    debugContext,
-  ]);
+  };
 };

@@ -1,33 +1,119 @@
-
-import React, { useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useHotkeys } from 'react-hotkeys-hook';
-import { useIsMobile } from '@/hooks/use-mobile';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
+import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
-
+import { usePinnedDetails } from '@/shared/hooks/usePinnedDetails';
+import { useToast } from '@/hooks/use-toast';
+import { useUsageTracking } from '@/hooks/useUsageTracking';
+import { useIsMobile } from '@/hooks/use-mobile';
+import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
+import MobileTouchOverlay from './LogTrace/MobileTouchOverlay';
+import MobileQuickActionsMenu from './LogTrace/MobileQuickActionsMenu';
 import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
 import TabbedTerminal from './LogTrace/TabbedTerminal';
-import SettingsDrawer from './LogTrace/SettingsDrawer';
+import MoreDetailsModal from './LogTrace/PinnedDetails';
 import OnboardingWalkthrough from './LogTrace/OnboardingWalkthrough';
-import MobileQuickActionsMenu from './LogTrace/MobileQuickActionsMenu';
-import QuickActionPill from './LogTrace/QuickActionPill';
-import InstructionsCard from './LogTrace/InstructionsCard';
+import SettingsDrawer from './LogTrace/SettingsDrawer';
+import UpgradeModal from './LogTrace/UpgradeModal';
+import FloatingHint from './LogTrace/FloatingHint';
+import QuickActionModal from './LogTrace/QuickActionModal';
+import { Button } from './ui/button';
+import html2canvas from 'html2canvas';
+import { Switch } from './ui/switch';
+import RectScreenshotOverlay from './LogTrace/RectScreenshotOverlay';
+import FreeformScreenshotOverlay from './LogTrace/FreeformScreenshotOverlay';
+import { v4 as uuidv4 } from 'uuid';
+import { ElementInfo } from '@/shared/types';
 
-import { useTracingContext } from '@/App';
-import { QuickActionType } from '@/shared/types';
+type ScreenshotMode = 'rectangle' | 'window' | 'fullscreen' | 'freeform';
 
-const LogTrace: React.FC = React.memo(() => {
-  const { tracingActive, setTracingActive } = useTracingContext();
-  const [searchParams] = useSearchParams();
+interface LogTraceProps {
+  showOnboarding?: boolean;
+  onOnboardingComplete?: () => void;
+  captureActive?: boolean;
+  onCaptureToggle?: (active: boolean) => void;
+}
+
+const LogTrace: React.FC<LogTraceProps> = ({ 
+  showOnboarding: externalShowOnboarding, 
+  onOnboardingComplete: externalOnboardingComplete,
+  captureActive: externalCaptureActive,
+  onCaptureToggle: externalOnCaptureToggle
+}) => {
+  // Move useToast hook to the top to fix declaration order
+  const { toast } = useToast();
+
+  const [showInteractivePanel, setShowInteractivePanel] = useState(false);
+  const [showElementInspector, setShowElementInspector] = useState(false);
+  const [isInspectorHovered, setIsInspectorHovered] = useState(false);
+  const [isHoverPaused, setIsHoverPaused] = useState(false);
+  const [pausedElement, setPausedElement] = useState<ElementInfo | null>(null);
+  const [pausedPosition, setPausedPosition] = useState<{ x: number; y: number } | null>(null);
+  const interactivePanelRef = useRef<HTMLDivElement>(null);
+  const elementInspectorRef = useRef<HTMLDivElement>(null);
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const [detailsElement, setDetailsElement] = useState<any>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  
+  // Use external onboarding state if provided, otherwise use local state
+  const [localShowOnboarding, setLocalShowOnboarding] = useState(() => {
+    return !localStorage.getItem('logtrace-onboarding-completed');
+  });
+  
+  const showOnboarding = externalShowOnboarding !== undefined ? externalShowOnboarding : localShowOnboarding;
+  
+  // Mobile detection
   const isMobile = useIsMobile();
   
-  // Initialize the main orchestrator hook
-  const orchestrator = useLogTraceOrchestrator();
+  // Mobile touch state - simplified
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [touchPosition, setTouchPosition] = useState({ x: 0, y: 0 });
+
+  // Get max panels based on device type
+  const maxPanels = isMobile ? 1 : 3;
+
+  // Terminal height - mobile vs desktop
+  const [terminalHeight, setTerminalHeight] = useState(() => {
+    const baseHeight = isMobile ? window.innerHeight * 0.6 : window.innerHeight * 0.4;
+    return Math.max(baseHeight, isMobile ? 300 : 200);
+  });
+  const terminalMinHeight = isMobile ? 300 : 200;
+  const resizingRef = useRef(false);
+  const [pillOn, setPillOn] = useState(false);
+  const logTraceRef = useRef<HTMLDivElement>(null);
+  const [contextCaptureEnabled, setContextCaptureEnabled] = useState(false);
+  const [activeScreenshotOverlay, setActiveScreenshotOverlay] = useState<null | 'rectangle' | 'freeform'>(null);
+  const [openInspectors, setOpenInspectors] = useState<Array<{ id: string, elementInfo: ElementInfo, mousePosition: { x: number, y: number }, timestamp: number }>>([]);
+  const [clipboardFallback, setClipboardFallback] = useState<{ response: string, open: boolean }>({ response: '', open: false });
   
-  // Stable references to prevent flickering
+  // Quick Action Modal state
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [quickActionPosition, setQuickActionPosition] = useState({ x: 0, y: 0 });
+
+  // Usage tracking with new credits system
+  const {
+    remainingUses,
+    hasReachedLimit,
+    canUseAiDebug,
+    incrementAiDebugUsage,
+    isPremium,
+    waitlistBonusRemaining,
+  } = useUsageTracking();
+
+  // Pinned details functionality
+  const {
+    pinnedDetails,
+    addPin,
+    removePin,
+    updatePinPosition,
+    clearAllPins,
+  } = usePinnedDetails();
+
+  // Main LogTrace orchestrator with renamed hooks
   const {
     isTraceActive,
     setIsTraceActive,
@@ -40,13 +126,7 @@ const LogTrace: React.FC = React.memo(() => {
     showTerminalPanel,
     setShowTerminalPanel,
     capturedEvents,
-    traceSettings,
-    updateTraceSettings,
     isAIAnalyzing,
-    isLoading,
-    hasAnyErrors,
-    allErrors,
-    clearAllErrors,
     overlayRef,
     modalRef,
     recordEvent,
@@ -55,108 +135,232 @@ const LogTrace: React.FC = React.memo(() => {
     clearCapturedEvents,
     exportCapturedEvents,
     generateElementPrompt,
-    debugContext,
-  } = orchestrator;
+    hasAnyErrors,
+    allErrors,
+  } = useLogTraceOrchestrator();
 
-  // Onboarding state
-  const [onboardingStep, setOnboardingStep] = React.useState(0);
-  const [showOnboarding, setShowOnboarding] = React.useState(false);
-  const [onboardingCompleted, setOnboardingCompleted] = React.useState(false);
+  const {
+    debugResponses,
+    addDebugResponse,
+    clearDebugResponses,
+  } = useDebugResponses();
 
-  // UI state
-  const [isHoverEnabled, setIsHoverEnabled] = React.useState(true);
-  const [isHoverPaused, setIsHoverPaused] = React.useState(false);
-  const [showInteractivePanel, setShowInteractivePanel] = React.useState(false);
-  const [showSettingsDrawer, setShowSettingsDrawer] = React.useState(false);
-  const [showMobileMenu, setShowMobileMenu] = React.useState(false);
-  const [showQuickActions, setShowQuickActions] = React.useState(false);
-  const [quickActionPosition, setQuickActionPosition] = React.useState({ x: 0, y: 0 });
-  const [inspectorPanels, setInspectorPanels] = React.useState<Array<{
-    id: string;
-    element: any;
-    position: { x: number; y: number };
-  }>>([]);
+  // Use external capture state if provided, otherwise use local state
+  const [localCaptureActive, setLocalCaptureActive] = useState(false);
+  const captureActive = externalCaptureActive !== undefined ? externalCaptureActive : localCaptureActive;
+  const setCaptureActive = externalOnCaptureToggle || setLocalCaptureActive;
 
-  // Single source of truth for tracing state - only sync once on mount
+  // Sync capture state with LogTrace isActive
   useEffect(() => {
-    if (tracingActive !== isTraceActive) {
-      setIsTraceActive(tracingActive);
-    }
-  }, [tracingActive]); // Only depend on tracingActive from context
+    setIsTraceActive(captureActive);
+  }, [captureActive, setIsTraceActive]);
 
-  // Update context when internal state changes
-  useEffect(() => {
-    if (isTraceActive !== tracingActive) {
-      setTracingActive(isTraceActive);
-    }
-  }, [isTraceActive]); // Only depend on isTraceActive
+  // Handle capture toggle change
+  const handleCaptureToggle = useCallback((checked: boolean) => {
+    setCaptureActive(checked);
+  }, [setCaptureActive]);
 
-  // Handle onboarding from URL parameter
-  useEffect(() => {
-    const onboardingParam = searchParams.get('onboarding');
-    if (onboardingParam === 'true' && !onboardingCompleted) {
-      setShowOnboarding(true);
-    }
-  }, [searchParams, onboardingCompleted]);
-
-  // Memoized handlers to prevent flickering
+  // Escape handler - handles closing inspectors and modals
   const handleEscapeKey = useCallback(() => {
-    if (showAIDebugModal) {
-      setShowAIDebugModal(false);
-    } else if (showQuickActions) {
-      setShowQuickActions(false);
-    } else if (inspectorPanels.length > 0) {
-      setInspectorPanels(prev => prev.slice(0, -1));
-    } else if (showSettingsDrawer) {
-      setShowSettingsDrawer(false);
+    // Close the most recent inspector first
+    if (openInspectors.length > 0) {
+      setOpenInspectors((prev) => prev.slice(0, -1));
+      return;
     }
-  }, [showAIDebugModal, showQuickActions, inspectorPanels.length, showSettingsDrawer, setShowAIDebugModal]);
-
-  const handleElementClick = useCallback(() => {
-    if (!detectedElement || inspectorPanels.length >= 3) return;
     
+    // Then handle other modals
+    setShowAIDebugModal(false);
+    setShowSettingsDrawer(false);
+    setShowQuickActions(false);
+    setShowMoreDetails(false);
+    if (showTerminalPanel) setShowTerminalPanel(false);
+  }, [openInspectors.length, setShowAIDebugModal, showTerminalPanel, setShowTerminalPanel]);
+
+  // Keyboard shortcuts handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleEscapeKey();
+      } else if (e.key === 'q' || e.key === 'Q') {
+        // Show quick actions at mouse position
+        setQuickActionPosition({ x: cursorPosition.x, y: cursorPosition.y });
+        setShowQuickActions(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleEscapeKey, cursorPosition]);
+
+  // Element click handler - opens sticky ElementInspector panel with mobile optimization
+  const handleElementClick = useCallback(() => {
+    if (!detectedElement) return;
+    
+    console.log('Element clicked:', detectedElement); // Debug log
+    
+    // Check if we already have maximum panels open
+    if (openInspectors.length >= maxPanels) {
+      toast({
+        title: isMobile ? 'Panel Already Open' : 'Maximum Panels Reached',
+        description: isMobile 
+          ? 'Close the current panel to inspect another element.' 
+          : 'You can only have 3 inspector panels open at once. Close one to open another.',
+        variant: 'destructive',
+        duration: 3000,
+      });
+      return;
+    }
+    
+    // Create new inspector panel
     const newInspector = {
-      id: `inspector-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      element: detectedElement,
-      position: { x: cursorPosition.x, y: cursorPosition.y }
+      id: uuidv4(),
+      elementInfo: detectedElement,
+      mousePosition: { x: cursorPosition.x, y: cursorPosition.y },
+      timestamp: Date.now(),
     };
     
-    setInspectorPanels(prev => [...prev, newInspector]);
-  }, [detectedElement, cursorPosition, inspectorPanels.length]);
-
-  const handleQuickAction = useCallback((action: QuickActionType) => {
-    setShowQuickActions(false);
+    // Add to open inspectors list
+    setOpenInspectors((prev) => [...prev, newInspector]);
     
+    // Record the event
+    recordEvent({
+      type: 'inspect',
+      position: cursorPosition,
+      element: {
+        tag: detectedElement.tag,
+        id: detectedElement.id,
+        classes: detectedElement.classes,
+        text: detectedElement.text,
+        parentPath: detectedElement.parentPath,
+        attributes: detectedElement.attributes,
+        size: detectedElement.size,
+      },
+    });
+
+    // Show success toast
+    toast({
+      title: 'Element Inspector Opened',
+      description: `Opened ${isMobile ? 'panel' : 'sticky panel'} for ${detectedElement.tag} element`,
+      variant: 'success',
+      duration: 2000,
+    });
+  }, [detectedElement, cursorPosition, recordEvent, openInspectors.length, maxPanels, isMobile, toast]);
+
+  // Quick Action handler - enhanced for mobile
+  const handleQuickAction = useCallback((action: 'screenshot' | 'context' | 'debug' | 'details' | { type: 'screenshot', mode: ScreenshotMode } | { type: 'context', mode: string, input: string }, element?: ElementInfo | null) => {
+    setShowQuickActions(false);
+    setShowMobileMenu(false);
+    
+    const targetElement = element || detectedElement;
+    
+    if (action === 'details') {
+      setShowMoreDetails(true);
+      setDetailsElement(targetElement);
+    } else if (action === 'debug') {
+      setShowAIDebugModal(true);
+    } else if (action === 'screenshot' || (typeof action === 'object' && action.type === 'screenshot')) {
+      const mode = typeof action === 'object' ? action.mode : 'window';
+      setActiveScreenshotOverlay(mode === 'freeform' ? 'freeform' : 'rectangle');
+    } else if (typeof action === 'object' && action.type === 'context') {
+      // Handle context generation
+      const prompt = `Context Action: ${action.mode}\nUser Input: ${action.input}\nElement: ${targetElement ? JSON.stringify(targetElement) : 'none'}`;
+      console.log('Context generation:', prompt);
+      // You can add AI call here if needed
+    }
+  }, [detectedElement, setShowAIDebugModal, setShowMoreDetails, setDetailsElement, setActiveScreenshotOverlay]);
+
+  // Mobile-specific quick action handler - enhanced functionality
+  const handleMobileQuickAction = useCallback((action: string) => {
     switch (action) {
-      case 'details':
+      case 'inspector':
         if (detectedElement) {
-          const newInspector = {
-            id: `inspector-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            element: detectedElement,
-            position: { x: cursorPosition.x, y: cursorPosition.y }
-          };
-          setInspectorPanels(prev => [...prev, newInspector]);
-        }
-        break;
-      case 'debug':
-        if (detectedElement) {
-          setShowAIDebugModal(true);
+          handleElementClick();
+          toast({
+            title: 'Element Inspector',
+            description: 'Opened inspector panel for selected element',
+            variant: 'success',
+            duration: 2000,
+          });
+        } else {
+          toast({
+            title: 'No Element Selected',
+            description: 'Hover over an element first to inspect it',
+            variant: 'destructive',
+            duration: 3000,
+          });
         }
         break;
       case 'screenshot':
-        // Handle screenshot
-        break;
-      case 'copy':
-        // Handle copy
+        setActiveScreenshotOverlay('rectangle');
+        toast({
+          title: 'Screenshot Mode',
+          description: 'Select area to capture screenshot',
+          variant: 'default',
+          duration: 2000,
+        });
         break;
       case 'context':
-        // Handle context
+        if (detectedElement) {
+          // Generate context for the detected element
+          const contextPrompt = generateElementPrompt(detectedElement);
+          if (contextPrompt) {
+            // Call analyzeElementWithAI directly instead of handleAnalyzeWithAI
+            analyzeElementWithAI(contextPrompt).then(() => {
+              toast({
+                title: 'Context Generation',
+                description: 'Generating context for selected element...',
+                variant: 'default',
+                duration: 2000,
+              });
+            }).catch((error) => {
+              toast({
+                title: 'Context Generation Failed',
+                description: error.message || 'Failed to generate context',
+                variant: 'destructive',
+                duration: 3000,
+              });
+            });
+          }
+        } else {
+          toast({
+            title: 'No Element Selected',
+            description: 'Hover over an element first to generate context',
+            variant: 'destructive',
+            duration: 3000,
+          });
+        }
+        break;
+      case 'debug':
+        setShowAIDebugModal(true);
+        toast({
+          title: 'AI Debug Modal',
+          description: 'Opened AI debug interface',
+          variant: 'default',
+          duration: 2000,
+        });
+        break;
+      case 'terminal':
+        setShowTerminalPanel(true);
+        toast({
+          title: 'Terminal Panel',
+          description: 'Opened debug terminal',
+          variant: 'default',
+          duration: 2000,
+        });
+        break;
+      default:
+        console.log('Unknown action:', action);
         break;
     }
-  }, [detectedElement, cursorPosition, setShowAIDebugModal]);
+  }, [detectedElement, handleElementClick, setShowAIDebugModal, setShowTerminalPanel, setActiveScreenshotOverlay, generateElementPrompt, analyzeElementWithAI, toast]);
 
-  // Memoized interaction handlers
-  const interactionHandlers = useMemo(() => ({
+  // Get mouse and click handlers from the interaction handlers hook - simplified
+  const { 
+    handleCursorMovement, 
+    handleElementClick: handleElementClickEvent,
+    handleTouchStart,
+    handleTouchEnd,
+  } = useInteractionHandlers({
     isTraceActive,
     isHoverPaused,
     detectedElement,
@@ -170,212 +374,234 @@ const LogTrace: React.FC = React.memo(() => {
     recordEvent,
     handleEscapeKey,
     onElementClick: handleElementClick,
-    onQuickAction: handleQuickAction,
-  }), [
-    isTraceActive,
-    isHoverPaused,
-    detectedElement,
-    cursorPosition,
-    showInteractivePanel,
-    setCursorPosition,
-    setDetectedElement,
-    setShowInteractivePanel,
-    setShowAIDebugModal,
-    extractElementDetails,
-    recordEvent,
-    handleEscapeKey,
-    handleElementClick,
-    handleQuickAction,
-  ]);
+    onQuickAction: handleMobileQuickAction,
+  });
 
-  // Interaction handlers
-  const {
-    handleCursorMovement,
-    handleElementClick: handleInteractionClick,
-    handleTouchStart,
-    handleTouchEnd,
-  } = useInteractionHandlers(interactionHandlers);
+  // Update touch position tracking - simplified
+  const handleTouchPositionUpdate = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      setTouchPosition({ x: touch.clientX, y: touch.clientY });
+      setCursorPosition({ x: touch.clientX, y: touch.clientY });
+    }
+  }, [setCursorPosition]);
 
-  // Keyboard shortcuts
-  useHotkeys('ctrl+shift+l', () => setIsTraceActive(!isTraceActive));
-  useHotkeys('ctrl+shift+t', () => setShowTerminalPanel(!showTerminalPanel));
-  useHotkeys('ctrl+shift+s', () => setShowSettingsDrawer(!showSettingsDrawer));
-  useHotkeys('escape', handleEscapeKey);
+  // Enhanced touch event handlers - simplified
+  const enhancedTouchStart = useCallback((e: React.TouchEvent) => {
+    handleTouchPositionUpdate(e);
+    if (handleTouchStart) {
+      handleTouchStart(e);
+    }
+  }, [handleTouchStart, handleTouchPositionUpdate]);
 
-  // Onboarding handlers
-  const handleOnboardingNext = useCallback(() => {
-    setOnboardingStep(prev => prev + 1);
-  }, []);
+  const enhancedTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (handleTouchEnd) {
+      handleTouchEnd(e);
+    }
+  }, [handleTouchEnd]);
 
-  const handleOnboardingSkip = useCallback(() => {
-    setShowOnboarding(false);
-    setOnboardingCompleted(true);
-  }, []);
+  // Watch for errors and display toast - updated variable names
+  useEffect(() => {
+    if (hasAnyErrors) {
+      if (allErrors.settings) {
+        toast({
+          title: 'Settings Error',
+          description: allErrors.settings,
+          variant: 'destructive',
+        });
+      }
+      if (allErrors.storage) {
+        toast({
+          title: 'Storage Error',
+          description: allErrors.storage,
+          variant: 'destructive',
+        });
+      }
+      if (allErrors.loading) {
+        toast({
+          title: 'Load Error',
+          description: allErrors.loading,
+          variant: 'destructive',
+        });
+      }
+    }
+  }, [hasAnyErrors, allErrors, toast]);
 
-  const handleOnboardingComplete = useCallback(() => {
-    setShowOnboarding(false);
-    setOnboardingCompleted(true);
-  }, []);
+  // Screenshot handling functions
+  const handleScreenshot = useCallback(async (mode: 'window' | 'fullscreen' | 'element') => {
+    try {
+      let canvas;
+      if (mode === 'fullscreen') {
+        canvas = await html2canvas(document.body);
+      } else if (mode === 'window') {
+        canvas = await html2canvas(document.documentElement);
+      } else {
+        // element mode - not implemented yet
+        toast({ title: 'Element screenshot not implemented yet', variant: 'default' });
+        return;
+      }
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `logtrace-screenshot-${Date.now()}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          toast({ title: 'Screenshot saved!', variant: 'success' });
+        }
+      });
+    } catch (error) {
+      toast({ title: 'Screenshot failed', description: 'Could not capture screenshot', variant: 'destructive' });
+    }
+  }, [toast]);
 
-  // Close inspector panel
-  const closeInspectorPanel = useCallback((id: string) => {
-    setInspectorPanels(prev => prev.filter(panel => panel.id !== id));
-  }, []);
+  const handleScreenshotOverlayComplete = useCallback(async (dataUrl: string) => {
+    setActiveScreenshotOverlay(null);
+    
+    try {
+      // Create a download link for the screenshot
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `logtrace-screenshot-${Date.now()}.png`;
+      a.click();
+      toast({ title: 'Screenshot saved!', variant: 'success' });
+    } catch (error) {
+      toast({ title: 'Screenshot failed', description: 'Could not save screenshot', variant: 'destructive' });
+    }
+  }, [toast]);
 
-  // Memoized context menu handler
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    if (isTraceActive && detectedElement) {
-      e.preventDefault();
+  // Right-click handler for quick actions
+  const handleRightClick = useCallback((e: React.MouseEvent) => {
+    if (detectedElement) {
+      // Show quick actions for elements
       setQuickActionPosition({ x: e.clientX, y: e.clientY });
       setShowQuickActions(true);
     }
-  }, [isTraceActive, detectedElement]);
+    // No context menu for empty space - just prevent default
+    e.preventDefault();
+  }, [detectedElement]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading LogTrace...</p>
-        </div>
-      </div>
-    );
-  }
+  // Onboarding handlers
+  const handleOnboardingNext = () => {
+    setOnboardingStep(prev => prev + 1);
+  };
 
-  if (hasAnyErrors) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <div className="text-red-400 mb-4">
-            <h2 className="text-xl font-bold mb-2">Configuration Error</h2>
-            <p className="text-sm">
-              {allErrors.settings || allErrors.storage || allErrors.loading || 'Unknown error occurred'}
-            </p>
-          </div>
-          <button
-            onClick={clearAllErrors}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleOnboardingSkip = () => {
+    if (externalOnboardingComplete) {
+      externalOnboardingComplete();
+    } else {
+      setLocalShowOnboarding(false);
+      localStorage.setItem('logtrace-onboarding-completed', 'true');
+    }
+  };
+
+  const handleOnboardingComplete = () => {
+    if (externalOnboardingComplete) {
+      externalOnboardingComplete();
+    } else {
+      setLocalShowOnboarding(false);
+      localStorage.setItem('logtrace-onboarding-completed', 'true');
+    }
+  };
+
+  const handleAnalyzeWithAI = useCallback(async (prompt: string) => {
+    if (isPremium) {
+      try {
+        const response = await analyzeElementWithAI(prompt);
+        addDebugResponse(prompt, response || 'No response received');
+        setShowTerminalPanel(true);
+        toast({
+          title: 'Request sent!',
+          description: 'Your AI debug results are now in the terminal (bottom right).',
+          variant: 'success',
+          duration: 5000,
+        });
+        return response;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Error occurred during analysis';
+        addDebugResponse(prompt, errorMessage);
+        return null;
+      }
+    }
+
+    if (!canUseAiDebug) {
+      setShowUpgradeModal(true);
+      return null;
+    }
+
+    try {
+      const response = await analyzeElementWithAI(prompt);
+      addDebugResponse(prompt, response || 'No response received');
+      setShowTerminalPanel(true);
+      toast({
+        title: 'Request sent!',
+        description: 'Your AI debug results are now in the terminal (bottom right).',
+        variant: 'success',
+        duration: 5000,
+      });
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error occurred during analysis';
+      addDebugResponse(prompt, errorMessage);
+      return null;
+    }
+  }, [analyzeElementWithAI, addDebugResponse, canUseAiDebug, isPremium, setShowTerminalPanel, toast]);
+
+  // Mouse tracking logic
+  useEffect(() => {
+    if (!isHoverPaused) {
+      setPausedElement(null);
+      setPausedPosition(null);
+    }
+  }, [isHoverPaused]);
+
+  const handleInspectorMouseEnter = () => {
+    setIsInspectorHovered(true);
+    setIsHoverPaused(true);
+  };
+  const handleInspectorMouseLeave = () => {
+    setIsInspectorHovered(false);
+    setIsHoverPaused(false);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (resizingRef.current) {
+        // Calculate height from bottom of viewport to mouse position
+        const newHeight = Math.max(window.innerHeight - e.clientY, terminalMinHeight);
+        // Also ensure it doesn't exceed 80% of viewport height
+        const maxHeight = window.innerHeight * 0.8;
+        const clampedHeight = Math.min(newHeight, maxHeight);
+        setTerminalHeight(clampedHeight);
+      }
+    };
+    const handleMouseUp = () => {
+      if (resizingRef.current) {
+      resizingRef.current = false;
+      }
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [terminalMinHeight]);
 
   return (
-    <div 
-      className="min-h-screen bg-slate-900 text-white relative overflow-hidden"
-      onMouseMove={handleCursorMovement}
-      onClick={handleInteractionClick}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onContextMenu={handleContextMenu}
+    <div
+      ref={logTraceRef}
+      className="min-h-screen bg-slate-900 text-green-400 font-mono relative overflow-hidden"
+      onMouseMove={!isMobile ? handleCursorMovement : undefined}
+      onClick={!isMobile ? handleElementClickEvent : undefined}
+      onContextMenu={!isMobile ? handleRightClick : undefined}
+      onTouchStart={isMobile ? enhancedTouchStart : undefined}
+      onTouchEnd={isMobile ? enhancedTouchEnd : undefined}
     >
-      {/* Main Content */}
-      <div className="pt-20 pb-8 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-green-400 mb-4">Welcome to LogTrace</h1>
-            <p className="text-slate-300 text-lg">
-              The AI-powered debugging tool that helps you capture perfect context for any UI element.
-            </p>
-          </div>
-
-          <InstructionsCard />
-        </div>
-      </div>
-
-      {/* Mouse Overlay */}
-      <MouseOverlay
-        isActive={isTraceActive && isHoverEnabled && !isHoverPaused}
-        currentElement={detectedElement}
-        mousePosition={cursorPosition}
-        overlayRef={overlayRef}
-        inspectorCount={inspectorPanels.length}
-      />
-
-      {/* Inspector Panels */}
-      {inspectorPanels.map((panel) => (
-        <ElementInspector
-          key={panel.id}
-          isVisible={true}
-          currentElement={panel.element}
-          mousePosition={panel.position}
-          onDebug={() => {
-            setDetectedElement(panel.element);
-            setShowAIDebugModal(true);
-          }}
-          onClose={() => closeInspectorPanel(panel.id)}
-          panelRef={overlayRef}
-          isExtensionMode={false}
-          isDraggable={true}
-          isPinned={false}
-          onPin={() => {}}
-          onShowMoreDetails={() => {}}
-          onMouseEnter={() => setIsHoverPaused(true)}
-          onMouseLeave={() => setIsHoverPaused(false)}
-        />
-      ))}
-
-      {/* Debug Modal */}
-      <DebugModal
-        showDebugModal={showAIDebugModal}
-        setShowDebugModal={setShowAIDebugModal}
-        currentElement={detectedElement}
-        mousePosition={cursorPosition}
-        isAnalyzing={isAIAnalyzing}
-        analyzeWithAI={analyzeElementWithAI}
-        generateAdvancedPrompt={generateElementPrompt}
-        modalRef={modalRef}
-        isExtensionMode={false}
-        showAuthModal={false}
-        setShowAuthModal={() => {}}
-        user={null}
-        guestDebugCount={0}
-        maxGuestDebugs={3}
-        terminalHeight={showTerminalPanel ? 400 : 0}
-      />
-
-      {/* Terminal Panel */}
-      {showTerminalPanel && (
-        <TabbedTerminal
-          isOpen={showTerminalPanel}
-          onClose={() => setShowTerminalPanel(false)}
-          events={capturedEvents}
-          exportEvents={exportCapturedEvents}
-          clearEvents={clearCapturedEvents}
-          debugResponses={[]}
-          clearDebugResponses={() => {}}
-          currentElement={detectedElement}
-          terminalHeight={400}
-        />
-      )}
-
-      {/* Settings Drawer */}
-      <SettingsDrawer
-        isOpen={showSettingsDrawer}
-        onClose={() => setShowSettingsDrawer(false)}
-        onUpgradeClick={() => {}}
-      />
-
-      {/* Mobile Menu */}
-      {isMobile && (
-        <MobileQuickActionsMenu
-          isOpen={showMobileMenu}
-          onClose={() => setShowMobileMenu(false)}
-          onStartTrace={() => setIsTraceActive(true)}
-          onEndTrace={() => setIsTraceActive(false)}
-          onToggleHover={() => setIsHoverEnabled(!isHoverEnabled)}
-          onUpgrade={() => {}}
-          onSettings={() => setShowSettingsDrawer(true)}
-          isTracing={isTraceActive}
-          isHoverEnabled={isHoverEnabled}
-        />
-      )}
-
-      {/* Quick Actions */}
-      <QuickActionPill
+      {/* Quick Action Modal */}
+      <QuickActionModal
         visible={showQuickActions}
         x={quickActionPosition.x}
         y={quickActionPosition.y}
@@ -383,7 +609,133 @@ const LogTrace: React.FC = React.memo(() => {
         onAction={handleQuickAction}
       />
 
-      {/* Onboarding Walkthrough */}
+      {/* Floating Hint */}
+      <FloatingHint 
+        isActive={isTraceActive}
+        currentElement={detectedElement}
+      />
+      
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `
+            linear-gradient(rgba(34, 197, 94, 0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(34, 197, 94, 0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '20px 20px'
+        }} />
+      </div>
+
+      <div className="relative z-10 p-4 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-green-400 font-bold text-xl md:text-2xl">LogTrace</h1>
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* Only show capture toggle if not controlled externally */}
+            {!externalOnCaptureToggle && (
+              <div className="flex items-center gap-2 md:gap-3 bg-slate-800/60 border border-green-500/30 rounded-lg px-3 md:px-4 py-1 md:py-2">
+                <div className="flex items-center gap-1 md:gap-2">
+                  <span className={`text-xs md:text-sm font-semibold ${captureActive ? 'text-green-400' : 'text-gray-400'}`}>
+                    {captureActive ? 'ACTIVE' : 'INACTIVE'}
+                  </span>
+                  <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full ${captureActive ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></div>
+                </div>
+                <div className="flex items-center gap-1 md:gap-2">
+                  <span className="text-xs text-gray-400 hidden sm:inline">Capture:</span>
+                  <Switch
+                    checked={captureActive}
+                    onCheckedChange={handleCaptureToggle}
+                    aria-label="Context Capture"
+                    className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-600 scale-75 md:scale-100"
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Credits Display - Mobile optimized */}
+            <div className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 bg-slate-800 border border-green-500/30 rounded-full">
+              <span className="text-xs text-green-400 font-semibold">
+                {remainingUses}/5 credits
+              </span>
+              {waitlistBonusRemaining > 0 && (
+                <span className="hidden sm:flex items-center gap-1 ml-1 md:ml-2 text-yellow-400 font-semibold text-xs">
+                  +{waitlistBonusRemaining} bonus
+                </span>
+              )}
+            </div>
+            
+            <Button 
+              onClick={() => setShowSettingsDrawer(true)} 
+              variant="ghost" 
+              size="sm" 
+              className="text-gray-400 hover:text-white bg-slate-800 border border-slate-600 hover:bg-slate-700 px-2 md:px-3 h-7 md:h-9"
+            >
+              <span className="text-xs md:text-sm">Settings</span>
+            </Button>
+            <Button 
+              onClick={() => setShowUpgradeModal(true)} 
+              variant="ghost" 
+              size="sm" 
+              className="text-gray-400 hover:text-white bg-slate-800 border border-slate-600 hover:bg-slate-700 px-2 md:px-3 h-7 md:h-9"
+            >
+              <span className="text-xs md:text-sm">Upgrade</span>
+            </Button>
+          </div>
+        </div>
+
+        {hasAnyErrors && (
+          <div className="my-4 p-3 rounded bg-red-800/60 text-red-200 animate-pulse max-w-xl">
+            <h4 className="font-semibold text-red-300 mb-1">Errors Detected</h4>
+            <ul className="text-sm list-disc list-inside space-y-1">
+              {Object.entries(allErrors).map(([key, value]) => (
+                value ? <li key={key}>{value}</li> : null
+              ))}
+            </ul>
+          </div>
+        )}
+        <InstructionsCard />
+      </div>
+
+      {/* Test components section - Mobile optimized */}
+      <div className="p-4 md:p-6 mt-4 md:mt-6 bg-slate-800/40 rounded-xl border border-cyan-500/20 mx-4 md:mx-0">
+        <h3 className="text-cyan-400 font-semibold mb-4 text-sm md:text-base">Test These Components</h3>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 mb-4 md:mb-6">
+          <Button
+            className="px-3 md:px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition text-sm md:text-base"
+            onClick={() => alert('Test Button Clicked!')}
+          >
+            Test Button
+          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-xs md:text-sm">Pill Slider:</span>
+            <button
+              type="button"
+              className={`relative w-10 h-5 md:w-12 md:h-6 rounded-full transition-colors duration-200 focus:outline-none ${pillOn ? 'bg-green-500' : 'bg-gray-400'}`}
+              onClick={() => setPillOn(v => !v)}
+              aria-pressed={pillOn}
+            >
+              <span
+                className={`absolute left-0 top-0 w-5 h-5 md:w-6 md:h-6 bg-white rounded-full shadow transform transition-transform duration-200 ${pillOn ? 'translate-x-5 md:translate-x-6' : ''}`}
+                style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}
+              />
+            </button>
+            <span className={`ml-2 text-xs md:text-sm font-semibold ${pillOn ? 'text-green-500' : 'text-gray-400'}`}>{pillOn ? 'ON' : 'OFF'}</span>
+          </div>
+        </div>
+        <div className="text-xs md:text-sm text-gray-400 bg-slate-800/60 rounded p-3">
+          <p className="font-semibold text-cyan-400 mb-2">How to Use LogTrace:</p>
+          <p>• <strong>1. Toggle capture ON</strong> in the navbar to begin element inspection</p>
+          <p>• <strong>2. {isMobile ? 'Touch and hold or tap' : 'Hover over'} elements</strong> to see live inspection data</p>
+          <p>• <strong>3. {isMobile ? 'Tap' : 'Click'} a highlighted element</strong> to open {isMobile ? 'an' : 'a sticky'} inspector panel</p>
+          <p>• <strong>4. Press Escape or tap X</strong> to close inspector panels</p>
+          {!isMobile && <p>• <strong>5. Use right-click</strong> for quick actions and screenshots</p>}
+          {isMobile && <p>• <strong>5. Use long press</strong> for additional options and actions</p>}
+        </div>
+      </div>
+
+      <SettingsDrawer 
+        isOpen={showSettingsDrawer}
+        onClose={() => setShowSettingsDrawer(false)}
+      />
+
       {showOnboarding && (
         <OnboardingWalkthrough
           step={onboardingStep}
@@ -393,34 +745,249 @@ const LogTrace: React.FC = React.memo(() => {
           isActive={isTraceActive}
           currentElement={detectedElement}
           mousePosition={cursorPosition}
-          showInspectorOpen={inspectorPanels.length > 0}
+          showInspectorOpen={openInspectors.length > 0}
           showTerminal={showTerminalPanel}
         />
       )}
 
-      {/* Mobile Menu Toggle */}
-      {isMobile && (
-        <button
-          onClick={() => setShowMobileMenu(true)}
-          className="fixed bottom-4 right-4 z-40 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
-        >
-          ⚙️
-        </button>
+      {/* Mobile Touch Overlay - simplified */}
+      {isMobile ? (
+        <MobileTouchOverlay
+          isActive={isTraceActive}
+          currentElement={detectedElement}
+          touchPosition={touchPosition}
+        />
+      ) : (
+        <MouseOverlay 
+          isActive={isTraceActive}
+          currentElement={detectedElement}
+          mousePosition={cursorPosition}
+          overlayRef={overlayRef}
+        />
       )}
 
-      {/* Terminal Toggle */}
+      {/* Mobile Quick Actions Menu */}
+      {isMobile && (
+        <MobileQuickActionsMenu
+          isVisible={isTraceActive}
+          onToggle={() => setShowMobileMenu(!showMobileMenu)}
+          onAction={handleMobileQuickAction}
+        />
+      )}
+
+      {/* Sticky Element Inspectors - Mobile optimized positioning */}
+      {openInspectors.map((inspector, index) => {
+        // Mobile: center the single panel, Desktop: stagger positioning
+        let adjustedPosition;
+        if (isMobile) {
+          // Center the panel on mobile
+          adjustedPosition = {
+            x: Math.max(10, Math.min(window.innerWidth - 350, (window.innerWidth - 320) / 2)),
+            y: Math.max(10, Math.min(window.innerHeight - 500, 100)),
+          };
+        } else {
+          // Stagger positioning for desktop to avoid overlap
+          const offsetX = index * 30;
+          const offsetY = index * 30;
+          adjustedPosition = {
+            x: Math.min(inspector.mousePosition.x + offsetX, window.innerWidth - 350),
+            y: Math.min(inspector.mousePosition.y + offsetY, window.innerHeight - 450),
+          };
+        }
+        
+        return (
+          <ElementInspector
+            key={inspector.id}
+            isVisible={true}
+            currentElement={inspector.elementInfo}
+            mousePosition={adjustedPosition}
+            onDebug={() => setShowAIDebugModal(true)}
+            onClose={() => {
+              setOpenInspectors(prev => prev.filter(i => i.id !== inspector.id));
+            }}
+            panelRef={elementInspectorRef}
+            onShowMoreDetails={() => {
+              setDetailsElement(inspector.elementInfo);
+              setShowMoreDetails(true);
+            }}
+            currentDebugCount={5 - remainingUses}
+            maxDebugCount={5}
+            onMouseEnter={handleInspectorMouseEnter}
+            onMouseLeave={handleInspectorMouseLeave}
+          />
+        );
+      })}
+
+      <DebugModal 
+        showDebugModal={showAIDebugModal}
+        setShowDebugModal={setShowAIDebugModal}
+        currentElement={detectedElement}
+        mousePosition={cursorPosition}
+        isAnalyzing={isAIAnalyzing}
+        analyzeWithAI={handleAnalyzeWithAI}
+        generateAdvancedPrompt={generateElementPrompt}
+        modalRef={modalRef}
+        terminalHeight={showTerminalPanel ? terminalHeight : 0}
+      />
+
+      <MoreDetailsModal 
+        element={detailsElement}
+        open={showMoreDetails}
+        onClose={() => setShowMoreDetails(false)}
+        terminalHeight={showTerminalPanel ? terminalHeight : 0}
+      />
+
       {!showTerminalPanel && (
-        <button
+        <Button
           onClick={() => setShowTerminalPanel(true)}
-          className="fixed bottom-4 left-4 z-40 bg-slate-700 hover:bg-slate-600 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
+          className={`fixed ${isMobile ? 'bottom-6 right-6 w-16 h-16' : 'bottom-4 right-4 w-12 h-12'} z-30 bg-green-600 hover:bg-green-700 text-white rounded-full p-0 shadow-lg`}
         >
-          &gt;
-        </button>
+          <span style={{ 
+            fontSize: isMobile ? 24 : 32, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center' 
+          }}>
+            {isMobile ? '⌨' : '>'}
+          </span>
+        </Button>
+      )}
+
+      {showTerminalPanel && (
+        <div
+          style={{
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            top: isMobile ? 0 : 'auto',
+            zIndex: 100,
+            height: isMobile ? '100vh' : terminalHeight,
+            minHeight: terminalMinHeight,
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: isMobile ? 'rgba(15, 23, 42, 0.98)' : 'transparent',
+          }}
+        >
+          {isMobile && (
+            <div className="flex items-center justify-between p-4 bg-slate-900 border-b border-green-500/30">
+              <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
+              <Button
+                onClick={() => setShowTerminalPanel(false)}
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </Button>
+            </div>
+          )}
+          
+          {!isMobile && (
+            <div
+              style={{
+                height: 12,
+                cursor: 'ns-resize',
+                background: 'rgba(34,197,94,0.2)',
+                borderTopLeftRadius: 8,
+                borderTopRightRadius: 8,
+                zIndex: 101,
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                MozUserSelect: 'none',
+                msUserSelect: 'none',
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                resizingRef.current = true;
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(34,197,94,0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(34,197,94,0.2)';
+              }}
+            >
+              <div
+                style={{
+                  width: 40,
+                  height: 4,
+                  background: 'rgba(34,197,94,0.6)',
+                  borderRadius: 2,
+                }}
+              />
+            </div>
+          )}
+          
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <TabbedTerminal
+              showTerminal={showTerminalPanel}
+              setShowTerminal={setShowTerminalPanel}
+              events={capturedEvents}
+              exportEvents={exportCapturedEvents}
+              clearEvents={clearCapturedEvents}
+              debugResponses={debugResponses}
+              clearDebugResponses={clearDebugResponses}
+              terminalHeight={terminalHeight}
+            />
+          </div>
+        </div>
+      )}
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        remainingUses={remainingUses}
+      />
+
+      {activeScreenshotOverlay === 'rectangle' && (
+        <RectScreenshotOverlay onComplete={handleScreenshotOverlayComplete} />
+      )}
+      {activeScreenshotOverlay === 'freeform' && (
+        <FreeformScreenshotOverlay onComplete={handleScreenshotOverlayComplete} />
+      )}
+
+      {clipboardFallback.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-slate-900 border border-green-500/30 rounded-xl shadow-2xl p-6 max-w-lg w-full">
+            <h2 className="text-lg font-bold text-red-400 mb-2">Copy to Clipboard</h2>
+            <p className="text-green-200 mb-2">Automatic copy failed. Please copy the AI response below manually:</p>
+            <textarea
+              className="w-full h-40 bg-slate-800 text-green-400 p-2 rounded mb-4"
+              value={clipboardFallback.response}
+              readOnly
+            />
+            <div className="flex gap-2 justify-end">
+              <Button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(clipboardFallback.response);
+                    setClipboardFallback({ response: '', open: false });
+                    toast({ title: 'Copied!', description: 'AI response copied to clipboard.', variant: 'success' });
+                  } catch {
+                    toast({ title: 'Copy Failed', description: 'Still unable to copy. Please select and copy manually.', variant: 'destructive' });
+                  }
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                Copy
+              </Button>
+              <Button
+                onClick={() => setClipboardFallback({ response: '', open: false })}
+                className="bg-gray-700 hover:bg-gray-800 text-white"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
-});
-
-LogTrace.displayName = 'LogTrace';
+};
 
 export default LogTrace;

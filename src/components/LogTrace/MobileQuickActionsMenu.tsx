@@ -1,120 +1,116 @@
 
-import React from 'react';
-import { X, Zap, MousePointer, Eye, Settings, Crown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { Camera, Sparkles, Bug, Eye, X, Search, Menu, Plus } from 'lucide-react';
 
 interface MobileQuickActionsMenuProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onStartTrace: () => void;
-  onEndTrace: () => void;
-  onToggleHover: () => void;
-  onUpgrade: () => void;
-  onSettings: () => void;
-  isTracing: boolean;
-  isHoverEnabled: boolean;
+  isVisible: boolean;
+  onToggle: () => void;
+  onAction: (action: string) => void;
 }
 
+const quickActions = [
+  { id: 'inspector', label: 'Inspector', icon: Eye },
+  { id: 'screenshot', label: 'Screenshot', icon: Camera },
+  { id: 'context', label: 'Context', icon: Sparkles },
+  { id: 'debug', label: 'Debug', icon: Bug },
+  { id: 'terminal', label: 'Terminal', icon: Search },
+];
+
 const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
-  isOpen,
-  onClose,
-  onStartTrace,
-  onEndTrace,
-  onToggleHover,
-  onUpgrade,
-  onSettings,
-  isTracing,
-  isHoverEnabled,
+  isVisible,
+  onToggle,
+  onAction,
 }) => {
-  if (!isOpen) return null;
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleToggle = () => {
+    setIsExpanded(!isExpanded);
+    if (!isExpanded) {
+      onToggle();
+    }
+  };
+
+  const handleActionSelect = (actionId: string) => {
+    onAction(actionId);
+    setIsExpanded(false);
+  };
+
+  if (!isVisible) return null;
+
+  // Calculate positions for fan layout - centered over main button
+  const getActionPosition = (index: number) => {
+    const totalActions = quickActions.length;
+    const radius = 100; // Distance from center button
+    const startAngle = 225; // Start angle in degrees (bottom-left)
+    const endAngle = -45; // End angle in degrees (top-right)
+    const angleRange = startAngle - endAngle; // 270 degrees total
+    const angleStep = angleRange / (totalActions - 1);
+    const angle = (startAngle - (index * angleStep)) * (Math.PI / 180); // Convert to radians
+    
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    
+    return { x, y };
+  };
 
   return (
-    <>
-      <style>
-        {`
-          @keyframes slideUp {
-            from {
-              transform: translateY(100%);
-              opacity: 0;
-            }
-            to {
-              transform: translateY(0);
-              opacity: 1;
-            }
-          }
-          
-          .slide-up {
-            animation: slideUp 0.3s ease-out;
-          }
-        `}
-      </style>
-      
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-        onClick={onClose}
-      />
-      
-      {/* Menu */}
-      <div className="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-green-500/30 z-50 slide-up">
-        <div className="p-4 space-y-3">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-green-400">Quick Actions</h3>
-            <Button
-              data-close-button
-              onClick={onClose}
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Actions */}
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              data-trace-toggle
-              onClick={isTracing ? onEndTrace : onStartTrace}
-              variant={isTracing ? "destructive" : "default"}
-              className="h-12 flex items-center gap-2"
-            >
-              <Zap className="h-4 w-4" />
-              {isTracing ? 'End Trace' : 'Start Trace'}
-            </Button>
-
-            <Button
-              data-tracing-control
-              onClick={onToggleHover}
-              variant={isHoverEnabled ? "secondary" : "outline"}
-              className="h-12 flex items-center gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              {isHoverEnabled ? 'Disable Hover' : 'Enable Hover'}
-            </Button>
-
-            <Button
-              data-settings
-              onClick={onSettings}
-              variant="outline"
-              className="h-12 flex items-center gap-2"
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </Button>
-
-            <Button
-              onClick={onUpgrade}
-              className="h-12 flex items-center gap-2 bg-green-600 hover:bg-green-700"
-            >
-              <Crown className="h-4 w-4" />
-              Upgrade
-            </Button>
-          </div>
+    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+      {/* Fan Action Icons - positioned relative to center button */}
+      {isExpanded && (
+        <div className="absolute bottom-1/2 left-1/2 transform -translate-x-1/2 translate-y-1/2">
+          {quickActions.map((action, index) => {
+            const position = getActionPosition(index);
+            
+            return (
+              <div
+                key={action.id}
+                className="absolute w-12 h-12 bg-gray-700 rounded-full shadow-lg flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-110 border-2 border-white/20 hover:border-white/40"
+                style={{
+                  left: position.x,
+                  top: position.y,
+                  transform: 'translate(-50%, -50%)',
+                  animation: `fadeInScale 0.3s ease-out ${index * 0.05}s both`,
+                }}
+                onClick={() => handleActionSelect(action.id)}
+              >
+                <action.icon className="text-white" size={18} />
+              </div>
+            );
+          })}
         </div>
-      </div>
-    </>
+      )}
+      
+      {/* Main center toggle button */}
+      <button
+        onClick={handleToggle}
+        className={`w-16 h-16 bg-cyan-500 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 border-4 border-cyan-400/50 hover:bg-cyan-600 ${
+          isExpanded ? 'rotate-45 bg-cyan-600 scale-110' : 'hover:scale-105'
+        }`}
+        style={{
+          boxShadow: '0 8px 32px rgba(6, 182, 212, 0.3)',
+        }}
+      >
+        {isExpanded ? (
+          <Plus className="text-white" size={24} />
+        ) : (
+          <Menu className="text-white" size={24} />
+        )}
+      </button>
+
+      {/* Custom animations */}
+      <style>{`
+        @keyframes fadeInScale {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.3);
+          }
+          100% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+          }
+        }
+      `}</style>
+    </div>
   );
 };
 
