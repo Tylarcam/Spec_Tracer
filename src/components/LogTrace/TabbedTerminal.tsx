@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ElementInfo, LogEvent, DebugContext } from '@/shared/types';
 import { sanitizeText } from '@/utils/sanitization';
+import { formatElementDataForCopy } from '@/utils/elementDataFormatter';
 import { useToast } from '@/hooks/use-toast';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 
@@ -56,7 +57,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
   const [terminalLines, setTerminalLines] = useState<TerminalLine[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState<'terminal' | 'events' | 'context'>('terminal');
+  const [activeTab, setActiveTab] = useState<'terminal' | 'events' | 'context'>('events');
   const [showTimestamps, setShowTimestamps] = useState(true);
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -212,6 +213,38 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
     }
   };
 
+  const getEventTypeColor = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'click': return 'text-green-400';
+      case 'hover': return 'text-blue-400';
+      case 'move': return 'text-yellow-400';
+      case 'debug': return 'text-purple-400';
+      case 'inspect': return 'text-cyan-400';
+      case 'tap': return 'text-orange-400';
+      default: return 'text-gray-400';
+    }
+  };
+
+  const copyEventData = useCallback(async (event: LogEvent) => {
+    if (!event.element) return;
+    
+    const formattedData = formatElementDataForCopy(event.element, event.position);
+    
+    try {
+      await navigator.clipboard.writeText(formattedData);
+      toast({
+        title: 'Event Data Copied',
+        description: 'Element data has been copied to your clipboard.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Copy Failed',
+        description: 'Failed to copy event data to clipboard.',
+        variant: 'destructive',
+      });
+    }
+  }, [toast]);
+
   // Memoize expensive computations
   const eventsList = useMemo(() => {
     return events.map(event => ({
@@ -242,7 +275,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
           <Terminal className="h-4 w-4 text-cyan-400" />
           <h3 className="text-sm font-semibold text-cyan-400">Debug Terminal</h3>
           <Badge variant="outline" className="text-xs text-gray-400">
-            {terminalLines.length} lines
+            {events.length} events
           </Badge>
         </div>
         <div className="flex items-center gap-1">
@@ -307,16 +340,141 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
         <div className="h-full">
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
             <TabsList className="grid w-full grid-cols-3 bg-slate-800/50 h-8">
+              <TabsTrigger value="events" className="data-[state=active]:bg-green-600 text-xs">
+                Events ({eventsList.length})
+              </TabsTrigger>
               <TabsTrigger value="terminal" className="data-[state=active]:bg-cyan-600 text-xs">
                 Terminal
               </TabsTrigger>
-              <TabsTrigger value="events" className="data-[state=active]:bg-cyan-600 text-xs">
-                Events ({eventsList.length})
-              </TabsTrigger>
-              <TabsTrigger value="context" className="data-[state=active]:bg-cyan-600 text-xs">
+              <TabsTrigger value="context" className="data-[state=active]:bg-purple-600 text-xs">
                 Context
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="events" className="mt-0 h-full">
+              <div className="h-full overflow-y-auto p-2 bg-slate-950">
+                {eventsList.length === 0 ? (
+                  <div className="text-gray-500 text-center py-8">
+                    No events recorded yet
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {eventsList.map((event, index) => (
+                      <div
+                        key={event.id || index}
+                        className="bg-slate-800/50 rounded-lg p-3 border border-green-500/20 hover:border-green-500/40 transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs font-mono ${getEventTypeColor(event.type)} border-current`}
+                            >
+                              {event.type.toUpperCase()}
+                            </Badge>
+                            <span className="text-xs text-gray-400">
+                              {new Date(event.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <Button
+                            onClick={() => copyEventData(event)}
+                            variant="ghost"
+                            size="sm"
+                            className="text-gray-400 hover:text-white h-6 w-6 p-0"
+                            title="Copy event data"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        
+                        {event.element && (
+                          <div className="space-y-2">
+                            {/* Element Selector */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 font-mono">
+                                {event.element.tag?.toUpperCase() || 'DIV'}
+                              </Badge>
+                              {event.element.id && (
+                                <span className="text-green-300 font-mono text-sm">
+                                  #{sanitizeText(event.element.id)}
+                                </span>
+                              )}
+                              {event.element.classes && event.element.classes.length > 0 && (
+                                <span className="text-yellow-300 font-mono text-sm">
+                                  .{event.element.classes.map(c => sanitizeText(c)).join('.')}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Element Text */}
+                            {event.element.text && (
+                              <div className="bg-slate-900/50 rounded p-2 border-l-2 border-cyan-500/50">
+                                <span className="text-xs text-gray-400">Text:</span>
+                                <div className="text-cyan-200 text-sm font-mono mt-1">
+                                  "{sanitizeText(event.element.text, 100)}"
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Element Hierarchy */}
+                            {event.element.parentPath && (
+                              <div className="bg-slate-900/50 rounded p-2 border-l-2 border-purple-500/50">
+                                <span className="text-xs text-gray-400">Hierarchy:</span>
+                                <div className="text-purple-200 text-xs font-mono mt-1 break-all">
+                                  {event.element.parentPath} → {event.element.tag}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Position and Size */}
+                            <div className="grid grid-cols-2 gap-2">
+                              {event.position && (
+                                <div className="bg-slate-900/50 rounded p-2 border-l-2 border-orange-500/50">
+                                  <span className="text-xs text-gray-400">Position:</span>
+                                  <div className="text-orange-200 text-sm font-mono">
+                                    ({event.position.x}, {event.position.y})
+                                  </div>
+                                </div>
+                              )}
+                              {event.element.size && (
+                                <div className="bg-slate-900/50 rounded p-2 border-l-2 border-pink-500/50">
+                                  <span className="text-xs text-gray-400">Size:</span>
+                                  <div className="text-pink-200 text-sm font-mono">
+                                    {event.element.size.width}×{event.element.size.height}px
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Attributes */}
+                            {event.element.attributes && event.element.attributes.length > 0 && (
+                              <div className="bg-slate-900/50 rounded p-2 border-l-2 border-teal-500/50">
+                                <span className="text-xs text-gray-400">Attributes:</span>
+                                <div className="text-teal-200 text-xs font-mono mt-1 space-y-1">
+                                  {event.element.attributes.slice(0, 5).map((attr, i) => (
+                                    <div key={i} className="flex">
+                                      <span className="text-teal-300 mr-2">{attr.name}:</span>
+                                      <span className="text-teal-100 break-all">
+                                        "{sanitizeText(attr.value, 50)}"
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {event.element.attributes.length > 5 && (
+                                    <div className="text-gray-400 text-xs">
+                                      ... and {event.element.attributes.length - 5} more
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
 
             <TabsContent value="terminal" className="mt-0 h-full">
               <div className="h-full flex flex-col">
@@ -375,65 +533,6 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
                     />
                   </div>
                 </form>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="events" className="mt-0 h-full">
-              <div className="h-full overflow-y-auto p-2 bg-slate-950">
-                {eventsList.length === 0 ? (
-                  <div className="text-gray-500 text-center py-8">
-                    No events recorded yet
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {eventsList.map((event) => (
-                      <div
-                        key={event.id}
-                        className="bg-slate-800/50 rounded p-2 border border-green-500/20"
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <Badge variant="outline" className="text-xs">
-                            {event.type}
-                          </Badge>
-                          <span className="text-xs text-gray-400">
-                            {new Date(event.timestamp).toLocaleTimeString()}
-                          </span>
-                        </div>
-                        
-                        {event.element && (
-                          <div className="text-xs text-gray-300 space-y-1">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="bg-green-500/20 text-green-400">
-                                {event.element.tag?.toUpperCase() || 'UNKNOWN'}
-                              </Badge>
-                              {event.element.id && (
-                                <span className="text-green-300 font-mono">
-                                  #{sanitizeText(event.element.id)}
-                                </span>
-                              )}
-                            </div>
-                            {event.element.classes && event.element.classes.length > 0 && (
-                              <div className="text-gray-400">
-                                Classes: .{event.element.classes.map(c => sanitizeText(c)).join(' .')}
-                              </div>
-                            )}
-                            {event.element.text && (
-                              <div className="text-gray-400 truncate">
-                                Text: "{sanitizeText(event.element.text)}"
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        
-                        {event.position && (
-                          <div className="text-xs text-gray-400 mt-1">
-                            Position: ({event.position.x}, {event.position.y})
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </TabsContent>
 

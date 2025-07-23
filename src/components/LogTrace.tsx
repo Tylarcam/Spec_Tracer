@@ -6,7 +6,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
 
-import UnifiedTraceControl from './LogTrace/UnifiedTraceControl';
 import MouseOverlay from './LogTrace/MouseOverlay';
 import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
@@ -273,16 +272,6 @@ const LogTrace: React.FC = React.memo(() => {
       onTouchEnd={handleTouchEnd}
       onContextMenu={handleContextMenu}
     >
-      {/* Unified Trace Control */}
-      <UnifiedTraceControl
-        isTracing={isTraceActive}
-        isHoverEnabled={isHoverEnabled}
-        onToggleTracing={() => setIsTraceActive(!isTraceActive)}
-        onToggleHover={() => setIsHoverEnabled(!isHoverEnabled)}
-        onOpenSettings={() => setShowSettingsDrawer(true)}
-        eventCount={capturedEvents.length}
-      />
-
       {/* Main Content */}
       <div className="pt-20 pb-8 px-6">
         <div className="max-w-4xl mx-auto">
