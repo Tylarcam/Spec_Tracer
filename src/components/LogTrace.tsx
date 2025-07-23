@@ -1,5 +1,4 @@
 
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Play, Pause, Settings, Terminal, ArrowUp, Lightbulb, MousePointer } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -15,6 +14,8 @@ import MobileQuickActionsMenu from './LogTrace/MobileQuickActionsMenu';
 import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
 import UnifiedTraceControl from './LogTrace/UnifiedTraceControl';
+import ElementDetails from './LogTrace/ElementDetails';
+import TerminalPanel from './LogTrace/TerminalPanel';
 
 import { useElementPosition } from '@/hooks/useElementPosition';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
@@ -24,6 +25,10 @@ import { callAIDebugFunction } from '@/shared/api';
 import { ElementInfo } from '@/shared/types';
 import { formatElementDataForCopy } from '@/utils/elementDataFormatter';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from "@/components/ui/textarea"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface LogTraceProps {
 }
@@ -34,6 +39,11 @@ const LogTrace: React.FC<LogTraceProps> = () => {
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showElementDetails, setShowElementDetails] = useState(false);
+  const [aiDebugPrompt, setAiDebugPrompt] = useState('');
+  const [aiDebugError, setAiDebugError] = useState('');
+  const [aiDebugLoading, setAiDebugLoading] = useState(false);
+  const [aiDebugResponse, setAiDebugResponse] = useState('');
 
   const [openInspectors, setOpenInspectors] = useState<Array<{ id: string; element: ElementInfo; position: { x: number; y: number } }>>([]);
   const [currentElement, setCurrentElement] = useState<ElementInfo | null>(null);
@@ -499,6 +509,58 @@ const LogTrace: React.FC<LogTraceProps> = () => {
           </div>
         </div>
       </div>
+
+      {/* Element Details */}
+      {showElementDetails && currentElement && (
+        <Draggable
+          handle=".drag-handle"
+          defaultPosition={{ x: 20, y: 20 }}
+          position={null}
+          onStart={handleDragStart}
+          onStop={handleDragStop}
+        >
+          <div className="absolute top-0 left-0 z-50 bg-slate-800 border border-green-500/30 rounded-md shadow-lg w-full max-w-md">
+            <div className="bg-slate-700 p-3 flex items-center justify-between drag-handle cursor-move">
+              <h3 className="text-sm font-semibold text-green-400">Element Details</h3>
+              <div className="flex items-center gap-2">
+                <Button onClick={() => handleAIDebug(currentElement)} variant="ghost" size="sm">
+                  <Lightbulb className="h-4 w-4 mr-2" />
+                  AI Debug
+                </Button>
+                <Button onClick={() => { setShowElementDetails(false); setCurrentElement(null); }} variant="ghost" size="sm">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="p-4">
+              <ElementDetails element={currentElement} />
+              <div className="mt-4 space-y-2">
+                <Label htmlFor="ai-debug-prompt" className="text-sm">AI Debug Prompt</Label>
+                <Textarea
+                  id="ai-debug-prompt"
+                  placeholder="Describe the issue or desired behavior..."
+                  className="bg-slate-700 border-slate-600 text-white text-sm"
+                  value={aiDebugPrompt}
+                  onChange={(e) => setAiDebugPrompt(e.target.value)}
+                />
+                {aiDebugError && <p className="text-red-400 text-sm">{aiDebugError}</p>}
+                {aiDebugLoading ? (
+                  <Skeleton className="w-full h-10 rounded-md" />
+                ) : (
+                  <Button onClick={() => handleAIDebug(currentElement)} className="w-full">
+                    Debug with AI
+                  </Button>
+                )}
+                {aiDebugResponse && (
+                  <div className="mt-3 p-3 bg-slate-700 rounded-md">
+                    <p className="text-sm">{aiDebugResponse}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </Draggable>
+      )}
 
       {/* Terminal - Full screen overlay when open */}
       {isTerminalOpen && (
