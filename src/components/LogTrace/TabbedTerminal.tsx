@@ -228,7 +228,13 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
   const copyEventData = useCallback(async (event: LogEvent) => {
     if (!event.element) return;
     
-    const formattedData = formatElementDataForCopy(event.element, event.position);
+    // Create a mock ElementInfo object with a placeholder element
+    const mockElement: ElementInfo = {
+      ...event.element,
+      element: document.createElement('div') // Placeholder element
+    };
+    
+    const formattedData = formatElementDataForCopy(mockElement, event.position);
     
     try {
       await navigator.clipboard.writeText(formattedData);
