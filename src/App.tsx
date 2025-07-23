@@ -49,13 +49,25 @@ const AppRoutes = () => {
     <TracingContext.Provider value={{ tracingActive, setTracingActive }}>
       {!isLanding && (
         <NavBar 
+  // add React Router’s navigate hook
+  const navigate = useNavigate();
+  
+  return (
+    <TracingContext.Provider value={{ tracingActive, setTracingActive }}>
+      {!isLanding && (
+        <NavBar 
           tracingActive={isDebugPage ? tracingActive : undefined}
           onTracingToggle={isDebugPage ? setTracingActive : undefined}
           isHoverEnabled={isDebugPage ? isHoverEnabled : undefined}
           onToggleHover={isDebugPage ? setIsHoverEnabled : undefined}
           eventCount={isDebugPage ? eventCount : undefined}
-          onOpenSettings={isDebugPage ? () => window.location.href = '/settings' : undefined}
+          onOpenSettings={isDebugPage ? () => navigate('/settings') : undefined}
         />
+      )}
+      {/* … */}
+    </TracingContext.Provider>
+  );
+}        />
       )}
       <Routes>
         <Route path="/" element={<Landing />} />

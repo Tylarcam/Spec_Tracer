@@ -46,8 +46,9 @@ const UnifiedTraceControl: React.FC<UnifiedTraceControlProps> = ({
       "px-4 py-3 shadow-lg transition-all duration-300",
       "flex items-center gap-4",
       className
-    )}>
-      {/* Status Indicator */}
+    )}
+      role="toolbar"
+      aria-label="Tracing control panel">      {/* Status Indicator */}
       <div className="flex items-center gap-2">
         <div className={cn(
           "w-2 h-2 rounded-full transition-all duration-300",

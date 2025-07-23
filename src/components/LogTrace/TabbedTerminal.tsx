@@ -319,19 +319,24 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                       else if (type === 'LLM_RESPONSE') color = 'text-purple-400';
                       // Compose element info
                       const el = event.element || {};
-                      const tag = (el as any).tag || 'div';
-                      const id = (el as any).id ? `#${(el as any).id}` : '';
-                      const classes = (el as any).classes && (el as any).classes.length > 0 ? `.${(el as any).classes.join('.')}` : '';
+                      const tag = el.tag || 'div';
+                      const id = el.id ? `#${el.id}` : '';
+                      const classes = el.classes && el.classes.length > 0
+                        ? `.${el.classes.join('.')}`
+                        : '';
                       const text = (el as any).text ? `"${(el as any).text}"` : '';
                       const parentPath = (el as any).parentPath ? (el as any).parentPath : '';
                       const attributes = (el as any).attributes && (el as any).attributes.length > 0
                         ? (el as any).attributes.map((a: any) => `${a.name}="${a.value}"`).join(', ')
                         : '';
-                      const size = (el as any).size ? `${(el as any).size.width}×${(el as any).size.height}` : '';
+                      const size = (el as any).size
+                        ? `${(el as any).size.width}×${(el as any).size.height}`
+                        : '';
                       const position = event.position ? `@${event.position.x},${event.position.y}` : '';
-                      const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(tag) || (el && (el as any).classes && (el as any).classes.includes('interactive'));
-                      const copyString = `[${event.timestamp}] ${type} ${tag}${id}${classes} ${text} ${position} ${parentPath} ${attributes} ${size}`;
-                      return (
+                      const isInteractive =
+                        ['button', 'a', 'input', 'select', 'textarea'].includes(tag) ||
+                        (el && (el as any).classes && (el as any).classes.includes('interactive'));
+                      const copyString = `[${event.timestamp}] ${type} ${tag}${id}${classes} ${text} ${position} ${parentPath} ${attributes} ${size}`;                      return (
                         <div key={idx} className="contents">
                           <div className="text-gray-500 break-all min-w-0 max-w-full" title={event.timestamp}>[{event.timestamp}]</div>
                           <div className={`${color} font-semibold break-all min-w-0 max-w-full`}>{type}</div>
