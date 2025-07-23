@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/hooks/useNotification';
 import { useEnhancedCredits } from '@/hooks/useEnhancedCredits';
 import { supabase } from '@/integrations/supabase/client';
+import { ShareModal } from '@/components/ShareModal';
 
 interface SettingsDrawerProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ interface SettingsDrawerProps {
 
 const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgrade, onUpgradeClick }) => {
   const { user, signOut } = useAuth();
-  const { success, error } = useNotification();
+  const { showSuccess, showError } = useNotification();
   const { creditStatus, awardShareCredits, refreshCredits } = useEnhancedCredits();
   
   // General settings state
@@ -78,7 +79,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
   const handleShare = async (platform: string) => {
     const success = await awardShareCredits(platform);
     if (success) {
-      success({
+      showSuccess({
         title: 'Credits awarded!',
         description: 'You earned +5 bonus credits for sharing LogTrace!'
       });
@@ -95,12 +96,12 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
       const { error } = await supabase.auth.updateUser({ email: newEmail });
       if (error) throw error;
       
-      success({
+      showSuccess({
         title: 'Email update requested',
         description: 'Please check both your old and new email for confirmation links.'
       });
     } catch (err: any) {
-      error({ title: 'Update failed', description: err.message });
+      showError({ title: 'Update failed', description: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -108,12 +109,12 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
   const handleUpdatePassword = async () => {
     if (passwords.new !== passwords.confirm) {
-      error({ title: 'Error', description: 'New passwords do not match' });
+      showError({ title: 'Error', description: 'New passwords do not match' });
       return;
     }
 
     if (passwords.new.length < 6) {
-      error({ title: 'Error', description: 'Password must be at least 6 characters long' });
+      showError({ title: 'Error', description: 'Password must be at least 6 characters long' });
       return;
     }
 
@@ -122,13 +123,13 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
       const { error } = await supabase.auth.updateUser({ password: passwords.new });
       if (error) throw error;
       
-      success({
+      showSuccess({
         title: 'Password updated',
         description: 'Your password has been successfully changed.'
       });
       setPasswords({ current: '', new: '', confirm: '' });
     } catch (err: any) {
-      error({ title: 'Update failed', description: err.message });
+      showError({ title: 'Update failed', description: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -145,12 +146,12 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
       });
       if (error) throw error;
       
-      success({
+      showSuccess({
         title: 'Confirmation sent',
         description: 'Please check your email for the confirmation link.'
       });
     } catch (err: any) {
-      error({ title: 'Failed to send', description: err.message });
+      showError({ title: 'Failed to send', description: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -158,7 +159,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
   const handleExportData = async () => {
     if (!creditStatus.isPremium) {
-      error({
+      showError({
         title: 'Pro Feature',
         description: 'Data export is available for Pro users only.'
       });
@@ -187,12 +188,12 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      success({
+      showSuccess({
         title: 'Data exported',
         description: 'Your data has been downloaded successfully.'
       });
     } catch (err: any) {
-      error({ title: 'Export failed', description: err.message });
+      showError({ title: 'Export failed', description: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -200,7 +201,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmation !== 'DELETE') {
-      error({
+      showError({
         title: 'Invalid confirmation',
         description: 'Please type "DELETE" to confirm account deletion.'
       });
@@ -209,12 +210,12 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
     setIsLoading(true);
     try {
-      error({
+      showError({
         title: 'Contact Support',
         description: 'Please contact support to delete your account. This ensures all data is properly removed.'
       });
     } catch (err: any) {
-      error({ title: 'Deletion failed', description: err.message });
+      showError({ title: 'Deletion failed', description: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -222,7 +223,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
   const handleSignOut = async () => {
     await signOut();
-    success({ title: 'Signed out', description: 'You have been successfully signed out.' });
+    showSuccess({ title: 'Signed out', description: 'You have been successfully signed out.' });
     onClose();
   };
 
@@ -240,7 +241,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
       <div 
         data-settings
         className={`
-        fixed right-0 top-0 h-full w-full max-w-2xl bg-slate-900 border-l border-green-500/30 
+        fixed right-0 top-0 h-full w-full max-w-3xl bg-slate-900 border-l border-green-500/30 
         shadow-2xl z-50 transform transition-transform duration-300 ease-out
         ${isOpen ? 'translate-x-0' : 'translate-x-full'}
       `}>
@@ -691,6 +692,14 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
           </Tabs>
         </div>
       </div>
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <ShareModal 
+          isOpen={showShareModal} 
+          onClose={() => setShowShareModal(false)} 
+        />
+      )}
     </>
   );
 };
