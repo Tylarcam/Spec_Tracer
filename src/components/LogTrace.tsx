@@ -19,10 +19,19 @@ import InstructionsCard from './LogTrace/InstructionsCard';
 import { useTracingContext } from '@/App';
 import { QuickActionType } from '@/shared/types';
 
-const LogTrace: React.FC = React.memo(() => {
-  const { tracingActive, setTracingActive } = useTracingContext();
+interface LogTraceProps {
+  captureActive?: boolean;
+  onCaptureToggle?: (active: boolean) => void;
+}
+
+const LogTrace: React.FC<LogTraceProps> = React.memo(({ captureActive, onCaptureToggle }) => {
+  const { tracingActive: contextTracingActive, setTracingActive: setContextTracingActive } = useTracingContext();
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
+  
+  // Use external props if provided, otherwise use context
+  const tracingActive = captureActive !== undefined ? captureActive : contextTracingActive;
+  const setTracingActive = onCaptureToggle || setContextTracingActive;
   
   // Initialize the main orchestrator hook
   const orchestrator = useLogTraceOrchestrator();
