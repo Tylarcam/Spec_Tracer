@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Play, Pause, Settings, Terminal, ArrowUp, Lightbulb, MousePointer } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -84,7 +85,7 @@ const LogTrace: React.FC = () => {
   };
 
   const handleAIDebug = async () => {
-    if (!canUseAiDebug()) {
+    if (!canUseAiDebug) {
       navigate('/upgrade');
       return;
     }
@@ -159,6 +160,7 @@ const LogTrace: React.FC = () => {
           id: target.id,
           classes: Array.from(target.classList),
           text: target.textContent?.trim() || '',
+          element: target,
         };
         setElement(elementInfo);
         setCurrentElement(elementInfo);
@@ -228,11 +230,11 @@ const LogTrace: React.FC = () => {
               <div className="bg-slate-700 p-3 flex items-center justify-between drag-handle cursor-move">
                 <h3 className="text-sm font-semibold text-green-400">Element Details</h3>
                 <div className="flex items-center gap-2">
-                  <Button onClick={handleAIDebug} variant="ghost" size="xs">
+                  <Button onClick={handleAIDebug} variant="ghost" size="sm">
                     <Lightbulb className="h-4 w-4 mr-2" />
                     AI Debug
                   </Button>
-                  <Button onClick={() => { setShowElementDetails(false); setCurrentElement(null); }} variant="ghost" size="xs">
+                  <Button onClick={() => { setShowElementDetails(false); setCurrentElement(null); }} variant="ghost" size="sm">
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
@@ -268,21 +270,11 @@ const LogTrace: React.FC = () => {
         )}
 
         {/* Terminal Panel */}
-        {isTerminalOpen && (
-          <div className="lg:w-1/3 bg-slate-800 border-l border-green-500/30 p-4 flex flex-col">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-cyan-400">Terminal</h3>
-              <Button onClick={toggleTerminal} variant="ghost" size="sm">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div ref={terminalRef} className="flex-1 overflow-y-auto text-xs text-gray-400 space-y-1">
-              {terminalOutput.map((output, index) => (
-                <p key={index}>{output}</p>
-              ))}
-            </div>
-          </div>
-        )}
+        <TerminalPanel
+          output={terminalOutput}
+          isOpen={isTerminalOpen}
+          onClose={toggleTerminal}
+        />
       </div>
 
       <SettingsDrawer
