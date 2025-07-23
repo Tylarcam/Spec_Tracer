@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Play, Pause, Settings, Terminal, ArrowUp, Lightbulb, MousePointer } from 'lucide-react';
+import { X, Play, Pause, Settings, Terminal, MousePointer } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Draggable from 'react-draggable';
@@ -15,8 +15,6 @@ import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { callAIDebugFunction } from '@/shared/api';
 import { ElementInfo } from '@/shared/types';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -40,7 +38,6 @@ const LogTrace: React.FC = () => {
   const location = useLocation();
   const { elementInfo, setElement } = useElementPosition();
   const { canUseAiDebug, incrementAiDebugUsage } = useUsageTracking();
-  const terminalRef = useRef<HTMLDivElement>(null);
 
   const startTracing = () => {
     setIsTracing(true);
@@ -216,35 +213,72 @@ const LogTrace: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-auto" onMouseMove={handleMouseMove}>
-        {/* Element Details */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden" onMouseMove={handleMouseMove}>
+        {/* Main Content Area */}
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center max-w-md">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Terminal className="h-8 w-8 text-green-400" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Welcome to LogTrace</h2>
+              <p className="text-gray-400 mb-6">
+                Click "Start Trace" to begin debugging your web application. 
+                Hover over elements to inspect them and use AI-powered debugging.
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <Button
+                onClick={startTracing}
+                className="w-full bg-green-600 hover:bg-green-700"
+                size="lg"
+              >
+                <Play className="h-5 w-5 mr-2" />
+                Start Trace
+              </Button>
+              
+              <Button
+                onClick={toggleTerminal}
+                variant="outline"
+                className="w-full"
+                size="lg"
+              >
+                <Terminal className="h-5 w-5 mr-2" />
+                Show Terminal
+              </Button>
+            </div>
+
+            <div className="mt-8 text-sm text-gray-500">
+              <p>Keyboard shortcuts:</p>
+              <div className="mt-2 space-y-1">
+                <p><kbd className="px-2 py-1 bg-slate-800 rounded">Ctrl+S</kbd> Start/Stop trace</p>
+                <p><kbd className="px-2 py-1 bg-slate-800 rounded">Ctrl+T</kbd> Toggle terminal</p>
+                <p><kbd className="px-2 py-1 bg-slate-800 rounded">Ctrl+D</kbd> AI debug</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Element Details Modal */}
         {showElementDetails && currentElement && (
           <Draggable
             handle=".drag-handle"
             defaultPosition={{ x: 20, y: 20 }}
-            position={null}
             onStart={handleDragStart}
             onStop={handleDragStop}
           >
             <div className="absolute top-0 left-0 z-50 bg-slate-800 border border-green-500/30 rounded-md shadow-lg w-full max-w-md">
               <div className="bg-slate-700 p-3 flex items-center justify-between drag-handle cursor-move">
                 <h3 className="text-sm font-semibold text-green-400">Element Details</h3>
-                <div className="flex items-center gap-2">
-                  <Button onClick={handleAIDebug} variant="ghost" size="sm">
-                    <Lightbulb className="h-4 w-4 mr-2" />
-                    AI Debug
-                  </Button>
-                  <Button onClick={() => { setShowElementDetails(false); setCurrentElement(null); }} variant="ghost" size="sm">
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Button onClick={() => { setShowElementDetails(false); setCurrentElement(null); }} variant="ghost" size="sm">
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
               <div className="p-4">
                 <ElementDetails element={currentElement} />
                 <div className="mt-4 space-y-2">
-                  <Label htmlFor="ai-debug-prompt" className="text-sm">AI Debug Prompt</Label>
                   <Textarea
-                    id="ai-debug-prompt"
                     placeholder="Describe the issue or desired behavior..."
                     className="bg-slate-700 border-slate-600 text-white text-sm"
                     value={aiDebugPrompt}
