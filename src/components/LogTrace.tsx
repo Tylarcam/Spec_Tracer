@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Play, Pause, Settings, Terminal, MousePointer } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -15,8 +15,8 @@ import { useUsageTracking } from '@/hooks/useUsageTracking';
 import { callAIDebugFunction } from '@/shared/api';
 import { ElementInfo } from '@/shared/types';
 import { Button } from '@/components/ui/button';
-import { Textarea } from "@/components/ui/textarea"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const LogTrace: React.FC = () => {
   const [isTracing, setIsTracing] = useState(false);
