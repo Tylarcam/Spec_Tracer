@@ -1,4 +1,5 @@
-import React, { useEffect, useCallback } from 'react';
+
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -17,6 +18,7 @@ import QuickActionPill from './LogTrace/QuickActionPill';
 import InstructionsCard from './LogTrace/InstructionsCard';
 
 import { useTracingContext } from '@/App';
+import { QuickActionType } from '@/shared/types';
 
 const LogTrace: React.FC = () => {
   const { tracingActive, setTracingActive } = useTracingContext();
@@ -24,6 +26,9 @@ const LogTrace: React.FC = () => {
   const isMobile = useIsMobile();
   
   // Initialize the main orchestrator hook
+  const orchestrator = useLogTraceOrchestrator();
+  
+  // Stable references to prevent flickering
   const {
     isTraceActive,
     setIsTraceActive,
@@ -52,7 +57,7 @@ const LogTrace: React.FC = () => {
     exportCapturedEvents,
     generateElementPrompt,
     debugContext,
-  } = useLogTraceOrchestrator();
+  } = orchestrator;
 
   // Onboarding state
   const [onboardingStep, setOnboardingStep] = React.useState(0);
@@ -73,18 +78,21 @@ const LogTrace: React.FC = () => {
     position: { x: number; y: number };
   }>>([]);
 
-  // Sync with tracing context
-  React.useEffect(() => {
+  // Sync with tracing context - memoized to prevent unnecessary re-renders
+  const syncTracingState = useCallback(() => {
     if (tracingActive !== isTraceActive) {
       setIsTraceActive(tracingActive);
     }
   }, [tracingActive, isTraceActive, setIsTraceActive]);
 
-  React.useEffect(() => {
+  const syncContextState = useCallback(() => {
     if (isTraceActive !== tracingActive) {
       setTracingActive(isTraceActive);
     }
   }, [isTraceActive, tracingActive, setTracingActive]);
+
+  React.useEffect(syncTracingState, [syncTracingState]);
+  React.useEffect(syncContextState, [syncContextState]);
 
   // Handle onboarding from URL parameter
   useEffect(() => {
@@ -94,7 +102,7 @@ const LogTrace: React.FC = () => {
     }
   }, [searchParams, onboardingCompleted]);
 
-  // Handle escape key to close modals/overlays
+  // Memoized handlers to prevent flickering
   const handleEscapeKey = useCallback(() => {
     if (showAIDebugModal) {
       setShowAIDebugModal(false);
@@ -107,7 +115,6 @@ const LogTrace: React.FC = () => {
     }
   }, [showAIDebugModal, showQuickActions, inspectorPanels.length, showSettingsDrawer, setShowAIDebugModal]);
 
-  // Handle element click to open inspector
   const handleElementClick = useCallback(() => {
     if (!detectedElement || inspectorPanels.length >= 3) return;
     
@@ -120,8 +127,7 @@ const LogTrace: React.FC = () => {
     setInspectorPanels(prev => [...prev, newInspector]);
   }, [detectedElement, cursorPosition, inspectorPanels.length]);
 
-  // Handle quick actions
-  const handleQuickAction = useCallback((action: "debug" | "screenshot" | "copy" | "context" | "details") => {
+  const handleQuickAction = useCallback((action: QuickActionType) => {
     setShowQuickActions(false);
     
     switch (action) {
@@ -152,13 +158,8 @@ const LogTrace: React.FC = () => {
     }
   }, [detectedElement, cursorPosition, setShowAIDebugModal]);
 
-  // Interaction handlers
-  const {
-    handleCursorMovement,
-    handleElementClick: handleInteractionClick,
-    handleTouchStart,
-    handleTouchEnd,
-  } = useInteractionHandlers({
+  // Memoized interaction handlers
+  const interactionHandlers = useMemo(() => ({
     isTraceActive,
     isHoverPaused,
     detectedElement,
@@ -173,7 +174,30 @@ const LogTrace: React.FC = () => {
     handleEscapeKey,
     onElementClick: handleElementClick,
     onQuickAction: handleQuickAction,
-  });
+  }), [
+    isTraceActive,
+    isHoverPaused,
+    detectedElement,
+    cursorPosition,
+    showInteractivePanel,
+    setCursorPosition,
+    setDetectedElement,
+    setShowInteractivePanel,
+    setShowAIDebugModal,
+    extractElementDetails,
+    recordEvent,
+    handleEscapeKey,
+    handleElementClick,
+    handleQuickAction,
+  ]);
+
+  // Interaction handlers
+  const {
+    handleCursorMovement,
+    handleElementClick: handleInteractionClick,
+    handleTouchStart,
+    handleTouchEnd,
+  } = useInteractionHandlers(interactionHandlers);
 
   // Keyboard shortcuts
   useHotkeys('ctrl+shift+l', () => setIsTraceActive(!isTraceActive));
@@ -200,6 +224,15 @@ const LogTrace: React.FC = () => {
   const closeInspectorPanel = useCallback((id: string) => {
     setInspectorPanels(prev => prev.filter(panel => panel.id !== id));
   }, []);
+
+  // Memoized context menu handler
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    if (isTraceActive && detectedElement) {
+      e.preventDefault();
+      setQuickActionPosition({ x: e.clientX, y: e.clientY });
+      setShowQuickActions(true);
+    }
+  }, [isTraceActive, detectedElement]);
 
   if (isLoading) {
     return (
@@ -240,13 +273,7 @@ const LogTrace: React.FC = () => {
       onClick={handleInteractionClick}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      onContextMenu={(e) => {
-        if (isTraceActive && detectedElement) {
-          e.preventDefault();
-          setQuickActionPosition({ x: e.clientX, y: e.clientY });
-          setShowQuickActions(true);
-        }
-      }}
+      onContextMenu={handleContextMenu}
     >
       {/* Unified Trace Control */}
       <UnifiedTraceControl
