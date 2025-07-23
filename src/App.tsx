@@ -30,9 +30,21 @@ const queryClient = new QueryClient({
 const TracingContext = React.createContext<{
   tracingActive: boolean;
   setTracingActive: (active: boolean) => void;
+  isHoverEnabled: boolean;
+  setIsHoverEnabled: (enabled: boolean) => void;
+  eventCount: number;
+  setEventCount: (count: number) => void;
+  showTerminal: boolean;
+  setShowTerminal: (show: boolean) => void;
 }>({
   tracingActive: false,
   setTracingActive: () => {},
+  isHoverEnabled: true,
+  setIsHoverEnabled: () => {},
+  eventCount: 0,
+  setEventCount: () => {},
+  showTerminal: false,
+  setShowTerminal: () => {},
 });
 
 export const useTracingContext = () => React.useContext(TracingContext);
@@ -48,7 +60,16 @@ const AppRoutes = () => {
   const [showTerminal, setShowTerminal] = useState(false);
 
   return (
-    <TracingContext.Provider value={{ tracingActive, setTracingActive }}>
+    <TracingContext.Provider value={{ 
+      tracingActive, 
+      setTracingActive,
+      isHoverEnabled,
+      setIsHoverEnabled,
+      eventCount,
+      setEventCount,
+      showTerminal,
+      setShowTerminal
+    }}>
       {!isLanding && (
         <NavBar 
           isTracing={isDebugPage ? tracingActive : false}

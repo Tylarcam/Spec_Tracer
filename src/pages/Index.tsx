@@ -1,14 +1,26 @@
 
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
 import LogTrace from '@/components/LogTrace';
+import { useTracingContext } from '@/App';
 
-const Index: React.FC = () => {
-  const [searchParams] = useSearchParams();
+const Index = () => {
+  const { 
+    tracingActive, 
+    setTracingActive,
+    isHoverEnabled,
+    setIsHoverEnabled,
+    eventCount,
+    setEventCount,
+    showTerminal,
+    setShowTerminal
+  } = useTracingContext();
   
   return (
-    <div className="min-h-screen pt-14 md:pt-16">
-      <LogTrace />
+    <div className="pt-16"> {/* Add padding to account for fixed navbar */}
+      <LogTrace 
+        captureActive={tracingActive}
+        onCaptureToggle={setTracingActive}
+      />
     </div>
   );
 };
