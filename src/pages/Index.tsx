@@ -21,12 +21,7 @@ const Index: React.FC = () => {
 
   return (
     <div className="min-h-screen pt-14 md:pt-16">
-      <LogTrace 
-        showOnboarding={showOnboarding && !onboardingCompleted}
-        onOnboardingComplete={handleOnboardingComplete}
-        captureActive={captureActive}
-        onCaptureToggle={setCaptureActive}
-      />
+      <LogTrace />
     </div>
   );
 };

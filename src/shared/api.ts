@@ -1,5 +1,6 @@
 
-import { sanitizeText, validatePrompt, debugRateLimiter } from '@/utils/sanitization';
+import { enhancedValidation } from '@/utils/enhancedSanitization';
+import { debugRateLimiter } from '@/utils/sanitization';
 import { ElementInfo } from './types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -8,8 +9,10 @@ export const callAIDebugFunction = async (
   currentElement: ElementInfo | null,
   mousePosition: { x: number; y: number }
 ) => {
-  if (!validatePrompt(prompt)) {
-    throw new Error('Invalid prompt format');
+  // Enhanced validation
+  const promptValidation = enhancedValidation.validatePrompt(prompt);
+  if (!promptValidation.isValid) {
+    throw new Error(promptValidation.error || 'Invalid prompt format');
   }
 
   if (!debugRateLimiter.isAllowed('debug-session')) {
@@ -25,12 +28,12 @@ export const callAIDebugFunction = async (
   try {
     const { data, error } = await supabase.functions.invoke('ai-debug', {
       body: {
-        prompt: sanitizeText(prompt, 2000),
+        prompt: enhancedValidation.sanitizeUserInput(prompt, 2000),
         element: currentElement ? {
-          tag: sanitizeText(currentElement.tag),
-          id: sanitizeText(currentElement.id),
-          classes: currentElement.classes.map(c => sanitizeText(c)),
-          text: sanitizeText(currentElement.text),
+          tag: enhancedValidation.sanitizeUserInput(currentElement.tag, 50),
+          id: enhancedValidation.sanitizeUserInput(currentElement.id, 100),
+          classes: currentElement.classes.map(c => enhancedValidation.sanitizeUserInput(c, 50)),
+          text: enhancedValidation.sanitizeUserInput(currentElement.text, 500),
         } : null,
         position: mousePosition,
       },
@@ -53,12 +56,10 @@ export const callAIDebugFunction = async (
 };
 
 export const transformContextRequest = async (rawRequest: string) => {
-  if (!rawRequest || rawRequest.trim().length === 0) {
-    throw new Error('Request cannot be empty');
-  }
-
-  if (rawRequest.length > 1000) {
-    throw new Error('Request too long (max 1000 characters)');
+  // Enhanced validation
+  const requestValidation = enhancedValidation.validateContextRequest(rawRequest);
+  if (!requestValidation.isValid) {
+    throw new Error(requestValidation.error || 'Invalid request format');
   }
 
   // Check if user is authenticated
@@ -70,7 +71,7 @@ export const transformContextRequest = async (rawRequest: string) => {
   try {
     const { data, error } = await supabase.functions.invoke('context-transform', {
       body: {
-        rawRequest: sanitizeText(rawRequest, 1000),
+        rawRequest: enhancedValidation.sanitizeUserInput(rawRequest, 1000),
       },
     });
 
