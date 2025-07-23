@@ -338,19 +338,17 @@ const LogTrace: React.FC = React.memo(() => {
       />
 
       {/* Terminal Panel */}
-      {showTerminalPanel && (
-        <TabbedTerminal
-          isOpen={showTerminalPanel}
-          onClose={() => setShowTerminalPanel(false)}
-          events={capturedEvents}
-          exportEvents={exportCapturedEvents}
-          clearEvents={clearCapturedEvents}
-          debugResponses={[]}
-          clearDebugResponses={() => {}}
-          currentElement={detectedElement}
-          terminalHeight={400}
-        />
-      )}
+      <TabbedTerminal
+        showTerminal={showTerminalPanel}
+        setShowTerminal={setShowTerminalPanel}
+        events={capturedEvents}
+        exportEvents={exportCapturedEvents}
+        clearEvents={clearCapturedEvents}
+        debugResponses={[]}
+        clearDebugResponses={() => {}}
+        currentElement={detectedElement}
+        terminalHeight={400}
+      />
 
       {/* Settings Drawer */}
       <SettingsDrawer

@@ -1,4 +1,3 @@
-
 // This hook is now a no-op. Console log capturing has been removed due to recursion and error issues.
 
 export const useConsoleLogs = () => {
@@ -8,4 +7,4 @@ export const useConsoleLogs = () => {
     associateWithElement: false,
     setAssociateWithElement: () => {},
   };
-};
+}; 
