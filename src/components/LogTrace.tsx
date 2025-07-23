@@ -135,6 +135,15 @@ const LogTrace: React.FC<LogTraceProps> = () => {
     };
   }, [buildParentPath]);
 
+  // Helper function to process DOM element for tracing (checks UI control and extracts info)
+  const processElementForTracing = useCallback((target: HTMLElement): ElementInfo | null => {
+    if (!target || isUIControl(target)) {
+      return null;
+    }
+    
+    return extractElementInfo(target);
+  }, [isUIControl, extractElementInfo]);
+
   // Helper function to log to terminal
   const logToTerminal = useCallback((message: string) => {
     setTerminalOutput(prev => [...prev, `[LogTrace]: ${message} at ${new Date().toLocaleTimeString()}`]);
@@ -410,11 +419,11 @@ const LogTrace: React.FC<LogTraceProps> = () => {
     if (!tracingActive || isDragging) return;
 
     const target = e.target as HTMLElement;
-    if (target && !isUIControl(target)) {
-      const elementInfo = extractElementInfo(target);
+    const elementInfo = processElementForTracing(target);
+    if (elementInfo) {
       handleElementClick(elementInfo);
     }
-  }, [tracingActive, isDragging, isUIControl, extractElementInfo, handleElementClick]);
+  }, [tracingActive, isDragging, processElementForTracing, handleElementClick]);
 
   const handleContextMenu = useCallback((e: MouseEvent) => {
     if (!tracingActive) return;
@@ -423,13 +432,13 @@ const LogTrace: React.FC<LogTraceProps> = () => {
     e.stopPropagation();
     
     const target = e.target as HTMLElement;
-    if (target && !isUIControl(target)) {
-      const elementInfo = extractElementInfo(target);
+    const elementInfo = processElementForTracing(target);
+    if (elementInfo) {
       setCurrentElement(elementInfo);
       setQuickActionPosition({ x: e.clientX, y: e.clientY });
       setShowQuickActions(true);
     }
-  }, [tracingActive, isUIControl, extractElementInfo]);
+  }, [tracingActive, processElementForTracing]);
 
   // Keyboard shortcuts
   useHotkeys('ctrl+s', () => tracingActive ? endTracing() : startTracing(), { preventDefault: true });
