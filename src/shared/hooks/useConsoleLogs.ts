@@ -1,16 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-
-interface ConsoleLog {
-  id: string;
-  type: 'log' | 'warn' | 'error' | 'info';
-  message: string;
-  timestamp: string;
-  stack?: string;
-  associatedElement?: string;
-  level?: 'log' | 'warn' | 'error' | 'info';
-  element?: any;
-}
+import { ConsoleLog, FilteredConsoleLog } from '../types';
 
 export const useConsoleLogs = () => {
   const [logs, setLogs] = useState<ConsoleLog[]>([]);
@@ -29,6 +19,19 @@ export const useConsoleLogs = () => {
     };
     setLogs(prev => [...prev, newLog]);
   }, []);
+
+  // Filter logs to only errors and warnings for compatibility
+  const getFilteredLogs = useCallback((): FilteredConsoleLog[] => {
+    return logs
+      .filter(log => log.type === 'error' || log.type === 'warn')
+      .map(log => ({
+        type: log.type as 'error' | 'warn',
+        message: log.message,
+        timestamp: log.timestamp,
+        stack: log.stack,
+        associatedElement: log.associatedElement,
+      }));
+  }, [logs]);
 
   const startCapturing = useCallback(() => {
     if (isCapturing) return;
@@ -86,6 +89,7 @@ export const useConsoleLogs = () => {
     logs,
     clearLogs,
     addLog,
+    getFilteredLogs,
     associateWithElement,
     setAssociateWithElement,
     isCapturing,

@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect } from 'react';
-import { ElementInfo, LogEvent } from '../types';
+import { ElementInfo, LogEvent, QuickActionType } from '../types';
 import { useMobileTouchInteractions } from './useMobileTouchInteractions';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -23,7 +23,7 @@ interface UseInteractionHandlersProps {
   recordEvent: (event: Omit<LogEvent, 'id' | 'timestamp'>) => void;
   handleEscapeKey: () => void;
   onElementClick?: () => void;
-  onQuickAction?: (action: "debug" | "screenshot" | "copy" | "context" | "details") => void;
+  onQuickAction?: (action: QuickActionType) => void;
 }
 
 export const useInteractionHandlers = ({
