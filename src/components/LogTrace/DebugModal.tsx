@@ -7,7 +7,7 @@ import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
-import { ElementInfo } from '@/shared/types';
+import { ElementInfo, FilteredConsoleLog } from '@/shared/types';
 import { sanitizeText } from '@/utils/sanitization';
 import { useToast } from '@/hooks/use-toast';
 import { useConsoleLogs } from '@/shared/hooks/useConsoleLogs';
@@ -88,7 +88,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
     return selector;
   }, [currentElement]);
 
-  const { logs } = useConsoleLogs();
+  const { getFilteredLogs } = useConsoleLogs();
 
   // Get computed styles for current element
   const computedStyles = useMemo(() => {
@@ -131,13 +131,14 @@ const DebugModal: React.FC<DebugModalProps> = ({
     return listeners.filter(listener => typeof el[listener] === 'function');
   }, [currentElement]);
 
-  // Filter console logs for current element
-  const filteredLogs = useMemo(() => {
-    return logs.filter(log => 
+  // Filter console logs for current element - properly typed as FilteredConsoleLog[]
+  const filteredLogs: FilteredConsoleLog[] = useMemo(() => {
+    const allFilteredLogs = getFilteredLogs();
+    return allFilteredLogs.filter(log => 
       log.associatedElement === currentElementSelector || 
       (log.message.includes(currentElement?.tag || '') && log.message.includes(currentElement?.id || ''))
     );
-  }, [logs, currentElementSelector, currentElement]);
+  }, [getFilteredLogs, currentElementSelector, currentElement]);
 
   // Context engine
   const contextEngine = useContextEngine({
@@ -577,7 +578,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                           className={`bg-purple-600 hover:bg-purple-700 text-white ${isMobile ? 'text-sm h-8' : ''}`}
                           size={isMobile ? "sm" : "default"}
                         >
-                          {isAnalyzing ? 'Analyzing...' : 'Debug with Generated Prompt'}
+                          {isAnalyzing ? 'Analyzing..' : 'Debug with Generated Prompt'}
                         </Button>
                         <Button 
                           onClick={handleCopyPrompt}
