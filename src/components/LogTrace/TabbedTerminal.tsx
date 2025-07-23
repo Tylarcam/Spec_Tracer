@@ -19,6 +19,7 @@ import {
 import { ElementInfo, LogEvent, DebugContext } from '@/shared/types';
 import { sanitizeText } from '@/utils/sanitization';
 import { useToast } from '@/hooks/use-toast';
+import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 
 interface TabbedTerminalProps {
   isOpen: boolean;
@@ -61,6 +62,18 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  // Use the debug responses hook for better state management
+  const { 
+    debugResponses: localDebugResponses, 
+    addDebugResponse, 
+    clearDebugResponses: clearLocalDebugResponses 
+  } = useDebugResponses();
+
+  // Merge external debug responses with local ones
+  const allDebugResponses = useMemo(() => {
+    return [...debugResponses, ...localDebugResponses];
+  }, [debugResponses, localDebugResponses]);
+
   // Convert events to terminal output for display
   useEffect(() => {
     const newLines: TerminalLine[] = events.map((event, index) => ({
@@ -70,8 +83,17 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
       timestamp: new Date(event.timestamp),
       relatedEvent: event
     }));
-    setTerminalLines(newLines);
-  }, [events]);
+
+    // Add debug responses as terminal lines
+    const debugLines: TerminalLine[] = allDebugResponses.map((response, index) => ({
+      id: `debug-${index}`,
+      type: 'info',
+      content: `[AI DEBUG] ${response.response || response.message || 'Debug response'}`,
+      timestamp: new Date(response.timestamp || Date.now()),
+    }));
+
+    setTerminalLines([...newLines, ...debugLines]);
+  }, [events, allDebugResponses]);
 
   // Auto-scroll to bottom when new lines are added
   useEffect(() => {
@@ -92,9 +114,15 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
     };
 
     setTerminalLines(prev => [...prev, newLine]);
+    
+    // Add to debug responses if it looks like a debug command
+    if (inputValue.toLowerCase().includes('debug') || inputValue.toLowerCase().includes('analyze')) {
+      addDebugResponse(inputValue, `Command "${inputValue}" processed`);
+    }
+
     setInputValue('');
 
-    // Simulate command processing (this would be replaced with actual command handling)
+    // Simulate command processing
     setTimeout(() => {
       const responseLine: TerminalLine = {
         id: `response-${Date.now()}`,
@@ -104,7 +132,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
       };
       setTerminalLines(prev => [...prev, responseLine]);
     }, 100);
-  }, [inputValue]);
+  }, [inputValue, addDebugResponse]);
 
   const clearTerminal = useCallback(() => {
     setTerminalLines([]);
@@ -113,6 +141,15 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
       description: 'All terminal output has been cleared.',
     });
   }, [toast]);
+
+  const handleClearAllDebugResponses = useCallback(() => {
+    clearDebugResponses();
+    clearLocalDebugResponses();
+    toast({
+      title: 'Debug Responses Cleared',
+      description: 'All AI debug responses have been cleared.',
+    });
+  }, [clearDebugResponses, clearLocalDebugResponses, toast]);
 
   const copyTerminalOutput = useCallback(async () => {
     const output = terminalLines.map(line => 
@@ -186,7 +223,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
   const contextInfo = useMemo(() => {
     return {
       element: currentElement,
-      position: { x: 0, y: 0 }, // Default position
+      position: { x: 0, y: 0 },
       settings: {
         maxEvents: 1000,
         autoSave: true,
@@ -283,6 +320,28 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
 
             <TabsContent value="terminal" className="mt-0 h-full">
               <div className="h-full flex flex-col">
+                <div className="flex items-center justify-between p-2 bg-slate-800/50 border-b border-green-500/20">
+                  <span className="text-sm text-gray-400">Terminal Output</span>
+                  <div className="flex gap-1">
+                    <Button
+                      onClick={exportEvents}
+                      variant="outline"
+                      size="sm"
+                      className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 text-xs"
+                    >
+                      Export Events
+                    </Button>
+                    <Button
+                      onClick={clearEvents}
+                      variant="outline"
+                      size="sm"
+                      className="border-red-500/50 text-red-400 hover:bg-red-500/10 text-xs"
+                    >
+                      Clear Events
+                    </Button>
+                  </div>
+                </div>
+                
                 <div 
                   ref={terminalRef}
                   className="flex-1 overflow-y-auto p-2 bg-slate-950 font-mono text-xs"
@@ -380,53 +439,84 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
 
             <TabsContent value="context" className="mt-0 h-full">
               <div className="h-full overflow-y-auto p-2 bg-slate-950">
+                <div className="flex items-center justify-between p-2 bg-slate-800/50 border-b border-green-500/20 mb-4">
+                  <span className="text-sm text-gray-400">AI Debug Responses ({allDebugResponses.length})</span>
+                  <Button
+                    onClick={handleClearAllDebugResponses}
+                    variant="outline"
+                    size="sm"
+                    className="border-red-500/50 text-red-400 hover:bg-red-500/10 text-xs"
+                  >
+                    Clear AI Debug
+                  </Button>
+                </div>
+
                 <div className="space-y-3">
-                  {contextInfo.element ? (
+                  {allDebugResponses.length === 0 ? (
+                    <div className="text-gray-500 text-center py-4">
+                      No AI debug responses yet
+                    </div>
+                  ) : (
+                    allDebugResponses.map((response, index) => (
+                      <div key={index} className="bg-slate-800/50 rounded p-3 border border-green-500/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge variant="outline" className="text-xs bg-yellow-500/20 text-yellow-400">
+                            AI Debug
+                          </Badge>
+                          <span className="text-xs text-gray-400">
+                            {new Date(response.timestamp || Date.now()).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <div className="text-sm text-green-200 whitespace-pre-wrap">
+                          {sanitizeText(response.response || response.message || 'No response')}
+                        </div>
+                        {response.prompt && (
+                          <div className="mt-2 pt-2 border-t border-green-500/10">
+                            <div className="text-xs text-gray-400 mb-1">Prompt:</div>
+                            <div className="text-xs text-gray-300 font-mono bg-slate-900/50 p-2 rounded">
+                              {sanitizeText(response.prompt)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+
+                  {currentElement && (
                     <div className="bg-slate-800/50 rounded p-3 border border-green-500/20">
-                      <h4 className="text-green-400 font-semibold mb-2 text-sm">Current Element</h4>
+                      <h4 className="text-green-400 font-semibold mb-2 text-sm">Current Element Context</h4>
                       <div className="space-y-2 text-xs">
                         <div className="flex items-center gap-2">
                           <Badge variant="secondary" className="bg-green-500/20 text-green-400">
-                            {contextInfo.element.tag?.toUpperCase() || 'UNKNOWN'}
+                            {currentElement.tag?.toUpperCase() || 'UNKNOWN'}
                           </Badge>
-                          {contextInfo.element.id && (
+                          {currentElement.id && (
                             <span className="text-green-300 font-mono">
-                              #{sanitizeText(contextInfo.element.id)}
+                              #{sanitizeText(currentElement.id)}
                             </span>
                           )}
                         </div>
-                        {contextInfo.element.classes && contextInfo.element.classes.length > 0 && (
+                        {currentElement.classes && currentElement.classes.length > 0 && (
                           <div className="text-gray-400">
-                            Classes: .{contextInfo.element.classes.map(c => sanitizeText(c)).join(' .')}
+                            Classes: .{currentElement.classes.map(c => sanitizeText(c)).join(' .')}
                           </div>
                         )}
-                        {contextInfo.element.text && (
+                        {currentElement.text && (
                           <div className="text-gray-400">
-                            Text: "{sanitizeText(contextInfo.element.text)}"
+                            Text: "{sanitizeText(currentElement.text)}"
                           </div>
                         )}
-                        {contextInfo.element.parentPath && (
+                        {currentElement.parentPath && (
                           <div className="text-gray-400 font-mono text-xs">
-                            Path: {contextInfo.element.parentPath}
+                            Path: {currentElement.parentPath}
                           </div>
                         )}
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-gray-500 text-center py-4">
-                      No element selected
-                    </div>
                   )}
                   
                   <div className="bg-slate-800/50 rounded p-3 border border-green-500/20">
-                    <h4 className="text-green-400 font-semibold mb-2 text-sm">Current Position</h4>
-                    <div className="text-xs text-gray-400">
-                      X: {contextInfo.position.x}, Y: {contextInfo.position.y}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-slate-800/50 rounded p-3 border border-green-500/20">
-                    <h4 className="text-green-400 font-semibold mb-2 text-sm">Settings</h4>
+                    <h4 className="text-green-400 font-semibold mb-2 text-sm">Debug Settings</h4>
                     <div className="text-xs text-gray-400 space-y-1">
                       <div>Max Events: {contextInfo.settings.maxEvents}</div>
                       <div>Auto Save: {contextInfo.settings.autoSave ? 'On' : 'Off'}</div>
