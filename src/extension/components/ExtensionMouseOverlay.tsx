@@ -1,4 +1,3 @@
-
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +8,12 @@ import { Button } from '@/components/ui/button';
 import { formatElementDataForCopy } from '@/utils/elementDataFormatter';
 import { useToast } from '@/hooks/use-toast';
 
-// Utility to extract up to 3 unique colors from computed styles
+/**
+ * Extracts up to three unique, non-transparent color-related CSS property values from the computed styles of a given HTML element.
+ *
+ * @param element - The target HTML element from which to extract color properties.
+ * @returns An array of objects, each containing a CSS property name and its corresponding color value.
+ */
 function extractColorsFromElement(element: HTMLElement): { property: string; value: string }[] {
   if (!element) return [];
   const styles = window.getComputedStyle(element);
