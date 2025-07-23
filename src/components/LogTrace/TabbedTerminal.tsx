@@ -21,12 +21,15 @@ import { sanitizeText } from '@/utils/sanitization';
 import { useToast } from '@/hooks/use-toast';
 
 interface TabbedTerminalProps {
-  output: string[];
-  isOpen: boolean;
-  onClose: () => void;
-  debugContext: DebugContext;
-  onElementHover?: (element: ElementInfo | null) => void;
-  onElementClick?: (element: ElementInfo) => void;
+  showTerminal: boolean;
+  setShowTerminal: (show: boolean) => void;
+  events: LogEvent[];
+  exportEvents: () => void;
+  clearEvents: () => void;
+  debugResponses: any[];
+  clearDebugResponses: () => void;
+  currentElement: ElementInfo | null;
+  terminalHeight: number;
 }
 
 interface TerminalLine {
@@ -39,12 +42,15 @@ interface TerminalLine {
 }
 
 const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
-  output,
-  isOpen,
-  onClose,
-  debugContext,
-  onElementHover,
-  onElementClick
+  showTerminal,
+  setShowTerminal,
+  events,
+  exportEvents,
+  clearEvents,
+  debugResponses,
+  clearDebugResponses,
+  currentElement,
+  terminalHeight
 }) => {
   const [terminalLines, setTerminalLines] = useState<TerminalLine[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -55,16 +61,17 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Convert output array to terminal lines
+  // Convert events to terminal output for display
   useEffect(() => {
-    const newLines: TerminalLine[] = output.map((line, index) => ({
-      id: `output-${index}`,
+    const newLines: TerminalLine[] = events.map((event, index) => ({
+      id: `event-${index}`,
       type: 'output',
-      content: line,
-      timestamp: new Date(),
+      content: `[${event.type.toUpperCase()}] ${event.element?.tag || 'unknown'} at (${event.position?.x || 0}, ${event.position?.y || 0})`,
+      timestamp: new Date(event.timestamp),
+      relatedEvent: event
     }));
     setTerminalLines(newLines);
-  }, [output]);
+  }, [events]);
 
   // Auto-scroll to bottom when new lines are added
   useEffect(() => {
@@ -170,25 +177,29 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
 
   // Memoize expensive computations
   const eventsList = useMemo(() => {
-    return debugContext.events.map(event => ({
+    return events.map(event => ({
       ...event,
       element: event.element || null
     }));
-  }, [debugContext.events]);
+  }, [events]);
 
   const contextInfo = useMemo(() => {
-    const { element, position, settings } = debugContext;
     return {
-      element: element || null,
-      position,
-      settings
+      element: currentElement,
+      position: { x: 0, y: 0 }, // Default position
+      settings: {
+        maxEvents: 1000,
+        autoSave: true,
+        theme: 'dark' as const,
+        debugMode: false
+      }
     };
-  }, [debugContext]);
+  }, [currentElement]);
 
-  if (!isOpen) return null;
+  if (!showTerminal) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-green-500/30 z-40">
+    <div className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-green-500/30 z-40" style={{ height: terminalHeight }}>
       <div className="flex items-center justify-between p-2 bg-slate-800 border-b border-green-500/20">
         <div className="flex items-center gap-2">
           <Terminal className="h-4 w-4 text-cyan-400" />
@@ -244,7 +255,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
             {isCollapsed ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
           </Button>
           <Button
-            onClick={onClose}
+            onClick={() => setShowTerminal(false)}
             variant="ghost"
             size="sm"
             className="text-gray-400 hover:text-white"
@@ -256,7 +267,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
       </div>
 
       {!isCollapsed && (
-        <div className="h-64">
+        <div className="h-full">
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
             <TabsList className="grid w-full grid-cols-3 bg-slate-800/50 h-8">
               <TabsTrigger value="terminal" className="data-[state=active]:bg-cyan-600 text-xs">
@@ -334,7 +345,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                           <div className="text-xs text-gray-300 space-y-1">
                             <div className="flex items-center gap-2">
                               <Badge variant="secondary" className="bg-green-500/20 text-green-400">
-                                {event.element.tag.toUpperCase()}
+                                {event.element.tag?.toUpperCase() || 'UNKNOWN'}
                               </Badge>
                               {event.element.id && (
                                 <span className="text-green-300 font-mono">
@@ -342,7 +353,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                                 </span>
                               )}
                             </div>
-                            {event.element.classes.length > 0 && (
+                            {event.element.classes && event.element.classes.length > 0 && (
                               <div className="text-gray-400">
                                 Classes: .{event.element.classes.map(c => sanitizeText(c)).join(' .')}
                               </div>
@@ -376,7 +387,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                       <div className="space-y-2 text-xs">
                         <div className="flex items-center gap-2">
                           <Badge variant="secondary" className="bg-green-500/20 text-green-400">
-                            {contextInfo.element.tag.toUpperCase()}
+                            {contextInfo.element.tag?.toUpperCase() || 'UNKNOWN'}
                           </Badge>
                           {contextInfo.element.id && (
                             <span className="text-green-300 font-mono">
@@ -384,7 +395,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                             </span>
                           )}
                         </div>
-                        {contextInfo.element.classes.length > 0 && (
+                        {contextInfo.element.classes && contextInfo.element.classes.length > 0 && (
                           <div className="text-gray-400">
                             Classes: .{contextInfo.element.classes.map(c => sanitizeText(c)).join(' .')}
                           </div>
