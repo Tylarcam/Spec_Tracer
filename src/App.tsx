@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Landing from "./pages/Landing";
@@ -26,29 +26,36 @@ const queryClient = new QueryClient({
   },
 });
 
-// Create a context for capture state management
-const CaptureContext = React.createContext<{
-  captureActive: boolean;
-  setCaptureActive: (active: boolean) => void;
+// Create a context for tracing state management
+const TracingContext = React.createContext<{
+  tracingActive: boolean;
+  setTracingActive: (active: boolean) => void;
 }>({
-  captureActive: false,
-  setCaptureActive: () => {},
+  tracingActive: false,
+  setTracingActive: () => {},
 });
 
-export const useCaptureContext = () => React.useContext(CaptureContext);
+export const useTracingContext = () => React.useContext(TracingContext);
 
 const AppRoutes = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isLanding = location.pathname === "/";
   const isDebugPage = location.pathname === "/debug";
-  const [captureActive, setCaptureActive] = useState(false);
+  const [tracingActive, setTracingActive] = useState(false);
+  const [isHoverEnabled, setIsHoverEnabled] = useState(true);
+  const [eventCount, setEventCount] = useState(0);
 
   return (
-    <CaptureContext.Provider value={{ captureActive, setCaptureActive }}>
+    <TracingContext.Provider value={{ tracingActive, setTracingActive }}>
       {!isLanding && (
         <NavBar 
-          captureActive={isDebugPage ? captureActive : undefined}
-          onCaptureToggle={isDebugPage ? setCaptureActive : undefined}
+          tracingActive={isDebugPage ? tracingActive : undefined}
+          onTracingToggle={isDebugPage ? setTracingActive : undefined}
+          isHoverEnabled={isDebugPage ? isHoverEnabled : undefined}
+          onToggleHover={isDebugPage ? setIsHoverEnabled : undefined}
+          eventCount={isDebugPage ? eventCount : undefined}
+          onOpenSettings={isDebugPage ? () => navigate('/settings') : undefined}
         />
       )}
       <Routes>
@@ -61,7 +68,7 @@ const AppRoutes = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </CaptureContext.Provider>
+    </TracingContext.Provider>
   );
 };
 

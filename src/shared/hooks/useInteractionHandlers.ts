@@ -1,10 +1,6 @@
-/**
- * Hook for handling mouse and keyboard interactions during LogTrace sessions
- * Manages cursor tracking, element detection, and user input events
- */
 
-import { useCallback, useEffect } from 'react';
-import { ElementInfo, LogEvent } from '../types';
+import { useCallback, useEffect, useRef } from 'react';
+import { ElementInfo, LogEvent, QuickActionType } from '../types';
 import { useMobileTouchInteractions } from './useMobileTouchInteractions';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -22,7 +18,7 @@ interface UseInteractionHandlersProps {
   recordEvent: (event: Omit<LogEvent, 'id' | 'timestamp'>) => void;
   handleEscapeKey: () => void;
   onElementClick?: () => void;
-  onQuickAction?: (action: string, element: ElementInfo | null) => void;
+  onQuickAction?: (action: QuickActionType) => void;
 }
 
 export const useInteractionHandlers = ({
@@ -42,6 +38,9 @@ export const useInteractionHandlers = ({
   onQuickAction,
 }: UseInteractionHandlersProps) => {
   const isMobile = useIsMobile();
+  const rafRef = useRef<number | null>(null);
+  const lastUpdateRef = useRef<number>(0);
+  const THROTTLE_DELAY = 16; // ~60fps
 
   // Mobile touch interaction handlers - simplified to single tap only
   const handleMobileSingleTap = useCallback((element: ElementInfo | null, position: { x: number; y: number }) => {
@@ -74,9 +73,30 @@ export const useInteractionHandlers = ({
     extractElementDetails,
   });
 
+  // Throttled cursor movement handler using requestAnimationFrame
   const handleCursorMovement = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isTraceActive || isHoverPaused || isMobile) return;
 
+    const now = Date.now();
+    if (now - lastUpdateRef.current < THROTTLE_DELAY) {
+      // Cancel any pending update
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      
+      // Schedule new update
+      rafRef.current = requestAnimationFrame(() => {
+        lastUpdateRef.current = now;
+        updateCursorState(e);
+      });
+      return;
+    }
+
+    lastUpdateRef.current = now;
+    updateCursorState(e);
+  }, [isTraceActive, isHoverPaused, isMobile]);
+
+  const updateCursorState = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (target && 
         !target.closest('#logtrace-overlay') && 
@@ -108,7 +128,7 @@ export const useInteractionHandlers = ({
         }
       }
     }
-  }, [isTraceActive, isHoverPaused, isMobile, extractElementDetails, setCursorPosition, setDetectedElement, showInteractivePanel, setShowInteractivePanel]);
+  }, [extractElementDetails, setCursorPosition, setDetectedElement, showInteractivePanel, setShowInteractivePanel]);
 
   const handleElementClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isTraceActive || isMobile) return;
@@ -179,7 +199,13 @@ export const useInteractionHandlers = ({
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyboardInput);
-    return () => document.removeEventListener('keydown', handleKeyboardInput);
+    return () => {
+      document.removeEventListener('keydown', handleKeyboardInput);
+      // Clean up any pending animation frames
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
   }, [handleKeyboardInput]);
 
   return {

@@ -56,3 +56,36 @@ export interface PinnedDetail {
   position: { x: number; y: number };
   pinnedAt: { x: number; y: number };
 }
+
+// Enhanced ConsoleLog interface for better type safety
+export interface ConsoleLog {
+  id: string;
+  type: 'log' | 'warn' | 'error' | 'info';
+  message: string;
+  timestamp: string;
+  stack?: string;
+  associatedElement?: string;
+  level?: 'log' | 'warn' | 'error' | 'info';
+  element?: ElementInfo;
+}
+
+// Type for filtered console logs (only errors and warnings)
+export interface FilteredConsoleLog {
+  type: 'error' | 'warn';
+  message: string;
+  timestamp: string;
+  stack?: string;
+  associatedElement?: string;
+}
+
+// Quick action types
+export type QuickActionType = "debug" | "screenshot" | "copy" | "context" | "details";
+
+// Context action types for extension compatibility
+export type ContextAction = {
+  type: "context";
+  mode: string;
+  input: string;
+};
+
+export type ExtendedActionType = QuickActionType | ContextAction;
