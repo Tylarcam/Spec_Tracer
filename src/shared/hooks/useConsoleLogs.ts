@@ -1,10 +1,14 @@
+
 import { useState, useEffect, useCallback } from 'react';
 
 interface ConsoleLog {
   id: string;
-  level: 'log' | 'warn' | 'error' | 'info';
+  type: 'log' | 'warn' | 'error' | 'info';
   message: string;
   timestamp: string;
+  stack?: string;
+  associatedElement?: string;
+  level?: 'log' | 'warn' | 'error' | 'info';
   element?: any;
 }
 
@@ -21,6 +25,7 @@ export const useConsoleLogs = () => {
     const newLog: ConsoleLog = {
       ...log,
       id: crypto.randomUUID(),
+      level: log.type, // Ensure level is set for compatibility
     };
     setLogs(prev => [...prev, newLog]);
   }, []);
@@ -46,10 +51,11 @@ export const useConsoleLogs = () => {
         ).join(' ');
 
         addLog({
-          level,
+          type: level,
           message,
           timestamp: new Date().toISOString(),
-          element: associateWithElement ? null : undefined, // Will be set by the terminal component
+          associatedElement: associateWithElement ? undefined : undefined,
+          stack: level === 'error' ? new Error().stack : undefined,
         });
       };
     };
@@ -86,4 +92,4 @@ export const useConsoleLogs = () => {
     startCapturing,
     stopCapturing,
   };
-}; 
+};

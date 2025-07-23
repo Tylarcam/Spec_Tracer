@@ -1,3 +1,4 @@
+
 /**
  * Hook for handling mouse and keyboard interactions during LogTrace sessions
  * Manages cursor tracking, element detection, and user input events
@@ -22,7 +23,7 @@ interface UseInteractionHandlersProps {
   recordEvent: (event: Omit<LogEvent, 'id' | 'timestamp'>) => void;
   handleEscapeKey: () => void;
   onElementClick?: () => void;
-  onQuickAction?: (action: string, element: ElementInfo | null) => void;
+  onQuickAction?: (action: "debug" | "screenshot" | "copy" | "context" | "details") => void;
 }
 
 export const useInteractionHandlers = ({

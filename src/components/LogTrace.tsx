@@ -1,4 +1,3 @@
-
 import React, { useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -122,23 +121,22 @@ const LogTrace: React.FC = () => {
   }, [detectedElement, cursorPosition, inspectorPanels.length]);
 
   // Handle quick actions
-  const handleQuickAction = useCallback((action: string, element: any) => {
+  const handleQuickAction = useCallback((action: "debug" | "screenshot" | "copy" | "context" | "details") => {
     setShowQuickActions(false);
     
     switch (action) {
-      case 'inspect':
-        if (element) {
+      case 'details':
+        if (detectedElement) {
           const newInspector = {
             id: `inspector-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            element,
+            element: detectedElement,
             position: { x: cursorPosition.x, y: cursorPosition.y }
           };
           setInspectorPanels(prev => [...prev, newInspector]);
         }
         break;
       case 'debug':
-        if (element) {
-          setDetectedElement(element);
+        if (detectedElement) {
           setShowAIDebugModal(true);
         }
         break;
@@ -148,8 +146,11 @@ const LogTrace: React.FC = () => {
       case 'copy':
         // Handle copy
         break;
+      case 'context':
+        // Handle context
+        break;
     }
-  }, [cursorPosition, setDetectedElement, setShowAIDebugModal]);
+  }, [detectedElement, cursorPosition, setShowAIDebugModal]);
 
   // Interaction handlers
   const {
