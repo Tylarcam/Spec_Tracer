@@ -19,6 +19,11 @@ let terminalActiveTab = 'events';
 // --- LogTrace Activation State and Overlay Management ---
 let overlayListenersRegistered = false;
 
+// Inspector hover state management
+let isInspectorHovered = false;
+let pausedElement = null;
+let pausedPosition = { x: 0, y: 0 };
+
 // Initialize content script
 function initializeContentScript() {
   console.log('Initializing Trace Sight Content Script');
@@ -299,6 +304,19 @@ function createInfoPanel() {
   
   document.body.appendChild(panel);
   
+  // Add inspector panel mouse event handlers
+  panel.addEventListener('mouseenter', () => {
+    if (!isInspectorHovered) {
+      isInspectorHovered = true;
+      pauseHoverOverlay();
+    }
+  });
+  
+  panel.addEventListener('mouseleave', () => {
+    isInspectorHovered = false;
+    resumeHoverOverlay();
+  });
+  
   // Make panel draggable
   let isPanelPinned = false;
   let isDragging = false;
@@ -371,6 +389,8 @@ function createInfoPanel() {
   // Add event listeners for panel
   document.getElementById('close-panel').addEventListener('click', () => {
     panel.style.display = 'none';
+    // Resume hover overlay when closing inspector
+    resumeHoverOverlay();
   });
   
   document.getElementById('debug-element').addEventListener('click', () => {
@@ -413,6 +433,22 @@ function handleMouseOver(e) {
   if (!isLogTraceActive || isHoverPaused) return;
   
   const element = e.target;
+  
+  // Check if mouse is over inspector panel
+  if (element && isInspectorElement(element)) {
+    if (!isInspectorHovered) {
+      isInspectorHovered = true;
+      pauseHoverOverlay();
+    }
+    return;
+  }
+  
+  // Resume hover if leaving inspector
+  if (isInspectorHovered) {
+    isInspectorHovered = false;
+    resumeHoverOverlay();
+  }
+  
   if (element && !isLogTraceElement(element)) {
     highlightElement(element);
     currentElement = element;
@@ -849,6 +885,46 @@ function toggleHoverPause() {
   showNotification(`Hover details ${status}`);
 }
 
+// Pause hover overlay (for inspector or quick actions)
+function pauseHoverOverlay() {
+  if (!isHoverPaused) {
+    isHoverPaused = true;
+    pausedElement = currentElement;
+    pausedPosition = { ...mousePosition };
+    
+    // Keep the current overlay visible
+    const overlay = document.getElementById('log-trace-hover-overlay');
+    if (overlay) {
+      overlay.style.pointerEvents = 'none';
+    }
+  }
+}
+
+// Resume hover overlay
+function resumeHoverOverlay() {
+  if (isHoverPaused && !isInspectorHovered) {
+    isHoverPaused = false;
+    pausedElement = null;
+    pausedPosition = { x: 0, y: 0 };
+    
+    // Remove the paused overlay
+    const overlay = document.getElementById('log-trace-hover-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
+  }
+}
+
+// Check if element is part of inspector panel
+function isInspectorElement(element) {
+  return element && (
+    element.closest('#log-trace-info-panel') ||
+    element.closest('.debug-modal') ||
+    element.closest('.quick-actions-menu') ||
+    element.closest('[data-inspector-panel]')
+  );
+}
+
 // Highlight element
 function highlightElement(element) {
   const highlighter = document.getElementById('element-highlighter');
@@ -1139,6 +1215,9 @@ function openDebugModal(element) {
     existingModal.remove();
   }
 
+  // Pause hover overlay when opening debug modal
+  pauseHoverOverlay();
+
   // Create modal with enhanced Debug Assistant
   const modal = document.createElement('div');
   modal.id = 'claude-debug-modal';
@@ -1185,6 +1264,19 @@ function openDebugModal(element) {
   
   document.body.appendChild(modal);
   
+  // Add debug modal mouse event handlers
+  modal.addEventListener('mouseenter', () => {
+    if (!isInspectorHovered) {
+      isInspectorHovered = true;
+      pauseHoverOverlay();
+    }
+  });
+  
+  modal.addEventListener('mouseleave', () => {
+    isInspectorHovered = false;
+    resumeHoverOverlay();
+  });
+  
   // Set up advanced prompt
   const advancedTextarea = modal.querySelector('#advanced-debug-input');
   advancedTextarea.value = generateAdvancedPrompt(element);
@@ -1192,6 +1284,8 @@ function openDebugModal(element) {
   // Add event listeners
   modal.querySelector('.close-btn').addEventListener('click', () => {
     modal.remove();
+    // Resume hover overlay when closing debug modal
+    resumeHoverOverlay();
   });
   
   modal.querySelector('#quick-debug-btn').addEventListener('click', () => {
@@ -1215,6 +1309,8 @@ function openDebugModal(element) {
   modal.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !isInInputField(document.activeElement)) {
       modal.remove();
+      // Resume hover overlay when closing debug modal
+      resumeHoverOverlay();
     } else if (e.key === 'Enter' && e.ctrlKey) {
       const activeElement = document.activeElement;
       if (activeElement.id === 'quick-debug-input') {
@@ -2209,6 +2305,9 @@ function showQuickActionsMenu(element, x, y) {
     existingMenu.remove();
   }
 
+  // Pause hover overlay when opening quick actions
+  pauseHoverOverlay();
+
   const menu = document.createElement('div');
   menu.className = 'quick-actions-menu';
   menu.style.cssText = `
@@ -2258,6 +2357,8 @@ function showQuickActionsMenu(element, x, y) {
     button.addEventListener('click', () => {
       handleQuickAction(action, element);
       menu.remove();
+      // Resume hover overlay when closing quick actions
+      resumeHoverOverlay();
     });
     
     menu.appendChild(button);
@@ -2283,6 +2384,8 @@ function showQuickActionsMenu(element, x, y) {
   
   closeButton.addEventListener('click', () => {
     menu.remove();
+    // Resume hover overlay when closing quick actions
+    resumeHoverOverlay();
   });
   
   menu.appendChild(closeButton);
@@ -2292,6 +2395,8 @@ function showQuickActionsMenu(element, x, y) {
     if (!menu.contains(e.target)) {
       menu.remove();
       document.removeEventListener('click', closeOnOutsideClick);
+      // Resume hover overlay when closing quick actions
+      resumeHoverOverlay();
     }
   };
   
@@ -2305,6 +2410,8 @@ function showQuickActionsMenu(element, x, y) {
     if (e.key === 'Escape' && !isInInputField(document.activeElement)) {
       menu.remove();
       document.removeEventListener('keydown', closeOnEscape);
+      // Resume hover overlay when closing quick actions
+      resumeHoverOverlay();
     }
   };
   document.addEventListener('keydown', closeOnEscape);
