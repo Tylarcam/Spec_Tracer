@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Landing from "./pages/Landing";
@@ -39,19 +39,13 @@ export const useTracingContext = () => React.useContext(TracingContext);
 
 const AppRoutes = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isLanding = location.pathname === "/";
   const isDebugPage = location.pathname === "/debug";
   const [tracingActive, setTracingActive] = useState(false);
   const [isHoverEnabled, setIsHoverEnabled] = useState(true);
   const [eventCount, setEventCount] = useState(0);
 
-  return (
-    <TracingContext.Provider value={{ tracingActive, setTracingActive }}>
-      {!isLanding && (
-        <NavBar 
-  // add React Router’s navigate hook
-  const navigate = useNavigate();
-  
   return (
     <TracingContext.Provider value={{ tracingActive, setTracingActive }}>
       {!isLanding && (
@@ -63,11 +57,6 @@ const AppRoutes = () => {
           eventCount={isDebugPage ? eventCount : undefined}
           onOpenSettings={isDebugPage ? () => navigate('/settings') : undefined}
         />
-      )}
-      {/* … */}
-    </TracingContext.Provider>
-  );
-}        />
       )}
       <Routes>
         <Route path="/" element={<Landing />} />
