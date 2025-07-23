@@ -34,7 +34,9 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
       />
       
       {/* Drawer */}
-      <div className={`
+      <div 
+        data-settings
+        className={`
         fixed right-0 top-0 h-full w-full max-w-sm bg-slate-900 border-l border-green-500/30 
         shadow-2xl z-50 transform transition-transform duration-300 ease-out
         ${isOpen ? 'translate-x-0' : 'translate-x-full'}
@@ -46,6 +48,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
             <h2 className="text-lg font-semibold text-white">Settings</h2>
           </div>
           <Button
+            data-close-button
             onClick={onClose}
             variant="ghost"
             size="sm"

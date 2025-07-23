@@ -62,6 +62,7 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-green-400">Quick Actions</h3>
             <Button
+              data-close-button
               onClick={onClose}
               variant="ghost"
               size="sm"
@@ -74,6 +75,7 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
           {/* Actions */}
           <div className="grid grid-cols-2 gap-3">
             <Button
+              data-trace-toggle
               onClick={isTracing ? onEndTrace : onStartTrace}
               variant={isTracing ? "destructive" : "default"}
               className="h-12 flex items-center gap-2"
@@ -83,6 +85,7 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
             </Button>
 
             <Button
+              data-tracing-control
               onClick={onToggleHover}
               variant={isHoverEnabled ? "secondary" : "outline"}
               className="h-12 flex items-center gap-2"
@@ -92,6 +95,7 @@ const MobileQuickActionsMenu: React.FC<MobileQuickActionsMenuProps> = ({
             </Button>
 
             <Button
+              data-settings
               onClick={onSettings}
               variant="outline"
               className="h-12 flex items-center gap-2"

@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import LogTrace from '@/components/LogTrace';
-import { useCaptureContext } from '@/App';
+import { useTracingContext } from '@/App';
 
 const Index: React.FC = () => {
   const [searchParams] = useSearchParams();
   const showOnboarding = searchParams.get('onboarding') === 'true';
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
-  const { captureActive, setCaptureActive } = useCaptureContext();
+  const { tracingActive, setTracingActive } = useTracingContext();
 
   const handleOnboardingComplete = () => {
     setOnboardingCompleted(true);
@@ -21,7 +21,10 @@ const Index: React.FC = () => {
 
   return (
     <div className="min-h-screen pt-14 md:pt-16">
-      <LogTrace />
+      <LogTrace 
+        tracingActive={tracingActive}
+        onTracingToggle={setTracingActive}
+      />
     </div>
   );
 };
