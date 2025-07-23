@@ -2,6 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import LogTrace from '@/components/LogTrace';
+<<<<<<< HEAD
+import { useTracingContext } from '@/App';
+
+const Index: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const showOnboarding = searchParams.get('onboarding') === 'true';
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+  const { tracingActive, setTracingActive } = useTracingContext();
+=======
 
 const Index: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -13,6 +22,7 @@ const Index: React.FC = () => {
       setShowOnboarding(true);
     }
   }, [searchParams]);
+>>>>>>> d809fe1e9841dfd5cf65b240712338be274da7bf
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
@@ -20,6 +30,12 @@ const Index: React.FC = () => {
 
   return (
     <div className="min-h-screen pt-14 md:pt-16">
+<<<<<<< HEAD
+      <LogTrace 
+        tracingActive={tracingActive}
+        onTracingToggle={setTracingActive}
+      />
+=======
       <LogTrace />
       {showOnboarding && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -37,6 +53,7 @@ const Index: React.FC = () => {
           </div>
         </div>
       )}
+>>>>>>> d809fe1e9841dfd5cf65b240712338be274da7bf
     </div>
   );
 };

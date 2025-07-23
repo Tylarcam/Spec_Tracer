@@ -1,19 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { X, Download, Play, History } from 'lucide-react';
+import { X, Download, Play, History, Copy, AlertTriangle, Info } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { parseAIResponse, formatAIResponseForDisplay } from '@/utils/sanitization';
+import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
+import { useConsoleLogs } from '@/shared/hooks/useConsoleLogs';
+import { LogEvent } from '@/shared/types';
 
 interface TabbedTerminalProps {
   showTerminal: boolean;
   setShowTerminal: (show: boolean) => void;
-  events: any[];
-  exportEvents: () => void;
-  clearEvents: () => void;
-  debugResponses: any[];
-  clearDebugResponses: () => void;
+  events?: LogEvent[];
+  exportEvents?: () => void;
+  clearEvents?: () => void;
+  debugResponses?: any[];
+  clearDebugResponses?: () => void;
   currentElement?: any;
   terminalHeight?: number;
 }
@@ -21,17 +24,161 @@ interface TabbedTerminalProps {
 const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   showTerminal,
   setShowTerminal,
-  events = [],
-  exportEvents,
-  clearEvents,
-  debugResponses = [],
-  clearDebugResponses,
+  events: propEvents,
+  exportEvents: propExportEvents,
+  clearEvents: propClearEvents,
+  debugResponses: propDebugResponses,
+  clearDebugResponses: propClearDebugResponses,
   currentElement,
   terminalHeight,
 }) => {
   const [activeTab, setActiveTab] = useState<'events' | 'debug' | 'console'>('events');
   const [associateWithElement, setAssociateWithElement] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [terminalPosition, setTerminalPosition] = useState({ x: 0, y: window.innerHeight * 0.67 });
+  const [terminalSize, setTerminalSize] = useState({ width: window.innerWidth, height: window.innerHeight * 0.33 });
+  const dragRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+
+  // Use LogTrace orchestrator for full functionality
+  const {
+    capturedEvents,
+    recordEvent,
+    clearCapturedEvents,
+    exportCapturedEvents,
+    debugContext,
+    hasAnyErrors,
+    allErrors,
+    clearAllErrors,
+  } = useLogTraceOrchestrator();
+
+  // Use console logs hook
+  const { 
+    logs: consoleLogs, 
+    clearLogs: clearConsoleLogs, 
+    addLog,
+    associateWithElement: consoleAssociateWithElement, 
+    setAssociateWithElement: setConsoleAssociateWithElement,
+    startCapturing,
+    stopCapturing,
+    isCapturing
+  } = useConsoleLogs();
+
+  // Use props if provided, otherwise use orchestrator
+  const events = propEvents || capturedEvents;
+  const exportEvents = propExportEvents || exportCapturedEvents;
+  const clearEvents = propClearEvents || clearCapturedEvents;
+  const debugResponses = propDebugResponses || [];
+  const clearDebugResponses = propClearDebugResponses || (() => {});
+
+  // Console log capture functionality
+  useEffect(() => {
+    if (!showTerminal) {
+      if (isCapturing) {
+        stopCapturing();
+      }
+      return;
+    }
+
+    // Start capturing console logs when terminal opens
+    const cleanup = startCapturing();
+
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
+  }, [showTerminal, startCapturing, stopCapturing, isCapturing]);
+
+  // Update console logs with current element when associateWithElement changes
+  useEffect(() => {
+    if (associateWithElement && currentElement) {
+      // Update the associateWithElement setting in the console logs hook
+      setConsoleAssociateWithElement(associateWithElement);
+    }
+  }, [associateWithElement, currentElement, setConsoleAssociateWithElement]);
+
+  // ESC key support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showTerminal) {
+        setShowTerminal(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showTerminal, setShowTerminal]);
+
+  // Handle dragging
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Don't start dragging if clicking on buttons
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) {
+      return;
+    }
+    
+    // Start dragging immediately when clicking on the header
+    setIsDragging(true);
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        e.preventDefault();
+        const newY = Math.max(0, Math.min(window.innerHeight - terminalSize.height, e.clientY));
+        setTerminalPosition(prev => ({ ...prev, y: newY }));
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove, { passive: false });
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'grabbing';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isDragging, terminalSize.height]);
+
+
+
+  const getLogLevelIcon = (level: string) => {
+    switch (level) {
+      case 'error':
+        return <AlertTriangle className="h-3 w-3 text-red-400" />;
+      case 'warn':
+        return <AlertTriangle className="h-3 w-3 text-yellow-400" />;
+      case 'info':
+        return <Info className="h-3 w-3 text-blue-400" />;
+      default:
+        return <span className="h-3 w-3 text-gray-400">•</span>;
+    }
+  };
+
+  const getLogLevelColor = (level: string) => {
+    switch (level) {
+      case 'error':
+        return 'text-red-400';
+      case 'warn':
+        return 'text-yellow-400';
+      case 'info':
+        return 'text-blue-400';
+      default:
+        return 'text-gray-300';
+    }
+  };
 
   if (!showTerminal) {
     return (
@@ -47,14 +194,45 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
 
   return (
     <div
-      className={`w-full h-full ${isMobile ? 'z-100' : 'z-50'}`}
+      className={`fixed ${isMobile ? 'z-100' : 'z-50'}`}
+      style={{
+        left: terminalPosition.x,
+        top: terminalPosition.y,
+        width: terminalSize.width,
+        height: terminalSize.height,
+        cursor: isDragging ? 'grabbing' : 'default'
+      }}
     >
+      {/* Draggable top border line - positioned at the very top */}
+      {!isMobile && (
+        <div 
+          ref={dragRef}
+          onMouseDown={handleMouseDown}
+          className="absolute top-0 left-0 right-0 cursor-grab active:cursor-grabbing select-none transition-colors hover:bg-green-400/50 z-10"
+          style={{ 
+            height: '8px', 
+            background: 'linear-gradient(to right, #10b981, #34d399, #10b981)',
+            borderRadius: '4px 4px 0 0'
+          }}
+        />
+      )}
+      
       <Card className={`bg-slate-900/95 border-green-500/50 ${isMobile ? 'rounded-none border-x-0 border-b-0' : 'rounded-t-lg border-b-0'} h-full`}>
         <div className={`${isMobile ? 'p-2' : 'p-4'} h-full flex flex-col min-h-0`}>
           {!isMobile && (
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 p-2">
               <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
               <div className="flex gap-2">
+                {hasAnyErrors && (
+                  <Button
+                    onClick={clearAllErrors}
+                    variant="outline"
+                    size="sm"
+                    className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                  >
+                    Clear Errors
+                  </Button>
+                )}
                 <Button
                   onClick={exportEvents}
                   variant="outline"
@@ -93,7 +271,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                 value="console" 
                 className={`data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 ${isMobile ? 'text-xs p-2' : ''}`}
               >
-                Console (0)
+                Console ({consoleLogs.length})
               </TabsTrigger>
             </TabsList>
             <TabsContent value="events" className="mt-4 relative flex-1 min-h-0">
@@ -138,21 +316,27 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                       if (type === 'CLICK') color = 'text-green-400';
                       else if (type === 'DEBUG') color = 'text-yellow-400';
                       else if (type === 'INSPECT') color = 'text-cyan-400';
+                      else if (type === 'LLM_RESPONSE') color = 'text-purple-400';
                       // Compose element info
                       const el = event.element || {};
                       const tag = el.tag || 'div';
                       const id = el.id ? `#${el.id}` : '';
-                      const classes = el.classes && el.classes.length > 0 ? `.${el.classes.join('.')}` : '';
-                      const text = el.text ? `"${el.text}"` : '';
-                      const parentPath = el.parentPath ? el.parentPath : '';
-                      const attributes = el.attributes && el.attributes.length > 0
-                        ? el.attributes.map(a => `${a.name}="${a.value}"`).join(', ')
+                      const classes = el.classes && el.classes.length > 0
+                        ? `.${el.classes.join('.')}`
                         : '';
-                      const size = el.size ? `${el.size.width}×${el.size.height}` : '';
+                      const text = (el as any).text ? `"${(el as any).text}"` : '';
+                      const parentPath = (el as any).parentPath ? (el as any).parentPath : '';
+                      const attributes = (el as any).attributes && (el as any).attributes.length > 0
+                        ? (el as any).attributes.map((a: any) => `${a.name}="${a.value}"`).join(', ')
+                        : '';
+                      const size = (el as any).size
+                        ? `${(el as any).size.width}×${(el as any).size.height}`
+                        : '';
                       const position = event.position ? `@${event.position.x},${event.position.y}` : '';
-                      const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(tag) || (el && el.classes && el.classes.includes('interactive'));
-                      const copyString = `[${event.timestamp}] ${type} ${tag}${id}${classes} ${text} ${position} ${parentPath} ${attributes} ${size}`;
-                      return (
+                      const isInteractive =
+                        ['button', 'a', 'input', 'select', 'textarea'].includes(tag) ||
+                        (el && (el as any).classes && (el as any).classes.includes('interactive'));
+                      const copyString = `[${event.timestamp}] ${type} ${tag}${id}${classes} ${text} ${position} ${parentPath} ${attributes} ${size}`;                      return (
                         <div key={idx} className="contents">
                           <div className="text-gray-500 break-all min-w-0 max-w-full" title={event.timestamp}>[{event.timestamp}]</div>
                           <div className={`${color} font-semibold break-all min-w-0 max-w-full`}>{type}</div>
@@ -171,7 +355,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                               title="Copy event details"
                               onClick={() => navigator.clipboard.writeText(copyString)}
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy w-3 h-3 text-gray-400"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                              <Copy className="w-3 h-3 text-gray-400" />
                             </button>
                           </div>
                         </div>
@@ -213,7 +397,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                             className="text-gray-400 hover:text-white transition-colors"
                             title="Copy response"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy w-3 h-3 text-gray-400"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                            <Copy className="w-3 h-3" />
                           </button>
                         </div>
                         {/* Prompt */}
@@ -251,7 +435,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                   </label>
                   <button
                     className="bg-red-500/10 text-red-400 border border-red-500/50 rounded px-3 py-1 text-xs hover:bg-red-500/20 transition"
-                    onClick={clearEvents}
+                    onClick={clearConsoleLogs}
                   >
                     Clear Console
                   </button>
@@ -259,7 +443,37 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
               </div>
               <div className="absolute inset-x-0 bottom-0 top-6 overflow-y-auto overflow-x-hidden bg-slate-800/50 rounded p-2 scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent">
                 <div className="font-mono text-sm space-y-2">
+                  {consoleLogs.length === 0 ? (
                     <div className="text-gray-500">No console errors or warnings captured yet...</div>
+                  ) : (
+                    consoleLogs.map((log, idx) => (
+                      <div key={idx} className="flex items-start gap-2 p-2 hover:bg-slate-700/30 rounded">
+                        <div className="flex-shrink-0 mt-0.5">
+                          {getLogLevelIcon(log.level)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className={`${getLogLevelColor(log.level)} text-xs`}>
+                            [{new Date(log.timestamp).toLocaleTimeString()}] {log.level.toUpperCase()}
+                          </div>
+                          <div className="text-gray-300 text-sm break-all">
+                            {log.message}
+                          </div>
+                          {log.element && (
+                            <div className="text-xs text-cyan-400 mt-1">
+                              Element: {log.element?.tag || 'unknown'}{log.element?.id ? `#${log.element.id}` : ''}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(log.message)}
+                          className="text-gray-400 hover:text-white transition-colors flex-shrink-0"
+                          title="Copy log message"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </TabsContent>

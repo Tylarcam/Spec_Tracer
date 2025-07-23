@@ -59,6 +59,7 @@ interface MouseOverlayProps {
   currentElement: ElementInfo | null; // The element currently hovered/inspected
   mousePosition: { x: number; y: number }; // Current mouse position
   overlayRef: React.RefObject<HTMLDivElement>; // Ref for the overlay div
+  inspectorCount?: number; // Number of open inspectors
 }
 
 /**
@@ -71,6 +72,7 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
   currentElement,
   mousePosition,
   overlayRef,
+  inspectorCount = 0,
 }) => {
   // Don't render overlay if not active
   if (!isActive) return null;
@@ -218,6 +220,10 @@ const MouseOverlay: React.FC<MouseOverlayProps> = ({
                 {/* Position (x, y) */}
                 <span className="text-orange-300 block mb-1">
                   Position: ({mousePosition.x}, {mousePosition.y})
+                </span>
+                {/* Click hint */}
+                <span className="text-yellow-300 block text-xs font-medium">
+                  💡 Click to open inspector ({inspectorCount}/3)
                 </span>
               </div>
             </div>

@@ -1,315 +1,644 @@
 
-import React, { useState, useEffect } from 'react';
-import { X, Play, Pause, Settings, Terminal, MousePointer } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { X, Play, Pause, Settings, Terminal, ArrowUp, Lightbulb, MousePointer } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Draggable from 'react-draggable';
 
-import ElementDetails from './LogTrace/ElementDetails';
-import TerminalPanel from './LogTrace/TerminalPanel';
+import ElementInspector from './LogTrace/ElementInspector';
+import DebugModal from './LogTrace/DebugModal';
+import QuickActionPill from './LogTrace/QuickActionPill';
+import TabbedTerminal from './LogTrace/TabbedTerminal';
 import SettingsDrawer from './LogTrace/SettingsDrawer';
 import MobileQuickActionsMenu from './LogTrace/MobileQuickActionsMenu';
+import InstructionsCard from './LogTrace/InstructionsCard';
+import MouseOverlay from './LogTrace/MouseOverlay';
+import UnifiedTraceControl from './LogTrace/UnifiedTraceControl';
+import ElementDetails from './LogTrace/ElementDetails';
+import TerminalPanel from './LogTrace/TerminalPanel';
 
 import { useElementPosition } from '@/hooks/useElementPosition';
 import { useUsageTracking } from '@/hooks/useUsageTracking';
+import { useToast } from '@/hooks/use-toast';
+import { useTracingContext } from '@/App';
 import { callAIDebugFunction } from '@/shared/api';
 import { ElementInfo } from '@/shared/types';
+import { formatElementDataForCopy } from '@/utils/elementDataFormatter';
 import { Button } from '@/components/ui/button';
-import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from "@/components/ui/textarea"
+import { Skeleton } from "@/components/ui/skeleton"
 
-const LogTrace: React.FC = () => {
-  const [isTracing, setIsTracing] = useState(false);
+interface LogTraceProps {
+}
+
+const LogTrace: React.FC<LogTraceProps> = () => {
+  const { tracingActive, setTracingActive } = useTracingContext();
   const [isHoverEnabled, setIsHoverEnabled] = useState(true);
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [aiDebugResponse, setAiDebugResponse] = useState<string | null>(null);
-  const [aiDebugLoading, setAiDebugLoading] = useState(false);
-  const [aiDebugError, setAiDebugError] = useState<string | null>(null);
-  const [aiDebugPrompt, setAiDebugPrompt] = useState('');
   const [showElementDetails, setShowElementDetails] = useState(false);
+  const [aiDebugPrompt, setAiDebugPrompt] = useState('');
+  const [aiDebugError, setAiDebugError] = useState('');
+  const [aiDebugLoading, setAiDebugLoading] = useState(false);
+  const [aiDebugResponse, setAiDebugResponse] = useState('');
+
+  const [openInspectors, setOpenInspectors] = useState<Array<{ id: string; element: ElementInfo; position: { x: number; y: number } }>>([]);
   const [currentElement, setCurrentElement] = useState<ElementInfo | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [events, setEvents] = useState<any[]>([]);
+  const [debugResponses, setDebugResponses] = useState<any[]>([]);
+  const [isInspectorHovered, setIsInspectorHovered] = useState(false);
+  const [isHoverPaused, setIsHoverPaused] = useState(false);
+  const [pausedElement, setPausedElement] = useState<ElementInfo | null>(null);
+  const [pausedPosition, setPausedPosition] = useState<{ x: number; y: number } | null>(null);
+  const [showDebugModal, setShowDebugModal] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [debugModalElement, setDebugModalElement] = useState<ElementInfo | null>(null);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [quickActionPosition, setQuickActionPosition] = useState({ x: 0, y: 0 });
 
   const navigate = useNavigate();
   const location = useLocation();
   const { elementInfo, setElement } = useElementPosition();
   const { canUseAiDebug, incrementAiDebugUsage } = useUsageTracking();
+  const { toast } = useToast();
+  const terminalRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
-  const startTracing = () => {
-    setIsTracing(true);
-    setTerminalOutput(prev => [...prev, `[LogTrace]: Tracing started at ${new Date().toLocaleTimeString()}`]);
-  };
+  // Helper function to build parent path
+  const buildParentPath = useCallback((element: HTMLElement): string => {
+    const path: string[] = [];
+    let current = element.parentElement;
+    
+    while (current && current !== document.body) {
+      const tag = current.tagName.toLowerCase();
+      const id = current.id ? `#${current.id}` : '';
+      const classes = Array.from(current.classList).map(c => `.${c}`).join('');
+      path.unshift(`${tag}${id}${classes}`);
+      current = current.parentElement;
+    }
+    
+    return path.join(' > ');
+  }, []);
 
-  const endTracing = () => {
-    setIsTracing(false);
+  // Helper function to check if element is a UI control
+  const isUIControl = useCallback((target: HTMLElement): boolean => {
+    return !!(
+      // Close buttons (X buttons)
+      target.closest('[data-close-button]') ||
+      target.closest('.close-button') ||
+      target.closest('[aria-label*="close" i]') ||
+      target.closest('[title*="close" i]') ||
+      target.textContent?.trim() === '×' ||
+      target.textContent?.trim() === 'X' ||
+      
+      // Tracing toggle button specifically
+      target.closest('[data-trace-toggle]') ||
+      
+      // Inspector panels themselves
+      target.closest('[data-inspector-panel]') ||
+      target.closest('.inspector-panel') ||
+      
+      // Debug modals
+      target.closest('[data-debug-modal]') ||
+      target.closest('.debug-modal') ||
+      
+      // Context menus
+      target.closest('[data-context-menu]') ||
+      target.closest('.context-menu') ||
+      
+      // Quick action pills
+      target.closest('[data-quick-actions]') ||
+      target.closest('.quick-action-pill')
+    );
+  }, []);
+
+  // Helper function to extract element info from DOM element
+  const extractElementInfo = useCallback((target: HTMLElement): ElementInfo => {
+    const attributes = Array.from(target.attributes).map(attr => ({
+      name: attr.name,
+      value: attr.value
+    }));
+
+    const rect = target.getBoundingClientRect();
+    const size = {
+      width: rect.width,
+      height: rect.height
+    };
+
+    const parentPath = buildParentPath(target);
+
+    return {
+      tag: target.tagName.toLowerCase(),
+      id: target.id,
+      classes: Array.from(target.classList),
+      text: target.textContent?.trim() || '',
+      element: target,
+      attributes,
+      size,
+      parentPath,
+    };
+  }, [buildParentPath]);
+
+  // Helper function to process DOM element for tracing (checks UI control and extracts info)
+  const processElementForTracing = useCallback((target: HTMLElement): ElementInfo | null => {
+    if (!target || isUIControl(target)) {
+      return null;
+    }
+    
+    return extractElementInfo(target);
+  }, [isUIControl, extractElementInfo]);
+
+  // Helper function to log to terminal
+  const logToTerminal = useCallback((message: string) => {
+    setTerminalOutput(prev => [...prev, `[LogTrace]: ${message} at ${new Date().toLocaleTimeString()}`]);
+  }, []);
+
+  const startTracing = useCallback(() => {
+    setTracingActive(true);
+    logToTerminal('Tracing started');
+    
+    // Test console logging functionality
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[LogTrace] Tracing started - console log test');
+      console.warn('[LogTrace] This is a test warning message');
+      console.info('[LogTrace] This is a test info message');
+    }
+  }, [setTracingActive, logToTerminal]);
+
+  const endTracing = useCallback(() => {
+    setTracingActive(false);
     setIsHoverEnabled(true);
     setCurrentElement(null);
-    setShowElementDetails(false);
-    setTerminalOutput(prev => [...prev, `[LogTrace]: Tracing ended at ${new Date().toLocaleTimeString()}`]);
-  };
+    setOpenInspectors([]);
+    logToTerminal('Tracing ended');
+  }, [setTracingActive, logToTerminal]);
 
-  const toggleHover = () => {
+  const toggleHover = useCallback(() => {
     setIsHoverEnabled(!isHoverEnabled);
-    setTerminalOutput(prev => [...prev, `[LogTrace]: Hover tracking ${isHoverEnabled ? 'disabled' : 'enabled'} at ${new Date().toLocaleTimeString()}`]);
-  };
+    logToTerminal(`Hover tracking ${isHoverEnabled ? 'disabled' : 'enabled'}`);
+  }, [isHoverEnabled, logToTerminal]);
 
-  const toggleTerminal = () => {
+  const toggleTerminal = useCallback(() => {
     setIsTerminalOpen(!isTerminalOpen);
-  };
+  }, [isTerminalOpen]);
 
-  const openMobileMenu = () => {
+  const openMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(true);
-  };
+  }, []);
 
-  const closeMobileMenu = () => {
+  const closeMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false);
-  };
+  }, []);
 
-  const handleElementClick = (element: ElementInfo) => {
-    if (!isTracing) return;
-    setCurrentElement(element);
-    setShowElementDetails(true);
+  const handleElementClick = useCallback((element: ElementInfo) => {
+    if (!tracingActive) return;
+    
+    // Check if we already have 3 inspectors open
+    if (openInspectors.length >= 3) {
+      logToTerminal('Maximum 3 inspectors allowed. Close one first.');
+      return;
+    }
+    
+    // Create unique ID for this inspector
+    const inspectorId = `inspector-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Add new inspector to the list
+    setOpenInspectors(prev => [...prev, {
+      id: inspectorId,
+      element: element,
+      position: { x: mousePosition.x, y: mousePosition.y }
+    }]);
+    
     setElement(element);
-    setTerminalOutput(prev => [...prev, `[LogTrace]: Element "${element.tag}" selected at ${new Date().toLocaleTimeString()}`]);
-  };
+    logToTerminal(`Element "${element.tag}" inspector opened`);
+    
+    const clickEvent = {
+      id: crypto.randomUUID(),
+      type: 'click' as const,
+      timestamp: new Date().toISOString(),
+      position: { x: mousePosition.x, y: mousePosition.y },
+      element: {
+        tag: element.tag,
+        id: element.id,
+        classes: element.classes,
+        text: element.text,
+        parentPath: element.parentPath,
+        attributes: element.attributes,
+        size: element.size,
+      }
+    };
+    setEvents(prev => [clickEvent, ...prev]);
+  }, [tracingActive, openInspectors.length, mousePosition, setElement, logToTerminal]);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
     setMousePosition({ x: e.clientX, y: e.clientY });
-  };
+  }, []);
 
-  const handleAIDebug = async () => {
+  const handleAIDebug = useCallback(async (element?: ElementInfo) => {
     if (!canUseAiDebug) {
       navigate('/upgrade');
       return;
     }
 
-    if (!aiDebugPrompt.trim()) {
-      setAiDebugError('Please enter a prompt.');
+    // Set the element to debug (either passed in or current element)
+    const elementToDebug = element || currentElement;
+    if (!elementToDebug) {
+      logToTerminal('No element selected for debugging');
       return;
     }
 
-    setAiDebugLoading(true);
-    setAiDebugError(null);
-    setAiDebugResponse(null);
+    // Open debug modal with the element
+    setDebugModalElement(elementToDebug);
+    setShowDebugModal(true);
+    logToTerminal(`Debug modal opened for "${elementToDebug.tag}"`);
+  }, [canUseAiDebug, navigate, currentElement, logToTerminal]);
 
+  const analyzeWithAI = useCallback(async (prompt: string) => {
+    if (!debugModalElement) return;
+
+    setIsAnalyzing(true);
     try {
-      const response = await callAIDebugFunction(aiDebugPrompt, currentElement, mousePosition);
-      setAiDebugResponse(response);
+      const response = await callAIDebugFunction(prompt, debugModalElement, mousePosition);
+      setDebugResponses(prev => [...prev, { prompt, response, timestamp: new Date().toISOString() }]);
       incrementAiDebugUsage();
-      setTerminalOutput(prev => [...prev, `[AI Debug]: Debugging initiated at ${new Date().toLocaleTimeString()}`]);
+      logToTerminal('AI analysis completed');
+      
+      return response;
     } catch (error: any) {
-      setAiDebugError(error.message || 'Failed to get AI response');
+      logToTerminal(`AI analysis error - ${error.message}`);
+      throw error;
     } finally {
-      setAiDebugLoading(false);
+      setIsAnalyzing(false);
     }
-  };
+  }, [debugModalElement, mousePosition, incrementAiDebugUsage, logToTerminal]);
 
-  const handleSettingsClick = () => {
+  const generateAdvancedPrompt = useCallback(() => {
+    if (!debugModalElement) return '';
+    
+    const element = debugModalElement;
+    const isInteractive = ['button','a','input','select','textarea'].includes(element.tag) || element.element?.onclick != null;
+    const eventListeners = [];
+    const el = element.element as any;
+    [
+      'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmouseout',
+      'onmouseenter', 'onmouseleave', 'onkeydown', 'onkeyup', 'oninput',
+      'onchange', 'onfocus', 'onblur', 'onsubmit'
+    ].forEach(listener => {
+      if (typeof el[listener] === 'function') eventListeners.push(listener);
+    });
+    const styles = window.getComputedStyle(element.element);
+    
+    return `Target Context For Debug:
+- Tag: <${element.tag}>
+- ID: ${element.id || 'none'}
+- Classes: ${element.classes.join(', ') || 'none'}
+- Text: "${element.text || 'none'}"
+- Interactive: ${isInteractive ? 'Yes' : 'No'}
+- Event Listeners: ${eventListeners.join(', ') || 'none'}
+- Styles: display=${styles.display}, visibility=${styles.visibility}, pointer-events=${styles.pointerEvents}`;
+  }, [debugModalElement]);
+
+  const handleSettingsClick = useCallback(() => {
     setIsSettingsOpen(true);
-  };
+  }, []);
 
-  const handleUpgradeClick = () => {
+  const handleUpgradeClick = useCallback(() => {
     navigate('/upgrade');
-  };
+  }, [navigate]);
 
-  const handleDragStart = () => {
+  const handleDragStart = useCallback(() => {
     setIsDragging(true);
-  };
+  }, []);
 
-  const handleDragStop = () => {
+  const handleDragStop = useCallback(() => {
     setIsDragging(false);
-  };
+  }, []);
 
-  useHotkeys('ctrl+s', () => isTracing ? endTracing() : startTracing(), { preventDefault: true });
+  // Hover pause functionality for inspector
+  const handleInspectorMouseEnter = useCallback(() => {
+    setIsInspectorHovered(true);
+    setIsHoverPaused(true);
+    setPausedElement(currentElement);
+    setPausedPosition(mousePosition);
+  }, [currentElement, mousePosition]);
+
+  const handleInspectorMouseLeave = useCallback(() => {
+    setIsInspectorHovered(false);
+    setIsHoverPaused(false);
+    setPausedElement(null);
+    setPausedPosition(null);
+  }, []);
+
+  // Function to close a specific inspector
+  const closeInspector = useCallback((inspectorId: string) => {
+    setOpenInspectors(prev => prev.filter(inspector => inspector.id !== inspectorId));
+  }, []);
+
+  const exportEvents = useCallback(() => {
+    // Export events functionality
+    console.log('Exporting events:', events);
+  }, [events]);
+
+  const clearEvents = useCallback(() => {
+    setEvents([]);
+  }, []);
+
+  const clearDebugResponses = useCallback(() => {
+    setDebugResponses([]);
+  }, []);
+
+  // New handler function for copying element data
+  const handleElementCopy = useCallback(async (element: ElementInfo) => {
+    try {
+      const formattedData = formatElementDataForCopy(element, mousePosition);
+      await navigator.clipboard.writeText(formattedData);
+      
+      // Show success toast
+      toast({
+        title: 'Element Data Copied',
+        description: 'Element identifying data copied to clipboard',
+      });
+      
+      // Log the action
+      logToTerminal('Element data copied');
+    } catch (error) {
+      console.error('Failed to copy element data:', error);
+      toast({
+        title: 'Copy Failed',
+        description: 'Failed to copy element data to clipboard',
+        variant: 'destructive',
+      });
+    }
+  }, [mousePosition, toast, logToTerminal]);
+
+  // Quick action handlers
+  const handleQuickAction = useCallback((action: 'screenshot' | 'context' | 'debug' | 'details' | 'copy') => {
+    if (!currentElement) return;
+
+    setShowQuickActions(false);
+
+    switch (action) {
+      case 'details':
+        handleElementClick(currentElement);
+        break;
+      case 'debug':
+        handleAIDebug(currentElement);
+        break;
+      case 'context':
+        // For context, we'll open the debug modal with a context prompt
+        const prompt = `Generate context for this element: ${currentElement.tag}${currentElement.id ? `#${currentElement.id}` : ''}`;
+        setDebugModalElement(currentElement);
+        setShowDebugModal(true);
+        // Pre-fill the debug modal with context prompt
+        setTimeout(() => {
+          analyzeWithAI(prompt);
+        }, 100);
+        break;
+      case 'screenshot':
+        logToTerminal('Screenshot mode activated');
+        // TODO: Implement screenshot functionality
+        break;
+      case 'copy':
+        handleElementCopy(currentElement);
+        break;
+    }
+  }, [currentElement, handleElementClick, handleAIDebug, analyzeWithAI, handleElementCopy, logToTerminal]);
+
+  // Unified event handlers
+  const handleHover = useCallback((e: MouseEvent) => {
+    if (!tracingActive || !isHoverEnabled || isDragging) return;
+
+    // Update mouse position for the overlay
+    setMousePosition({ x: e.clientX, y: e.clientY });
+
+    const target = e.target as HTMLElement;
+    if (target && !isUIControl(target)) {
+      const elementInfo = extractElementInfo(target);
+      setElement(elementInfo);
+      setCurrentElement(elementInfo);
+    }
+  }, [tracingActive, isHoverEnabled, isDragging, isUIControl, extractElementInfo, setElement]);
+
+  const handleClick = useCallback((e: MouseEvent) => {
+    if (!tracingActive || isDragging) return;
+
+    const target = e.target as HTMLElement;
+    const elementInfo = processElementForTracing(target);
+    if (elementInfo) {
+      handleElementClick(elementInfo);
+    }
+  }, [tracingActive, isDragging, processElementForTracing, handleElementClick]);
+
+  const handleContextMenu = useCallback((e: MouseEvent) => {
+    if (!tracingActive) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const target = e.target as HTMLElement;
+    const elementInfo = processElementForTracing(target);
+    if (elementInfo) {
+      setCurrentElement(elementInfo);
+      setQuickActionPosition({ x: e.clientX, y: e.clientY });
+      setShowQuickActions(true);
+    }
+  }, [tracingActive, processElementForTracing]);
+
+  // Keyboard shortcuts
+  useHotkeys('ctrl+s', () => tracingActive ? endTracing() : startTracing(), { preventDefault: true });
   useHotkeys('ctrl+e', () => endTracing(), { preventDefault: true });
   useHotkeys('ctrl+t', () => toggleTerminal(), { preventDefault: true });
   useHotkeys('ctrl+d', () => handleAIDebug(), { preventDefault: true });
   useHotkeys('ctrl+p', () => toggleHover(), { preventDefault: true });
+  useHotkeys('q', () => {
+    if (tracingActive && currentElement) {
+      setQuickActionPosition({ x: mousePosition.x, y: mousePosition.y });
+      setShowQuickActions(true);
+    }
+  }, { preventDefault: true });
 
+  // Event listeners
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setShowElementDetails(false);
-        setCurrentElement(null);
+        // Close the most recent inspector
+        setOpenInspectors(prev => prev.slice(0, -1));
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   useEffect(() => {
-    const handleHover = (e: MouseEvent) => {
-      if (!isTracing || !isHoverEnabled || isDragging) return;
-
-      const target = e.target as HTMLElement;
-
-      if (target) {
-        const elementInfo: ElementInfo = {
-          tag: target.tagName.toLowerCase(),
-          id: target.id,
-          classes: Array.from(target.classList),
-          text: target.textContent?.trim() || '',
-          element: target,
-        };
-        setElement(elementInfo);
-        setCurrentElement(elementInfo);
-      }
-    };
-
     document.addEventListener('mousemove', handleHover);
+    document.addEventListener('click', handleClick);
+    document.addEventListener('contextmenu', handleContextMenu);
 
     return () => {
       document.removeEventListener('mousemove', handleHover);
+      document.removeEventListener('click', handleClick);
+      document.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [isTracing, isHoverEnabled, setElement, isDragging]);
+  }, [handleHover, handleClick, handleContextMenu]);
 
   return (
-    <div className="h-screen flex flex-col bg-slate-900 text-white relative overflow-hidden">
-      {/* Header */}
-      <header className="bg-slate-800 border-b border-green-500/30 p-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-green-400">LogTrace</h1>
-          {isTracing && <span className="text-sm text-yellow-300 animate-pulse">Tracing...</span>}
-        </div>
-
-        {/* Desktop Actions */}
-        <div className="hidden lg:flex items-center gap-3">
-          <Button
-            onClick={isTracing ? endTracing : startTracing}
-            variant={isTracing ? "destructive" : "default"}
-            size="sm"
-          >
-            {isTracing ? <X className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-            {isTracing ? 'End Trace' : 'Start Trace'}
-          </Button>
-          <Button
-            onClick={toggleHover}
-            variant={isHoverEnabled ? "secondary" : "outline"}
-            size="sm"
-          >
-            {isHoverEnabled ? <Pause className="h-4 w-4 mr-2" /> : <MousePointer className="h-4 w-4 mr-2" />}
-            {isHoverEnabled ? 'Disable Hover' : 'Enable Hover'}
-          </Button>
-          <Button onClick={handleSettingsClick} variant="ghost" size="sm">
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </Button>
-        </div>
-
-        {/* Mobile Actions */}
-        <div className="lg:hidden">
-          <Button onClick={openMobileMenu} variant="ghost" size="sm">
-            <Settings className="h-5 w-5" />
-          </Button>
-        </div>
-      </header>
+    <div id="logtrace-container" className="h-screen flex flex-col bg-slate-900 text-white relative overflow-hidden">
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden" onMouseMove={handleMouseMove}>
-        {/* Main Content Area */}
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center max-w-md">
-            <div className="mb-6">
-              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Terminal className="h-8 w-8 text-green-400" />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Welcome to LogTrace</h2>
-              <p className="text-gray-400 mb-6">
-                Click "Start Trace" to begin debugging your web application. 
-                Hover over elements to inspect them and use AI-powered debugging.
+      <div className="flex-1 flex flex-col lg:flex-row overflow-auto" onMouseMove={handleMouseMove}>
+        {/* Left Panel - Instructions and Content */}
+        <div className="flex-1 p-6 overflow-y-auto">
+          <div className="max-w-4xl mx-auto">
+            {/* Welcome Section */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-green-400 mb-4">Welcome to LogTrace</h1>
+              <p className="text-slate-300 text-lg">
+                The AI-powered debugging tool that helps you capture perfect context for any UI element.
               </p>
             </div>
-            
-            <div className="space-y-4">
-              <Button
-                onClick={startTracing}
-                className="w-full bg-green-600 hover:bg-green-700"
-                size="lg"
-              >
-                <Play className="h-5 w-5 mr-2" />
-                Start Trace
-              </Button>
-              
-              <Button
-                onClick={toggleTerminal}
-                variant="outline"
-                className="w-full"
-                size="lg"
-              >
-                <Terminal className="h-5 w-5 mr-2" />
-                Show Terminal
-              </Button>
-            </div>
 
-            <div className="mt-8 text-sm text-gray-500">
-              <p>Keyboard shortcuts:</p>
-              <div className="mt-2 space-y-1">
-                <p><kbd className="px-2 py-1 bg-slate-800 rounded">Ctrl+S</kbd> Start/Stop trace</p>
-                <p><kbd className="px-2 py-1 bg-slate-800 rounded">Ctrl+T</kbd> Toggle terminal</p>
-                <p><kbd className="px-2 py-1 bg-slate-800 rounded">Ctrl+D</kbd> AI debug</p>
-              </div>
-            </div>
+            {/* Instructions Card */}
+            <InstructionsCard />
           </div>
         </div>
+      </div>
 
-        {/* Element Details Modal */}
-        {showElementDetails && currentElement && (
-          <Draggable
-            handle=".drag-handle"
-            defaultPosition={{ x: 20, y: 20 }}
-            onStart={handleDragStart}
-            onStop={handleDragStop}
-          >
-            <div className="absolute top-0 left-0 z-50 bg-slate-800 border border-green-500/30 rounded-md shadow-lg w-full max-w-md">
-              <div className="bg-slate-700 p-3 flex items-center justify-between drag-handle cursor-move">
-                <h3 className="text-sm font-semibold text-green-400">Element Details</h3>
+      {/* Element Details */}
+      {showElementDetails && currentElement && (
+        <Draggable
+          handle=".drag-handle"
+          defaultPosition={{ x: 20, y: 20 }}
+          position={null}
+          onStart={handleDragStart}
+          onStop={handleDragStop}
+        >
+          <div className="absolute top-0 left-0 z-50 bg-slate-800 border border-green-500/30 rounded-md shadow-lg w-full max-w-md">
+            <div className="bg-slate-700 p-3 flex items-center justify-between drag-handle cursor-move">
+              <h3 className="text-sm font-semibold text-green-400">Element Details</h3>
+              <div className="flex items-center gap-2">
+                <Button onClick={() => handleAIDebug(currentElement)} variant="ghost" size="sm">
+                  <Lightbulb className="h-4 w-4 mr-2" />
+                  AI Debug
+                </Button>
                 <Button onClick={() => { setShowElementDetails(false); setCurrentElement(null); }} variant="ghost" size="sm">
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="p-4">
-                <ElementDetails element={currentElement} />
-                <div className="mt-4 space-y-2">
-                  <Textarea
-                    placeholder="Describe the issue or desired behavior..."
-                    className="bg-slate-700 border-slate-600 text-white text-sm"
-                    value={aiDebugPrompt}
-                    onChange={(e) => setAiDebugPrompt(e.target.value)}
-                  />
-                  {aiDebugError && <p className="text-red-400 text-sm">{aiDebugError}</p>}
-                  {aiDebugLoading ? (
-                    <Skeleton className="w-full h-10 rounded-md" />
-                  ) : (
-                    <Button onClick={handleAIDebug} className="w-full">
-                      Debug with AI
-                    </Button>
-                  )}
-                  {aiDebugResponse && (
-                    <div className="mt-3 p-3 bg-slate-700 rounded-md">
-                      <p className="text-sm">{aiDebugResponse}</p>
-                    </div>
-                  )}
-                </div>
+            </div>
+            <div className="p-4">
+              <ElementDetails element={currentElement} />
+              <div className="mt-4 space-y-2">
+                <Label htmlFor="ai-debug-prompt" className="text-sm">AI Debug Prompt</Label>
+                <Textarea
+                  id="ai-debug-prompt"
+                  placeholder="Describe the issue or desired behavior..."
+                  className="bg-slate-700 border-slate-600 text-white text-sm"
+                  value={aiDebugPrompt}
+                  onChange={(e) => setAiDebugPrompt(e.target.value)}
+                />
+                {aiDebugError && <p className="text-red-400 text-sm">{aiDebugError}</p>}
+                {aiDebugLoading ? (
+                  <Skeleton className="w-full h-10 rounded-md" />
+                ) : (
+                  <Button onClick={() => handleAIDebug(currentElement)} className="w-full">
+                    Debug with AI
+                  </Button>
+                )}
+                {aiDebugResponse && (
+                  <div className="mt-3 p-3 bg-slate-700 rounded-md">
+                    <p className="text-sm">{aiDebugResponse}</p>
+                  </div>
+                )}
               </div>
             </div>
-          </Draggable>
-        )}
+          </div>
+        </Draggable>
+      )}
 
-        {/* Terminal Panel */}
-        <TerminalPanel
-          output={terminalOutput}
-          isOpen={isTerminalOpen}
-          onClose={toggleTerminal}
+      {/* Terminal - Full screen overlay when open */}
+      {isTerminalOpen && (
+        <div data-terminal className="fixed inset-0 z-50 bg-slate-900/95">
+          <TabbedTerminal
+            showTerminal={isTerminalOpen}
+            setShowTerminal={setIsTerminalOpen}
+            events={events}
+            exportEvents={exportEvents}
+            clearEvents={clearEvents}
+            debugResponses={debugResponses}
+            clearDebugResponses={clearDebugResponses}
+            currentElement={currentElement}
+            terminalHeight={window.innerHeight * 0.33}
+          />
+        </div>
+      )}
+
+      {/* Floating Terminal Button - appears when terminal is closed */}
+      {!isTerminalOpen && (
+        <Button
+          data-terminal
+          onClick={toggleTerminal}
+          className="fixed bottom-4 right-4 z-30 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
+        >
+          <span style={{ fontSize: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{'>'}</span>
+        </Button>
+      )}
+
+      {/* Multiple Element Inspectors */}
+      {openInspectors.map((inspector, index) => (
+        <ElementInspector
+          key={inspector.id}
+          isVisible={true}
+          currentElement={inspector.element}
+          mousePosition={inspector.position}
+          onDebug={() => handleAIDebug(inspector.element)}
+          onClose={() => closeInspector(inspector.id)}
+          panelRef={overlayRef}
+          isExtensionMode={false}
+          isDraggable={true}
+          isPinned={false}
+          onPin={() => {}}
+          onShowMoreDetails={() => {}}
+          currentDebugCount={undefined}
+          maxDebugCount={undefined}
+          onMouseEnter={handleInspectorMouseEnter}
+          onMouseLeave={handleInspectorMouseLeave}
         />
-      </div>
+      ))}
+
+      {/* Debug Modal */}
+      <DebugModal
+        showDebugModal={showDebugModal}
+        setShowDebugModal={setShowDebugModal}
+        currentElement={debugModalElement}
+        mousePosition={mousePosition}
+        isAnalyzing={isAnalyzing}
+        analyzeWithAI={analyzeWithAI}
+        generateAdvancedPrompt={generateAdvancedPrompt}
+        modalRef={overlayRef}
+        isExtensionMode={false}
+        showAuthModal={false}
+        setShowAuthModal={() => {}}
+        user={undefined}
+        guestDebugCount={undefined}
+        maxGuestDebugs={undefined}
+        terminalHeight={0}
+      />
+
+      {/* Context Menu */}
+      <QuickActionPill
+        visible={showQuickActions}
+        x={quickActionPosition.x}
+        y={quickActionPosition.y}
+        onClose={() => setShowQuickActions(false)}
+        onAction={handleQuickAction}
+      />
 
       <SettingsDrawer
         isOpen={isSettingsOpen}
@@ -325,8 +654,17 @@ const LogTrace: React.FC = () => {
         onToggleHover={toggleHover}
         onUpgrade={handleUpgradeClick}
         onSettings={handleSettingsClick}
-        isTracing={isTracing}
+        isTracing={tracingActive}
         isHoverEnabled={isHoverEnabled}
+      />
+
+      {/* Mouse Overlay - shows element inspection UI when tracing is active */}
+      <MouseOverlay
+        isActive={tracingActive && isHoverEnabled && !isHoverPaused}
+        currentElement={isHoverPaused && pausedElement ? pausedElement : currentElement}
+        mousePosition={isHoverPaused && pausedPosition ? pausedPosition : mousePosition}
+        overlayRef={overlayRef}
+        inspectorCount={openInspectors.length}
       />
     </div>
   );

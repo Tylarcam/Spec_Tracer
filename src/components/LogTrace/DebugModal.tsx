@@ -263,6 +263,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
   return (
     <div
+      data-debug-modal
       className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
       style={{ 
         bottom: terminalHeight,
@@ -275,6 +276,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
       <Card 
         id="logtrace-modal"
         ref={modalRef}
+        data-debug-modal
         className="bg-slate-900/95 border-cyan-500/50 w-full overflow-hidden"
         style={{ 
           maxWidth: isMobile ? '100%' : '1024px',
@@ -286,6 +288,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
           <div className={`flex items-center justify-between ${isMobile ? 'mb-3' : 'mb-6'}`}>
             <h3 id="debug-modal-title" className={`font-bold text-cyan-400 ${isMobile ? 'text-lg' : 'text-2xl'}`}>Debug Assistant</h3>
             <Button 
+              data-close-button
               onClick={() => setShowDebugModal(false)}
               variant="ghost" 
               className="text-gray-400 hover:text-white"
