@@ -13,7 +13,6 @@ import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import ContextTransform from "./pages/ContextTransform";
 import Upgrade from "./pages/Upgrade";
-import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import NavBar from './components/NavBar';
 
@@ -77,7 +76,7 @@ const AppRoutes = () => {
           isHoverEnabled={isDebugPage ? isHoverEnabled : true}
           onToggleHover={isDebugPage ? () => setIsHoverEnabled(!isHoverEnabled) : () => {}}
           eventCount={isDebugPage ? eventCount : 0}
-          onOpenSettings={isDebugPage ? () => navigate('/settings') : () => {}}
+          onOpenSettings={() => {}} // Settings now handled by drawer in NavBar
           onToggleTerminal={isDebugPage ? () => setShowTerminal(!showTerminal) : () => {}}
           showTerminal={isDebugPage ? showTerminal : false}
         />
@@ -89,7 +88,6 @@ const AppRoutes = () => {
         <Route path="/debug" element={<Index />} />
         <Route path="/context-transform" element={<ContextTransform />} />
         <Route path="/upgrade" element={<Upgrade />} />
-        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </TracingContext.Provider>
