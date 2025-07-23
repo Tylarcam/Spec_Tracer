@@ -21,8 +21,8 @@ import { sanitizeText } from '@/utils/sanitization';
 import { useToast } from '@/hooks/use-toast';
 
 interface TabbedTerminalProps {
-  showTerminal: boolean;
-  setShowTerminal: (show: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
   events: LogEvent[];
   exportEvents: () => void;
   clearEvents: () => void;
@@ -41,9 +41,9 @@ interface TerminalLine {
   relatedEvent?: LogEvent;
 }
 
-const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
-  showTerminal,
-  setShowTerminal,
+const TabbedTerminal: React.FC<TabbedTerminalProps> = React.memo(({
+  isOpen,
+  onClose,
   events,
   exportEvents,
   clearEvents,
@@ -196,7 +196,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
     };
   }, [currentElement]);
 
-  if (!showTerminal) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-green-500/30 z-40" style={{ height: terminalHeight }}>
@@ -255,7 +255,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
             {isCollapsed ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
           </Button>
           <Button
-            onClick={() => setShowTerminal(false)}
+            onClick={onClose}
             variant="ghost"
             size="sm"
             className="text-gray-400 hover:text-white"
@@ -442,6 +442,8 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
       )}
     </div>
   );
-};
+});
+
+TabbedTerminal.displayName = 'TabbedTerminal';
 
 export default TabbedTerminal;
