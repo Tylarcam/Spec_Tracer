@@ -53,8 +53,6 @@ const validateInput = (body: any): { isValid: boolean; error?: string } => {
 };
 
 serve(async (req) => {
-  console.log('ai-debug function called:', req.method);
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -68,8 +66,6 @@ serve(async (req) => {
 
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
-    console.log('Authorization header present:', !!authHeader);
-    
     if (!authHeader) {
       return new Response(
         JSON.stringify({ success: false, error: 'Missing authorization header' }),
@@ -82,8 +78,6 @@ serve(async (req) => {
       authHeader.replace('Bearer ', '')
     );
 
-    console.log('User verification result:', { user: !!user, error: authError });
-
     if (authError || !user) {
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid authentication' }),
@@ -92,7 +86,6 @@ serve(async (req) => {
     }
 
     const body: DebugRequest = await req.json();
-    console.log('Request body received:', { prompt: body.prompt?.substring(0, 100) + '...', element: !!body.element });
     
     // Enhanced input validation
     const validation = validateInput(body);
@@ -104,12 +97,9 @@ serve(async (req) => {
     }
 
     // Check if user has credits
-    console.log('Checking credits for user:', user.id);
     const { data: creditData, error: creditError } = await supabase.rpc('use_credit', {
       user_uuid: user.id
     });
-
-    console.log('Credit check result:', { creditData, creditError });
 
     if (creditError) {
       console.error('Credit check error:', creditError);
@@ -120,7 +110,6 @@ serve(async (req) => {
     }
 
     if (!creditData) {
-      console.log('No credits available for user:', user.id);
       return new Response(
         JSON.stringify({ success: false, error: 'No credits available' }),
         { status: 403, headers: corsHeaders }
@@ -160,7 +149,6 @@ serve(async (req) => {
       Provide a helpful debugging response focusing on web development best practices.
     `;
 
-    console.log('Calling OpenAI API...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -184,8 +172,6 @@ serve(async (req) => {
       }),
     });
 
-    console.log('OpenAI API response status:', response.status);
-
     if (!response.ok) {
       const errorData = await response.text();
       console.error('OpenAI API error:', errorData);
@@ -197,8 +183,6 @@ serve(async (req) => {
 
     const data = await response.json();
     const aiResponse = data.choices[0]?.message?.content || 'No response generated';
-
-    console.log('AI response generated successfully');
 
     return new Response(
       JSON.stringify({ success: true, response: aiResponse }),
