@@ -4,9 +4,11 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { Eye, Settings, Code, Zap, X, Hash, Type, Lock, Unlock, Copy } from 'lucide-react';
+import { Eye, Settings, Code, Zap, X, Hash, Type, Lock, Unlock, Copy, ChevronDown, ChevronUp, Pin } from 'lucide-react';
 import { ElementInfo } from '@/shared/types';
 import { sanitizeText } from '@/utils/sanitization';
+import { useToast } from '@/hooks/use-toast';
+import { useConsoleLogs } from '@/shared/hooks/useConsoleLogs';
 
 interface ElementInspectorProps {
   isVisible: boolean;
@@ -24,6 +26,9 @@ interface ElementInspectorProps {
   // NEW: AI debug usage
   currentDebugCount?: number;
   maxDebugCount?: number;
+  // For extension: pause hover when mouse is over inspector
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 const ElementInspector: React.FC<ElementInspectorProps> = ({
@@ -40,22 +45,78 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   onShowMoreDetails,
   currentDebugCount,
   maxDebugCount,
+  onMouseEnter,
+  onMouseLeave,
 }) => {
   const [expandedSections, setExpandedSections] = useState<string[]>(['basic']);
-  const yDown = useRef<number | null>(null);
+  const [expandedAttrIndexes, setExpandedAttrIndexes] = useState<number[]>([]);
+  const [isLocallyPinned, setIsLocallyPinned] = useState(isPinned);
+  const { toast } = useToast();
+  const [modalPosition, setModalPosition] = useState<{ x: number; y: number } | null>(null);
+  const dragOffset = useRef<{ x: number; y: number } | null>(null);
+  const dragging = useRef(false);
 
-  // Handle swipe-down to close gesture
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) yDown.current = e.touches[0].clientY;
+  // Update local pinned state when prop changes
+  React.useEffect(() => {
+    setIsLocallyPinned(isPinned);
+  }, [isPinned]);
+
+  // Drag handlers
+  const handleDragStart = (e: React.MouseEvent) => {
+    if (isLocallyPinned) return;
+    dragging.current = true;
+    const rect = panelRef?.current?.getBoundingClientRect();
+    dragOffset.current = rect
+      ? { x: e.clientX - rect.left, y: e.clientY - rect.top }
+      : { x: 0, y: 0 };
+    document.body.style.userSelect = 'none';
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!yDown.current) return;
-    const yDiff = e.touches[0].clientY - yDown.current;
-    if (yDiff > 120) {          // 120px threshold
-      onClose();                // existing close prop
-      yDown.current = null;
-    }
+  const handleDrag = (e: MouseEvent) => {
+    if (!dragging.current || isLocallyPinned) return;
+    setModalPosition({ x: e.clientX - (dragOffset.current?.x || 0), y: e.clientY - (dragOffset.current?.y || 0) });
+  };
+
+  const handleDragEnd = () => {
+    dragging.current = false;
+    document.body.style.userSelect = '';
+  };
+
+  React.useEffect(() => {
+    if (!dragging.current) return;
+    window.addEventListener('mousemove', handleDrag);
+    window.addEventListener('mouseup', handleDragEnd);
+    return () => {
+      window.removeEventListener('mousemove', handleDrag);
+      window.removeEventListener('mouseup', handleDragEnd);
+    };
+  });
+
+  // Button click handlers that prevent drag
+  const handleButtonMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  const handlePinClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsLocallyPinned(!isLocallyPinned);
+    onPin?.();
+  };
+
+  const handleDebugClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDebug();
+  };
+
+  const handleCloseClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClose();
+  };
+
+  const handleCopyClick = (value: string) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(value);
+    toast({ title: 'Copied!', description: 'Value copied to clipboard', variant: 'success' });
   };
 
   // Get computed styles
@@ -154,7 +215,16 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
 
   if (!isVisible || !currentElement) return null;
 
-  const positionStyle = isExtensionMode 
+  // Mobile-optimized position logic
+  const isMobile = window.innerWidth <= 768;
+  
+  const defaultPosition = isMobile
+    ? {
+        // Mobile: Center horizontally and position near top with padding
+        left: Math.max(8, Math.min(window.innerWidth - 8, 8)),
+        top: Math.max(8, Math.min(window.innerHeight - 600, 60)),
+      }
+    : isExtensionMode
     ? {
         left: Math.min(mousePosition.x + 20, window.innerWidth - 350),
         top: Math.min(mousePosition.y + 20, window.innerHeight - 450),
@@ -164,74 +234,97 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
         top: Math.min(mousePosition.y + 20, window.innerHeight - 400),
       };
 
+  const positionStyle = modalPosition
+    ? { left: Math.max(0, Math.min(modalPosition.x, window.innerWidth - 350)), top: Math.max(0, Math.min(modalPosition.y, window.innerHeight - 100)) }
+    : defaultPosition;
+
   return (
     <div
       ref={panelRef}
-      className={`fixed pointer-events-auto z-50 w-full max-w-md max-h-[80vh] overflow-y-auto ${isExtensionMode ? 'z-[10001]' : 'z-50'}`}
-      style={positionStyle}
+      data-inspector-panel="true"
+      className={`fixed pointer-events-auto z-50 ${isMobile ? 'inset-x-2 max-h-[calc(100vh-16px)]' : 'w-full max-w-md max-h-[80vh]'} overflow-y-auto ${isExtensionMode ? 'z-[10001]' : 'z-50'}`}
+      style={isMobile ? { 
+        left: positionStyle.left, 
+        top: positionStyle.top,
+        right: 8,
+        maxWidth: 'calc(100vw - 16px)',
+        width: 'calc(100vw - 16px)'
+      } : positionStyle}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
-      <Card 
-        className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-      >
-        <div className="p-4">
+      <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20">
+        <div className={`${isMobile ? 'p-3' : 'p-4'}`}>
           {/* Header */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400">
+          <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
+            {/* Left side: Title and badges - draggable area */}
+            <div 
+              className={`flex items-center gap-2 flex-1 select-none ${isLocallyPinned ? 'cursor-default' : 'cursor-move'}`}
+              onMouseDown={handleDragStart}
+            >
+              <Badge variant="secondary" className={`bg-cyan-500/20 text-cyan-400 ${isMobile ? 'text-xs' : ''}`}>
                 {currentElement.tag.toUpperCase()}
               </Badge>
               {isInteractive && (
-                <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">
-                  <Zap className="w-3 h-3 mr-1" />
+                <Badge variant="outline" className={`border-green-500/30 text-green-400 ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                  <Zap className={`${isMobile ? 'w-2 h-2 mr-0.5' : 'w-3 h-3 mr-1'}`} />
                   Interactive
                 </Badge>
               )}
             </div>
+            
+            {/* Right side: Action buttons - non-draggable area */}
             <div className="flex gap-1 items-center">
               {/* AI debug usage badge */}
               {(typeof currentDebugCount === 'number' && typeof maxDebugCount === 'number') && (
-                <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs flex items-center gap-1">
-                  <Zap className="w-3 h-3 mr-1" />
+                <Badge variant="outline" className={`border-green-500/30 text-green-400 ${isMobile ? 'text-xs' : 'text-xs'} flex items-center gap-1`}>
+                  <Zap className={`${isMobile ? 'w-2 h-2 mr-0.5' : 'w-3 h-3 mr-1'}`} />
                   {currentDebugCount}/{maxDebugCount}
                 </Badge>
               )}
-              {onPin && isDraggable && (
+              
+              {/* Pin button */}
+              {onPin && (
                 <Button
-                  onClick={onPin}
+                  onClick={handlePinClick}
+                  onMouseDown={handleButtonMouseDown}
                   size="sm"
                   variant="ghost"
-                  className={`h-6 w-6 p-0 ${isPinned ? 'text-green-400' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10`}
-                  title={isPinned ? 'Unpin panel' : 'Pin panel'}
+                  className={`${isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'} ${isLocallyPinned ? 'text-green-400 bg-green-500/20' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10 cursor-pointer`}
+                  title={isLocallyPinned ? 'Unpin panel' : 'Pin panel'}
+                  tabIndex={-1}
+                  type="button"
                 >
-                  {isPinned ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                  {isLocallyPinned ? <Lock className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} /> : <Unlock className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />}
                 </Button>
               )}
+              
+              {/* Debug button */}
               <Button
-                onClick={onDebug}
+                onClick={handleDebugClick}
+                onMouseDown={handleButtonMouseDown}
                 size="sm"
                 variant="ghost"
-                className="h-6 w-6 p-0 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                className={`${isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'} text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 cursor-pointer`}
                 title="Debug with AI"
+                tabIndex={-1}
+                type="button"
               >
-                <Code className="w-3 h-3" />
+                <Code className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
               </Button>
+              
+              {/* Close button */}
               <Button
-                onClick={onClose}
+                onClick={handleCloseClick}
+                onMouseDown={handleButtonMouseDown}
                 size="sm"
                 variant="ghost"
-                className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                className={`${isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'} text-gray-400 hover:text-red-400 hover:bg-red-500/10 cursor-pointer`}
+                title="Close"
+                tabIndex={-1}
+                type="button"
               >
-                <X className="w-3 h-3" />
-              </Button>
-              <Button
-                onClick={onShowMoreDetails}
-                size="sm"
-                variant="outline"
-                className="ml-2 text-cyan-400 border-cyan-500/50 hover:bg-cyan-500/10"
-              >
-                More Details
+                <X className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
               </Button>
             </div>
           </div>
@@ -243,16 +336,15 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
             onValueChange={setExpandedSections}
             className="w-full"
           >
-            {/* Basic Info */}
             <AccordionItem value="basic" className="border-green-500/20">
-              <AccordionTrigger className="text-cyan-400 text-sm py-2 hover:no-underline">
+              <AccordionTrigger className={`text-cyan-400 ${isMobile ? 'text-xs py-1.5' : 'text-sm py-2'} hover:no-underline`}>
                 <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4" />
+                  <Eye className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                   <span>Basic Info</span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="space-y-2 text-xs">
-                <div className="bg-slate-800/50 p-3 rounded border border-cyan-500/20">
+              <AccordionContent className={`space-y-2 ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                <div className={`bg-slate-800/50 ${isMobile ? 'p-2' : 'p-3'} rounded border border-cyan-500/20`}>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Tag:</span>
                     <span className="text-cyan-300 font-mono">&lt;{currentElement.tag}&gt;</span>
@@ -274,7 +366,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                   {currentElement.text && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Text:</span>
-                      <span className="text-blue-300 font-mono text-right max-w-[150px] truncate">
+                      <span className={`text-blue-300 font-mono text-right ${isMobile ? 'max-w-[120px]' : 'max-w-[150px]'} truncate`}>
                         "{sanitizeText(currentElement.text)}"
                       </span>
                     </div>
@@ -286,74 +378,188 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                     </span>
                   </div>
                   {hierarchy && (
-                    <div className="mt-2 pt-2 border-t border-gray-700">
-                      <span className="text-gray-400 text-xs">Path:</span>
-                      <div className="text-purple-300 font-mono text-xs mt-1 break-all">
+                    <div className={`mt-2 pt-2 border-t border-gray-700`}>
+                      <span className={`text-gray-400 ${isMobile ? 'text-xs' : 'text-xs'}`}>Path:</span>
+                      <div className={`text-purple-300 font-mono ${isMobile ? 'text-xs' : 'text-xs'} mt-1 break-all`}>
                         {hierarchy}{currentElement.tag}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Events Section */}
+                  {eventListeners.length > 0 && (
+                    <div className={`mt-2 pt-2 border-t border-gray-700`}>
+                      <div className={`font-semibold text-purple-300 mb-1 flex items-center gap-2`}>
+                        <Zap className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                        Events
+                      </div>
+                      <table className={`min-w-full ${isMobile ? 'text-xs' : 'text-xs'} text-left`}>
+                        <thead>
+                          <tr>
+                            <th className={`py-1 ${isMobile ? 'px-1' : 'px-2'} text-purple-200 font-medium`}>Type</th>
+                            <th className={`py-1 ${isMobile ? 'px-1' : 'px-2'} text-purple-200 font-medium`}>Handler</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {eventListeners.map((evt, idx) => (
+                            <tr key={idx} className="border-b border-gray-700/50 last:border-b-0">
+                              <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} font-mono text-purple-100`}>{evt.replace('on', '')}</td>
+                              <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} text-gray-300`}>handler</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </div>
               </AccordionContent>
             </AccordionItem>
 
-            {/* Attributes */}
             {attributes.length > 0 && (
               <AccordionItem value="attributes" className="border-purple-500/20">
-                <AccordionTrigger className="text-purple-400 text-sm py-2 hover:no-underline">
+                <AccordionTrigger className={`text-purple-400 ${isMobile ? 'text-xs py-1.5' : 'text-sm py-2'} hover:no-underline`}>
                   <div className="flex items-center gap-2">
-                    <Hash className="w-4 h-4" />
+                    <Hash className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                     <span>Attributes ({attributes.length})</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="space-y-1 text-xs">
-                  <div className="bg-slate-800/50 p-3 rounded border border-purple-500/20 max-h-32 overflow-y-auto">
-                    {attributes.map((attr, index) => (
-                      <div key={index} className="flex justify-between py-0.5">
-                        <span className="text-purple-300">{attr.name}:</span>
-                        <span className="text-gray-300 font-mono text-right max-w-[120px] truncate">
-                          "{sanitizeText(attr.value)}"
-                        </span>
-                      </div>
-                    ))}
+                <AccordionContent className={`space-y-1 ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                  <div className={`bg-slate-800/50 ${isMobile ? 'p-2' : 'p-3'} rounded border border-purple-500/20 ${isMobile ? 'max-h-40' : 'max-h-48'} overflow-y-auto`}>
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="border-b border-gray-700/50">
+                          <th className={`text-left py-1 ${isMobile ? 'px-1' : 'px-2'} text-purple-300 font-medium`}>attribute</th>
+                          <th className={`text-left py-1 ${isMobile ? 'px-1' : 'px-2'} text-purple-300 font-medium`}>value</th>
+                          <th className={`text-left py-1 ${isMobile ? 'px-1 w-12' : 'px-2 w-16'} text-purple-300 font-medium`}>actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {attributes.map((attr, index) => {
+                          const isLongValue = attr.value.length > 50;
+                          const isExpanded = expandedAttrIndexes.includes(index);
+                          const displayValue = isLongValue && !isExpanded
+                            ? `${attr.value.substring(0, 50)}...`
+                            : attr.value;
+                          const handleToggle = () => {
+                            setExpandedAttrIndexes(prev =>
+                              prev.includes(index)
+                                ? prev.filter(i => i !== index)
+                                : [...prev, index]
+                            );
+                          };
+                          
+                          return (
+                            <React.Fragment key={index}>
+                              <tr className="border-b border-gray-700/50 last:border-b-0">
+                                <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} text-purple-200 font-mono align-top`}>
+                                  {attr.name}
+                                </td>
+                                <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} align-top`}>
+                                  <div className="flex items-start gap-1">
+                                    <span
+                                      className={`text-gray-300 font-mono break-all ${
+                                        isLongValue && !isExpanded ? (isMobile ? 'max-w-[120px]' : 'max-w-[200px]') : (isMobile ? 'max-w-[150px]' : 'max-w-[300px]')
+                                      }`}
+                                      title={isLongValue ? attr.value : undefined}
+                                    >
+                                      "{sanitizeText(displayValue)}"
+                                    </span>
+                                    {isLongValue && (
+                                      <button
+                                        onClick={handleToggle}
+                                        onMouseDown={handleButtonMouseDown}
+                                        className="text-gray-400 hover:text-purple-300 transition-colors flex-shrink-0 mt-0.5 cursor-pointer"
+                                        title={isExpanded ? 'Collapse' : 'Expand'}
+                                      >
+                                        {isExpanded ? <ChevronUp className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} /> : <ChevronDown className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />}
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} align-top`}>
+                                  <button
+                                    onClick={handleCopyClick(attr.value)}
+                                    onMouseDown={handleButtonMouseDown}
+                                    className="text-gray-400 hover:text-purple-300 transition-colors cursor-pointer"
+                                    title="Copy value"
+                                  >
+                                    <Copy className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
+                                  </button>
+                                </td>
+                              </tr>
+                              {isLongValue && isExpanded && (
+                                <tr>
+                                  <td colSpan={3} className={`${isMobile ? 'px-1' : 'px-2'} pb-2`}>
+                                    <div className={`mt-1 ${isMobile ? 'p-1.5' : 'p-2'} bg-slate-900/50 rounded border border-purple-500/20`}>
+                                      <div className={`text-gray-300 font-mono ${isMobile ? 'text-xs' : 'text-xs'} break-all`}>
+                                        {sanitizeText(attr.value)}
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </AccordionContent>
               </AccordionItem>
             )}
 
-            {/* Computed Styles */}
             <AccordionItem value="styles" className="border-orange-500/20">
-              <AccordionTrigger className="text-orange-400 text-sm py-2 hover:no-underline">
+              <AccordionTrigger className={`text-orange-400 ${isMobile ? 'text-xs py-1.5' : 'text-sm py-2'} hover:no-underline`}>
                 <div className="flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
+                  <Settings className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                   <span>Computed Styles</span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="space-y-2 text-xs">
-                <div className="bg-slate-800/50 p-3 rounded border border-orange-500/20 max-h-48 overflow-y-auto">
-                  {Object.entries(computedStyles).map(([property, value]) => (
-                    <div key={property} className="flex justify-between py-0.5">
-                      <span className="text-orange-300">{property}:</span>
-                      <span className="text-gray-300 font-mono text-right max-w-[120px] truncate">
-                        {sanitizeText(String(value))}
-                      </span>
-                    </div>
-                  ))}
+              <AccordionContent className={`space-y-2 ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                <div className={`bg-slate-800/50 ${isMobile ? 'p-2' : 'p-3'} rounded border border-orange-500/20 ${isMobile ? 'max-h-40' : 'max-h-48'} overflow-y-auto`}>
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="border-b border-gray-700/50">
+                        <th className={`text-left py-1 ${isMobile ? 'px-1' : 'px-2'} text-orange-300 font-medium`}>property</th>
+                        <th className={`text-left py-1 ${isMobile ? 'px-1' : 'px-2'} text-orange-300 font-medium`}>value</th>
+                        <th className={`text-left py-1 ${isMobile ? 'px-1 w-12' : 'px-2 w-16'} text-orange-300 font-medium`}>actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(computedStyles).map(([property, value], idx) => (
+                        <tr key={property} className="border-b border-gray-700/50 last:border-b-0">
+                          <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} text-orange-200 font-mono align-top`}>{property}</td>
+                          <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} align-top`}>
+                            <span className={`text-gray-300 font-mono break-all ${isMobile ? 'max-w-[150px]' : 'max-w-[300px]'}`}>{sanitizeText(String(value))}</span>
+                          </td>
+                          <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} align-top`}>
+                            <button
+                              onClick={handleCopyClick(String(value))}
+                              onMouseDown={handleButtonMouseDown}
+                              className="text-gray-400 hover:text-orange-300 transition-colors cursor-pointer"
+                              title="Copy value"
+                            >
+                              <Copy className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </AccordionContent>
             </AccordionItem>
 
-            {/* Event Listeners */}
             {eventListeners.length > 0 && (
               <AccordionItem value="events" className="border-yellow-500/20">
-                <AccordionTrigger className="text-yellow-400 text-sm py-2 hover:no-underline">
+                <AccordionTrigger className={`text-yellow-400 ${isMobile ? 'text-xs py-1.5' : 'text-sm py-2'} hover:no-underline`}>
                   <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4" />
+                    <Zap className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                     <span>Event Listeners ({eventListeners.length})</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="space-y-1 text-xs">
-                  <div className="bg-slate-800/50 p-3 rounded border border-yellow-500/20">
+                <AccordionContent className={`space-y-1 ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                  <div className={`bg-slate-800/50 ${isMobile ? 'p-2' : 'p-3'} rounded border border-yellow-500/20`}>
                     {eventListeners.map((listener, index) => (
                       <div key={index} className="text-yellow-300 font-mono">
                         {listener}
@@ -370,4 +576,4 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   );
 };
 
-export default ElementInspector; 
+export default ElementInspector;

@@ -76,9 +76,13 @@ class LogTracePopup {
           <li>Navigate to any webpage</li>
           <li>Use keyboard shortcuts:
             <ul>
-              <li><strong>D</strong> - Pause/Resume context details</li>
-              <li><strong>Ctrl+D</strong> - Quick analyze selected element</li>
-              <li><strong>Esc</strong> - Exit capture mode</li>
+              <li><strong>Ctrl+S</strong> - Start/Stop tracing</li>
+              <li><strong>Ctrl+E</strong> - End tracing session</li>
+              <li><strong>Ctrl+T</strong> - Toggle terminal panel</li>
+              <li><strong>Ctrl+D</strong> - Trigger AI debug</li>
+              <li><strong>Ctrl+P</strong> - Pause/Resume hover tracking</li>
+              <li><strong>Q</strong> - Quick actions menu</li>
+              <li><strong>Esc</strong> - Close panels/modals</li>
             </ul>
           </li>
         </ol>

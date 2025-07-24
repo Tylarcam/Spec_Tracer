@@ -1,49 +1,48 @@
-
-/**
- * LogTrace component optimized for Chrome extension
- */
-
-import React, { useCallback, useEffect, useMemo } from 'react';
-import { useLogTrace } from '@/shared/hooks/useLogTrace';
-import { sanitizeText, validatePrompt } from '@/utils/sanitization';
-import { supabase } from '@/integrations/supabase/client';
-import { useConsoleLogs } from '@/shared/hooks/useConsoleLogs';
-import { useContextEngine } from '@/shared/hooks/useContextEngine';
-import ElementInspector from '@/components/LogTrace/ElementInspector';
-import TabbedTerminal from '@/components/LogTrace/TabbedTerminal';
-import MoreDetailsModal from '@/components/LogTrace/PinnedDetails';
-import { ElementInfo } from '@/shared/types';
-import DebugModal from '@/components/LogTrace/DebugModal';
-import ExtensionControlPanel from './components/ExtensionControlPanel';
-import ExtensionAuthModal from './components/ExtensionAuthModal';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ExtensionMouseOverlay from './components/ExtensionMouseOverlay';
+import PinnedDetails from './components/PinnedDetails';
+import ExtensionTerminalWrapper from './components/ExtensionTerminalWrapper';
+import { usePinnedDetails } from '@/shared/hooks/usePinnedDetails';
+import { ElementInfo, LogEvent, ExtendedActionType } from '@/shared/types';
+import ExtensionAuthModal from './components/ExtensionAuthModal';
 import { useExtensionAuth } from './hooks/useExtensionAuth';
+import { callAIDebugFunction } from '@/shared/api';
+import { Settings } from 'lucide-react';
+import SettingsDrawer from '@/components/LogTrace/SettingsDrawer';
+import ElementInspector from '@/components/LogTrace/ElementInspector';
 
-const LogTraceExtension: React.FC = () => {
+export const LogTraceExtension: React.FC = () => {
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isActive, setIsActive] = useState(true);
+  const [currentElement, setCurrentElement] = useState<ElementInfo | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [showElementInspector, setShowElementInspector] = useState(false);
+  const [showTerminal, setShowTerminal] = useState(false);
+  const [events, setEvents] = useState<LogEvent[]>([]);
+  const [debugResponses, setDebugResponses] = useState<any[]>([]);
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
+  const [activeTerminalTab, setActiveTerminalTab] = useState<'debug' | 'console' | 'events'>('debug');
+  const [localToast, setLocalToast] = useState<{ title: string; description?: string; variant?: 'success' | 'destructive' } | null>(null);
+  const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
+  const overlayRef = React.useRef<HTMLDivElement>(null);
+  const elementInspectorRef = useRef<HTMLDivElement>(null);
+  const [isInspectorHovered, setIsInspectorHovered] = useState(false);
+  const [isHoverPaused, setIsHoverPaused] = useState(false);
+  const [pausedElement, setPausedElement] = useState<ElementInfo | null>(null);
+  const [pausedPosition, setPausedPosition] = useState<{ x: number; y: number } | null>(null);
+
   const {
-    isActive,
-    setIsActive,
-    mousePosition,
-    setMousePosition,
-    currentElement,
-    setCurrentElement,
-    showDebugModal,
-    setShowDebugModal,
-    showTerminal,
-    setShowTerminal,
-    events,
-    isAnalyzing,
-    overlayRef,
-    modalRef,
-    addEvent,
-    extractElementInfo,
-    analyzeWithAI,
-    clearEvents,
-    exportEvents,
-  } = useLogTrace();
+    pinnedDetails,
+    addPin,
+    removePin,
+    updatePinPosition,
+    clearAllPins,
+  } = usePinnedDetails();
 
   const {
     user,
+    authLoading,
     guestDebugCount,
     email,
     password,
@@ -51,402 +50,328 @@ const LogTraceExtension: React.FC = () => {
     toast,
     setEmail,
     setPassword,
-    setToast,
     handleSignUp,
     handleSignIn,
     handleSignInWithGitHub,
     incrementGuestDebug,
   } = useExtensionAuth();
 
-  // --- Modal State ---
-  const [showAuthModal, setShowAuthModal] = React.useState(false);
-  const [showMoreDetails, setShowMoreDetails] = React.useState(false);
-  const [detailsElement, setDetailsElement] = React.useState<ElementInfo | null>(null);
-
-  // --- Terminal State ---
-  const [debugResponses, setDebugResponses] = React.useState<Array<{ id: string; prompt: string; response: string; timestamp: string }>>([]);
-
-  // --- Element Inspector State ---
-  const [showElementInspector, setShowElementInspector] = React.useState(false);
-  const [inspectorIsPinned, setInspectorIsPinned] = React.useState(false);
-  const inspectorRef = React.useRef<HTMLDivElement>(null);
-
-  const currentElementSelector = useMemo(() => {
-    if (!currentElement) return undefined;
-    let selector = currentElement.tag;
-    if (currentElement.id) selector += `#${currentElement.id}`;
-    if (currentElement.classes.length > 0) selector += `.${currentElement.classes.join('.')}`;
-    return selector;
-  }, [currentElement]);
-
-  const { logs } = useConsoleLogs(currentElementSelector);
-
-  const computedStyles = useMemo(() => {
-    if (!currentElement?.element) return {};
-    const styles = window.getComputedStyle(currentElement.element);
-    return {
-      display: styles.display,
-      position: styles.position,
-      zIndex: styles.zIndex,
-      visibility: styles.visibility,
-      opacity: styles.opacity,
-      pointerEvents: styles.pointerEvents,
-      overflow: styles.overflow,
-      color: styles.color,
-      backgroundColor: styles.backgroundColor,
-      fontSize: styles.fontSize,
-      fontFamily: styles.fontFamily,
-      width: styles.width,
-      height: styles.height,
-      margin: styles.margin,
-      padding: styles.padding,
-      border: styles.border,
-      flexDirection: styles.flexDirection,
-      alignItems: styles.alignItems,
-      justifyContent: styles.justifyContent,
-      gridTemplateColumns: styles.gridTemplateColumns,
-      gridTemplateRows: styles.gridTemplateRows,
-    };
-  }, [currentElement]);
-
-  const eventListeners = useMemo(() => {
-    if (!currentElement?.element) return [];
-    const el = currentElement.element as any;
-    const listeners = [
-      'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmouseout',
-      'onmouseenter', 'onmouseleave', 'onkeydown', 'onkeyup', 'oninput',
-      'onchange', 'onfocus', 'onblur', 'onsubmit'
-    ];
-    return listeners.filter(listener => typeof el[listener] === 'function');
-  }, [currentElement]);
-
-  const filteredLogs = useMemo(() => {
-    return logs.filter(log => 
-      log.associatedElement === currentElementSelector || 
-      (log.message.includes(currentElement?.tag || '') && log.message.includes(currentElement?.id || ''))
-    );
-  }, [logs, currentElementSelector, currentElement]);
-
-  const contextEngine = useContextEngine({
-    elementInfo: {
-      tag: currentElement?.tag || '',
-      id: currentElement?.id,
-      classes: currentElement?.classes || [],
-      text: currentElement?.text,
-      parentPath: currentElement?.parentPath,
-    },
-    computedStyles,
-    eventListeners,
-    consoleLogs: filteredLogs,
-    userIntent: '',
-  });
-
-  const addDebugResponse = (prompt: string, response: string) => {
-    setDebugResponses(prev => [
-      { id: crypto.randomUUID(), prompt, response, timestamp: new Date().toISOString() },
-      ...prev,
-    ]);
-  };
-  const clearDebugResponses = () => setDebugResponses([]);
-
-  const handleAIDebug = async (prompt: string) => {
-    if (!validatePrompt(prompt)) {
-      setToast({ title: 'Invalid Prompt', description: 'Invalid prompt format.', variant: 'destructive' });
-      return;
-    }
-
-    // Change guest debug gating logic
-    if (!user && guestDebugCount >= 5) {
-      setShowAuthModal(true);
-      return;
-    }
-    if (!user) incrementGuestDebug();
-
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-debug', {
-        body: {
-          prompt: sanitizeText(prompt, 2000),
-          element: currentElement ? {
-            tag: sanitizeText(currentElement.tag),
-            id: sanitizeText(currentElement.id),
-            classes: currentElement.classes.map(c => sanitizeText(c)),
-            text: sanitizeText(currentElement.text),
-          } : null,
-          position: mousePosition,
-        },
-      });
-
-      if (error) {
-        console.error('Edge function error:', error);
-        setToast({ title: 'Debug Failed', description: 'Failed to get AI response', variant: 'destructive' });
-        return;
-      }
-
-      if (!data?.success) {
-        setToast({ title: 'AI Error', description: data?.error || 'AI service error', variant: 'destructive' });
-        return;
-      }
-
-      addDebugResponse(prompt, data.response);
-      setToast({ title: 'Debug Complete', description: 'AI analysis complete!' });
-    } catch (error: any) {
-      console.error('AI Debug API Error:', error);
-      if (error instanceof Error && error.message.includes('Authentication required')) {
-        setShowAuthModal(true);
-        return;
-      }
-      setToast({ title: 'Service Unavailable', description: 'AI debugging service is currently unavailable.', variant: 'destructive' });
-    }
-  };
-
-  const handleDebugFromInspector = React.useCallback(() => {
-    setShowElementInspector(false);
-    setShowDebugModal(true);
-    
+  // Pin handler for overlay
+  const handleOverlayPin = () => {
     if (currentElement) {
-      addEvent({
-        type: 'debug',
-        position: mousePosition,
-        element: {
-          tag: currentElement.tag,
-          id: currentElement.id,
-          classes: currentElement.classes,
-          text: currentElement.text,
-        },
-      });
+      addPin(currentElement, mousePosition);
     }
-  }, [currentElement, mousePosition, addEvent, setShowDebugModal]);
+  };
 
-  const handleToggleInspectorPin = React.useCallback(() => {
-    setInspectorIsPinned(prev => !prev);
+  // Event and debug response handlers (placeholder logic)
+  const handleExportEvents = () => {
+    // Export events as JSON
+    const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'logtrace-events.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const handleClearEvents = () => setEvents([]);
+  const handleClearDebugResponses = () => setDebugResponses([]);
+
+  // Updated Quick Action handler with proper typing
+  const handleQuickAction = useCallback(async (
+    action: ExtendedActionType,
+    element: ElementInfo | null = null
+  ) => {
+    const timestamp = new Date().toISOString();
+
+    // If this is a context gen action with user input
+    if (typeof action === 'object' && action.type === 'context') {
+      // Build a prompt based on mode and input
+      const prompt = `Context Action: ${action.mode}\nUser Input: ${action.input}\nElement: ${element ? JSON.stringify(element) : 'none'}`;
+      try {
+        const aiResponse = await callAIDebugFunction(prompt, element, mousePosition);
+        setDebugResponses(prev => [
+          ...prev,
+          { response: aiResponse, timestamp }
+        ]);
+        setConsoleLogs(prev => [
+          ...prev,
+          `[${timestamp}] AI Response: ${aiResponse}`
+        ]);
+        setShowTerminal(true);
+        setActiveTerminalTab('debug');
+        setLocalToast({
+          title: 'Request sent!',
+          description: 'Your AI debug results are now in the terminal.',
+          variant: 'success',
+        });
+      } catch (err) {
+        setConsoleLogs(prev => [
+          ...prev,
+          `[${timestamp}] AI Error: ${err instanceof Error ? err.message : String(err)}`
+        ]);
+        setLocalToast({
+          title: 'AI Generation Failed',
+          description: err instanceof Error ? err.message : 'Unknown error occurred',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
+    // Handle regular actions
+    const actionType = typeof action === 'string' ? action : 'debug';
+    
+    // Map action to allowed LogEvent type
+    let eventType: LogEvent['type'] = 'inspect';
+    if (actionType === 'debug' || actionType === 'context') eventType = 'debug';
+    else if (actionType === 'screenshot') eventType = 'click';
+    else if (actionType === 'details') eventType = 'inspect';
+    else if (actionType === 'copy') eventType = 'click';
+    
+    // Log to events
+    setEvents(prev => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        type: eventType,
+        timestamp,
+        position: mousePosition,
+        element: element ? {
+          tag: element.tag,
+          id: element.id,
+          classes: element.classes,
+          text: element.text,
+          parentPath: element.parentPath,
+          attributes: element.attributes,
+          size: element.size,
+        } : undefined,
+      },
+    ]);
+    
+    // Log to console
+    setConsoleLogs(prev => [
+      ...prev,
+      `[${timestamp}] QuickAction: ${actionType} on ${element ? element.tag : 'unknown'}`
+    ]);
+    
+    // Simulate AI response for debug/context
+    if (actionType === 'debug' || actionType === 'context') {
+      setTimeout(() => {
+        setDebugResponses(prev => [
+          ...prev,
+          {
+            response: `Simulated AI response for ${actionType} on ${element ? element.tag : 'unknown'}`,
+            timestamp,
+          },
+        ]);
+        setConsoleLogs(prev => [
+          ...prev,
+          `[${timestamp}] AI Response: Simulated response for ${actionType}`
+        ]);
+      }, 800);
+    }
+  }, [mousePosition]);
+
+  // Check if user needs authentication for certain features
+  const handleAuthRequired = useCallback(() => {
+    if (!user) {
+      setShowAuthModal(true);
+      return false;
+    }
+    return true;
+  }, [user]);
+
+  // Handle onboarding completion
+  const handleOnboardingComplete = useCallback(() => {
+    setShowOnboarding(false);
+    localStorage.setItem('logtrace-extension-onboarding-completed', 'true');
   }, []);
 
-  const generateAdvancedPrompt = useCallback((): string => {
-    if (!currentElement) return '';
-    
-    const element = currentElement.element;
-    const styles = window.getComputedStyle(element);
-    const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(currentElement.tag) || 
-                         element.onclick !== null || 
-                         styles.cursor === 'pointer';
+  // Check if onboarding should be shown
+  useEffect(() => {
+    const onboardingCompleted = localStorage.getItem('logtrace-extension-onboarding-completed');
+    if (!onboardingCompleted) {
+      setShowOnboarding(true);
+    }
+  }, []);
 
-    return `Debug this element in detail:
-
-Element: <${currentElement.tag}${currentElement.id ? ` id="${sanitizeText(currentElement.id)}"` : ''}${currentElement.classes.length ? ` class="${currentElement.classes.map(c => sanitizeText(c)).join(' ')}"` : ''}>
-Text: "${sanitizeText(currentElement.text)}"
-Position: x:${mousePosition.x}, y:${mousePosition.y}
-Interactive: ${isInteractive ? 'Yes' : 'No'}
-Cursor: ${styles.cursor}
-Display: ${styles.display}
-Visibility: ${styles.visibility}
-Pointer Events: ${styles.pointerEvents}
-
-Consider:
-1. Why might this element not be behaving as expected?
-2. Are there any CSS properties preventing interaction?
-3. Are there any event listeners that might be interfering?
-4. What accessibility concerns might exist?
-5. How could the user experience be improved?
-
-Provide specific, actionable debugging steps and potential solutions.`;
-  }, [currentElement, mousePosition]);
-
-  // Event handlers
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isActive || showDebugModal) return;
-    
-    const target = e.target as HTMLElement;
-    if (target && !target.closest('#logtrace-overlay') && !target.closest('#logtrace-modal') && !target.closest('[data-element-inspector]')) {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-      const elementInfo = extractElementInfo(target);
-      setCurrentElement(elementInfo);
-      
-      if (showElementInspector && !inspectorIsPinned) {
-        setShowElementInspector(false);
+  // Add robust global shortcut handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      if (
+        activeElement &&
+        (
+          activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          (activeElement as HTMLElement).isContentEditable ||
+          (activeElement.getAttribute && activeElement.getAttribute('role') === 'textbox')
+        )
+      ) {
+        return; // Do not fire shortcut if user is typing
       }
       
-      addEvent({
-        type: 'move',
-        position: { x: e.clientX, y: e.clientY },
-        element: {
-          tag: elementInfo.tag,
-          id: elementInfo.id,
-          classes: elementInfo.classes,
-          text: elementInfo.text,
-        },
-      });
-    }
-  }, [isActive, showDebugModal, extractElementInfo, addEvent, setMousePosition, setCurrentElement, showElementInspector, inspectorIsPinned]);
-
-  const handleClick = useCallback((e: MouseEvent) => {
-    if (!isActive) return;
-    
-    const target = e.target as HTMLElement;
-    if (target && !target.closest('#logtrace-overlay') && !target.closest('#logtrace-modal') && !target.closest('[data-element-inspector]')) {
-      e.preventDefault();
-      e.stopPropagation();
+      // Ctrl+D for debug/context
+      if (e.ctrlKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        // You can trigger your debug/context action here if needed
+        // e.g., setShowElementInspector(true) or similar
+      }
       
-      setShowElementInspector(true);
-      setMousePosition({ x: e.clientX, y: e.clientY });
+      // Ctrl+S for start/stop
+      if (e.ctrlKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        setIsActive(!isActive);
+      }
       
-      addEvent({
-        type: 'inspect',
-        position: { x: e.clientX, y: e.clientY },
-        element: currentElement ? {
-          tag: currentElement.tag,
-          id: currentElement.id,
-          classes: currentElement.classes,
-          text: currentElement.text,
-        } : undefined,
-      });
-    }
-  }, [isActive, currentElement, addEvent, setMousePosition]);
+      // Ctrl+P for pause/unpause
+      if (e.ctrlKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        setIsHoverPaused(!isHoverPaused);
+        if (!isHoverPaused && currentElement) {
+          setPausedElement(currentElement);
+          setPausedPosition(mousePosition);
+        }
+      }
+      
+      // Ctrl+E for end/escape
+      if (e.ctrlKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        setIsActive(false);
+        setShowElementInspector(false);
+        setIsHoverPaused(false);
+      }
+      
+      // Ctrl+T for terminal
+      if (e.ctrlKey && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setShowTerminal(!showTerminal);
+      }
+      
+      // Escape for general close/cancel
+      if (e.key === 'Escape') {
+        setShowElementInspector(false);
+        setIsHoverPaused(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isActive, isHoverPaused, currentElement, mousePosition, showTerminal]);
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    const activeElement = document.activeElement as HTMLElement | null;
-    if (
-      activeElement &&
-      (activeElement.tagName === 'INPUT' ||
-        activeElement.tagName === 'TEXTAREA' ||
-        activeElement.isContentEditable)
-    ) {
-      return;
-    }
-
-    if (isActive && e.ctrlKey && e.key === 'd') {
-      e.preventDefault();
-      setShowDebugModal(true);
-      addEvent({
-        type: 'debug',
-        position: mousePosition,
-        element: currentElement
-          ? {
-              tag: currentElement.tag,
-              id: currentElement.id,
-              classes: currentElement.classes,
-              text: currentElement.text,
-            }
-          : undefined,
-      });
-      return;
-    }
-
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      setShowDebugModal(false);
-      setShowElementInspector(false);
-      setShowAuthModal(false);
-      setShowMoreDetails(false);
-      return;
-    }
-  }, [isActive, mousePosition, currentElement, addEvent, setShowDebugModal]);
-
+  // Mouse tracking logic
   useEffect(() => {
-    if (isActive) {
-      document.addEventListener('mousemove', handleMouseMove, true);
-      document.addEventListener('click', handleClick, true);
-      document.addEventListener('keydown', handleKeyDown);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove, true);
-        document.removeEventListener('click', handleClick, true);
-        document.removeEventListener('keydown', handleKeyDown);
-      };
+    if (!isHoverPaused) {
+      setPausedElement(null);
+      setPausedPosition(null);
     }
-  }, [isActive, handleMouseMove, handleClick, handleKeyDown]);
+  }, [isHoverPaused]);
+
+  // In ExtensionMouseOverlay, add a handler to open the inspector on element click
+  const handleOverlayElementClick = () => {
+    if (currentElement) {
+      addPin(currentElement, mousePosition);
+    }
+    setShowElementInspector(true);
+    setIsHoverPaused(true);
+    setPausedElement(currentElement);
+    setPausedPosition(mousePosition);
+  };
+
+  const handleInspectorMouseEnter = () => {
+    setIsInspectorHovered(true);
+    setIsHoverPaused(true);
+  };
+  const handleInspectorMouseLeave = () => {
+    setIsInspectorHovered(false);
+    setIsHoverPaused(false);
+  };
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[2147483647] font-mono">
-      <ExtensionControlPanel
-        isActive={isActive}
-        onActiveChange={setIsActive}
-        showTerminal={showTerminal}
-        onToggleTerminal={() => setShowTerminal(!showTerminal)}
+    <>
+      {localToast && (
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-[2147483649] px-4 py-2 rounded shadow-lg ${localToast.variant === 'success' ? 'bg-green-700 text-green-100' : 'bg-red-700 text-red-100'}`}
+             onClick={() => setLocalToast(null)}
+        >
+          <strong>{localToast.title}</strong>
+          {localToast.description && <div className="text-sm mt-1">{localToast.description}</div>}
+        </div>
+      )}
+      {/* Settings Button - top right corner */}
+      <button
+        onClick={() => setShowSettingsDrawer(true)}
+        className="fixed top-4 right-4 z-[2147483650] bg-slate-900/80 border border-cyan-500/40 rounded-full p-2 shadow-lg hover:bg-cyan-900 transition-colors"
+        title="Settings"
+        style={{ pointerEvents: 'auto' }}
+      >
+        <Settings className="h-5 w-5 text-cyan-400" />
+      </button>
+      <SettingsDrawer
+        isOpen={showSettingsDrawer}
+        onClose={() => setShowSettingsDrawer(false)}
       />
-
       <ExtensionMouseOverlay
         isActive={isActive}
-        currentElement={currentElement}
-        mousePosition={mousePosition}
+        currentElement={isHoverPaused && pausedElement ? pausedElement : currentElement}
+        mousePosition={isHoverPaused && pausedPosition ? pausedPosition : mousePosition}
         showElementInspector={showElementInspector}
         overlayRef={overlayRef}
+        onPin={handleOverlayPin}
+        onQuickAction={handleQuickAction}
+        onElementClick={handleOverlayElementClick}
       />
-
-      <div data-element-inspector>
-        <ElementInspector
-          isVisible={showElementInspector}
-          currentElement={currentElement}
-          mousePosition={mousePosition}
-          onDebug={handleDebugFromInspector}
-          onClose={() => setShowElementInspector(false)}
-          panelRef={inspectorRef}
-          isExtensionMode={true}
-          isDraggable={true}
-          isPinned={inspectorIsPinned}
-          onPin={handleToggleInspectorPin}
-          onShowMoreDetails={() => {
-            setDetailsElement(currentElement);
-            setShowMoreDetails(true);
-            setShowElementInspector(false);
-          }}
-          currentDebugCount={guestDebugCount}
-          maxDebugCount={5}
-        />
-        </div>
-
-      {showDebugModal && (
-        <DebugModal
-          showDebugModal={showDebugModal}
-          setShowDebugModal={setShowDebugModal}
-          currentElement={currentElement}
-          mousePosition={mousePosition}
-          isAnalyzing={isAnalyzing}
-          analyzeWithAI={handleAIDebug}
-          generateAdvancedPrompt={generateAdvancedPrompt}
-          modalRef={modalRef}
-          isExtensionMode={true}
-          showAuthModal={showAuthModal}
-          setShowAuthModal={setShowAuthModal}
-          user={user}
-          guestDebugCount={guestDebugCount}
-          maxGuestDebugs={5}
-          terminalHeight={showTerminal ? 384 : 0}
+      <ElementInspector
+        isVisible={showElementInspector}
+        currentElement={isHoverPaused && pausedElement ? pausedElement : currentElement}
+        mousePosition={isHoverPaused && pausedPosition ? pausedPosition : mousePosition}
+        onDebug={() => {
+          // You can trigger the debug modal or quick action here
+          handleQuickAction('debug', currentElement);
+        }}
+        onClose={() => {
+          setShowElementInspector(false);
+          setIsHoverPaused(false);
+        }}
+        panelRef={elementInspectorRef}
+        isExtensionMode={true}
+        isDraggable={true}
+        isPinned={false}
+        onPin={handleOverlayPin}
+        onShowMoreDetails={() => {}}
+        currentDebugCount={guestDebugCount}
+        maxDebugCount={5}
+        // Pause hover when mouse is over inspector
+        onMouseEnter={handleInspectorMouseEnter}
+        onMouseLeave={handleInspectorMouseLeave}
+      />
+      <PinnedDetails pins={pinnedDetails} onRemove={removePin} />
+      <ExtensionTerminalWrapper
+        showTerminal={showTerminal}
+        onToggleTerminal={() => setShowTerminal(v => !v)}
+        events={events}
+        onExportEvents={handleExportEvents}
+        onClearEvents={handleClearEvents}
+        debugResponses={debugResponses}
+        onClearDebugResponses={handleClearDebugResponses}
+        consoleLogs={consoleLogs}
+        activeTab={activeTerminalTab}
+        setActiveTab={setActiveTerminalTab}
+      />
+      {showAuthModal && (
+        <ExtensionAuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onSignIn={handleSignIn}
+          onSignUp={handleSignUp}
+          onGitHubSignIn={handleSignInWithGitHub}
+          email={email}
+          setEmail={setEmail}
+          password={password}
+          setPassword={setPassword}
+          isLoading={isLoading}
+          toast={toast}
         />
       )}
-
-      <ExtensionAuthModal
-        showAuthModal={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        user={user}
-        isLoading={isLoading}
-        email={email}
-        password={password}
-        onEmailChange={setEmail}
-        onPasswordChange={setPassword}
-        onSignIn={handleSignIn}
-        onSignUp={handleSignUp}
-        onSignInWithGitHub={handleSignInWithGitHub}
-        toast={toast}
-      />
-
-      <MoreDetailsModal 
-        element={detailsElement}
-        open={showMoreDetails}
-        onClose={() => setShowMoreDetails(false)}
-        terminalHeight={showTerminal ? 384 : 0}
-      />
-
-      <TabbedTerminal
-        events={events}
-        exportEvents={exportEvents}
-        clearEvents={clearEvents}
-        debugResponses={debugResponses}
-        clearDebugResponses={clearDebugResponses}
-        showTerminal={showTerminal}
-        setShowTerminal={setShowTerminal}
-      />
-    </div>
+    </>
   );
 };
-
-export default LogTraceExtension;
