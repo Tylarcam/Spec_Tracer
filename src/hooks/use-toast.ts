@@ -171,10 +171,6 @@ function toast({ ...props }: Toast) {
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
-  // Register the component's state setter exactly once – on mount.
-  // Using an empty dependency array prevents re-registering the same listener
-  // every time `state` changes, which previously caused listeners to multiply
-  // and created a memory leak as well as redundant re-renders.
   React.useEffect(() => {
     listeners.push(setState)
     return () => {
@@ -183,7 +179,7 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [])
+  }, [state])
 
   return {
     ...state,
