@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
@@ -5,6 +6,7 @@ import { useMultipleInspectors } from '@/shared/hooks/useMultipleInspectors';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Terminal } from 'lucide-react';
+import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
 import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
@@ -168,6 +170,11 @@ const LogTrace: React.FC<LogTraceProps> = ({
 
   return (
     <div className="relative w-full h-full">
+      {/* Instructions Card - Always visible */}
+      <div className="relative z-10 p-4 md:p-6">
+        <InstructionsCard />
+      </div>
+
       {/* Mouse Overlay for element detection */}
       <MouseOverlay 
         isActive={isTraceActive}
