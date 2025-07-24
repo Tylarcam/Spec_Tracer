@@ -1,11 +1,13 @@
+
 import React, { useState } from 'react';
-import { Play, Pause, MousePointer, Settings, Terminal, Crown, Zap, Activity, Infinity, LogIn, LogOut } from 'lucide-react';
+import { Play, Pause, MousePointer, Settings, Crown, Zap, Activity, Infinity, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Badge } from '@/components/ui/badge';
 import { useEnhancedCredits } from '@/hooks/useEnhancedCredits';
 import { useAuth } from '@/contexts/AuthContext';
 import SettingsDrawer from '@/components/LogTrace/SettingsDrawer';
+
 interface NavBarProps {
   isTracing: boolean;
   isHoverEnabled: boolean;
@@ -16,6 +18,7 @@ interface NavBarProps {
   eventCount: number;
   showTerminal: boolean;
 }
+
 const NavBar: React.FC<NavBarProps> = ({
   isTracing,
   isHoverEnabled,
@@ -27,21 +30,17 @@ const NavBar: React.FC<NavBarProps> = ({
   showTerminal
 }) => {
   const [showSettings, setShowSettings] = useState(false);
-  const {
-    creditStatus,
-    isLoading,
-    error
-  } = useEnhancedCredits();
-  const {
-    user,
-    signOut
-  } = useAuth();
+  const { creditStatus, isLoading, error } = useEnhancedCredits();
+  const { user, signOut } = useAuth();
+
   const handleSettingsClick = () => {
     setShowSettings(true);
   };
+
   const handleCloseSettings = () => {
     setShowSettings(false);
   };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -49,6 +48,7 @@ const NavBar: React.FC<NavBarProps> = ({
       console.error('Error signing out:', error);
     }
   };
+
   const handleSignIn = () => {
     window.location.href = '/auth';
   };
@@ -59,7 +59,9 @@ const NavBar: React.FC<NavBarProps> = ({
     if (error) return '0';
     return creditStatus.isPremium ? <Infinity className="h-4 w-4 inline" /> : `${creditStatus.totalCredits}/40`;
   };
-  return <>
+
+  return (
+    <>
       <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-green-500/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -82,11 +84,23 @@ const NavBar: React.FC<NavBarProps> = ({
 
               {/* Trace Toggle */}
               <div className="flex items-center space-x-2">
-                <Toggle pressed={isTracing} onPressedChange={onToggleTracing} aria-label="Toggle tracing" className={`
+                <Toggle
+                  pressed={isTracing}
+                  onPressedChange={onToggleTracing}
+                  aria-label="Toggle tracing"
+                  className={`
                     transition-colors duration-200
-                    ${isTracing ? 'bg-green-600 hover:bg-green-700 text-white data-[state=on]:bg-green-600 data-[state=on]:text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white'}
-                  `}>
-                  {isTracing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    ${isTracing 
+                      ? 'bg-green-600 hover:bg-green-700 text-white data-[state=on]:bg-green-600 data-[state=on]:text-white' 
+                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white'
+                    }
+                  `}
+                >
+                  {isTracing ? (
+                    <Pause className="h-4 w-4" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
                   <span className="ml-2">
                     {isTracing ? 'Pause' : 'Start'} Trace
                   </span>
@@ -95,7 +109,21 @@ const NavBar: React.FC<NavBarProps> = ({
 
               {/* Hover Toggle */}
               <div className="flex items-center space-x-2">
-                
+                <Toggle
+                  pressed={isHoverEnabled}
+                  onPressedChange={onToggleHover}
+                  aria-label="Toggle hover detection"
+                  className={`
+                    transition-colors duration-200
+                    ${isHoverEnabled 
+                      ? 'bg-green-600 hover:bg-green-700 text-white data-[state=on]:bg-green-600 data-[state=on]:text-white' 
+                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white'
+                    }
+                  `}
+                >
+                  <MousePointer className="h-4 w-4" />
+                  <span className="ml-2">Hover</span>
+                </Toggle>
               </div>
 
               {/* Event Status Icons */}
@@ -121,39 +149,57 @@ const NavBar: React.FC<NavBarProps> = ({
               </div>
 
               {/* Pro Badge */}
-              {!isLoading && !error && creditStatus.isPremium && <div className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-3 py-1">
+              {!isLoading && !error && creditStatus.isPremium && (
+                <div className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-3 py-1">
                   <Crown className="h-3 w-3 text-yellow-400" />
                   <span className="text-xs text-yellow-400 font-medium">Pro</span>
-                </div>}
-
-              {/* Terminal Toggle */}
-              <Button onClick={onToggleTerminal} variant="ghost" size="sm" className={`
-                  transition-colors duration-200
-                  ${showTerminal ? 'bg-green-600 hover:bg-green-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}
-                `}>
-                <Terminal className="h-4 w-4" />
-              </Button>
+                </div>
+              )}
 
               {/* Settings Button */}
-              <Button onClick={handleSettingsClick} variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-slate-700">
+              <Button
+                onClick={handleSettingsClick}
+                variant="ghost"
+                size="sm"
+                className="text-slate-400 hover:text-white hover:bg-slate-700"
+              >
                 <Settings className="h-4 w-4" />
               </Button>
 
               {/* Sign In/Out */}
-              {user ? <Button onClick={handleSignOut} variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-slate-700">
+              {user ? (
+                <Button
+                  onClick={handleSignOut}
+                  variant="ghost"
+                  size="sm"
+                  className="text-slate-400 hover:text-white hover:bg-slate-700"
+                >
                   <LogOut className="h-4 w-4" />
                   <span className="ml-1 hidden sm:inline">Sign Out</span>
-                </Button> : <Button onClick={handleSignIn} variant="ghost" size="sm" className="text-green-400 hover:text-white hover:bg-green-700">
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSignIn}
+                  variant="ghost"
+                  size="sm"
+                  className="text-green-400 hover:text-white hover:bg-green-700"
+                >
                   <LogIn className="h-4 w-4" />
                   <span className="ml-1 hidden sm:inline">Sign In</span>
-                </Button>}
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </nav>
 
       {/* Settings Drawer */}
-      <SettingsDrawer isOpen={showSettings} onClose={handleCloseSettings} />
-    </>;
+      <SettingsDrawer
+        isOpen={showSettings}
+        onClose={handleCloseSettings}
+      />
+    </>
+  );
 };
+
 export default NavBar;

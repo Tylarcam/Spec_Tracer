@@ -325,15 +325,22 @@ export const LogTraceExtension: React.FC = () => {
         currentElement={isHoverPaused && pausedElement ? pausedElement : currentElement}
         mousePosition={isHoverPaused && pausedPosition ? pausedPosition : mousePosition}
         onDebug={() => {
+          // You can trigger the debug modal or quick action here
           handleQuickAction('debug', currentElement);
         }}
         onClose={() => {
           setShowElementInspector(false);
           setIsHoverPaused(false);
         }}
+        panelRef={elementInspectorRef}
+        isExtensionMode={true}
+        isDraggable={true}
+        isPinned={false}
+        onPin={handleOverlayPin}
         onShowMoreDetails={() => {}}
-        inspectorId="extension-inspector"
-        onBringToFront={() => {}}
+        currentDebugCount={guestDebugCount}
+        maxDebugCount={5}
+        // Pause hover when mouse is over inspector
         onMouseEnter={handleInspectorMouseEnter}
         onMouseLeave={handleInspectorMouseLeave}
       />
