@@ -12,14 +12,12 @@ const Index: React.FC = () => {
   const [captureActive, setCaptureActive] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
-  const [showInstructions, setShowInstructions] = useState(true);
 
   // Check if onboarding should be shown
   useEffect(() => {
     const onboardingParam = searchParams.get('onboarding');
     if (onboardingParam === 'true') {
       setShowOnboarding(true);
-      setShowInstructions(false);
     }
   }, [searchParams]);
 
@@ -29,40 +27,36 @@ const Index: React.FC = () => {
 
   const handleOnboardingSkip = () => {
     setShowOnboarding(false);
-    setShowInstructions(true);
   };
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
-    setShowInstructions(true);
   };
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Demo Content Area */}
+      {/* Main Content Area */}
       <div className="relative h-screen">
+        {/* Welcome Header */}
+        <div className="pt-24 pb-8 px-8 text-center">
+          <h1 className="text-4xl font-bold text-foreground mb-4">
+            Welcome to LogTrace Debug Mode
+          </h1>
+          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            This is a demo page to learn how to use LogTrace. Try hovering over elements, clicking them, and using the debug features.
+          </p>
+        </div>
+
         {/* Instructions Card */}
-        {showInstructions && !showOnboarding && (
-          <div className="absolute top-20 left-4 right-4 z-20 max-w-md mx-auto">
-            <InstructionsCard 
-              onStartOnboarding={() => {
-                setShowOnboarding(true);
-                setShowInstructions(false);
-              }}
-            />
+        {!showOnboarding && (
+          <div className="flex justify-center px-4 mb-8">
+            <InstructionsCard />
           </div>
         )}
 
         {/* Sample Demo Content */}
-        <div className="p-8 pt-24 space-y-6">
+        <div className="px-8 space-y-6">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl font-bold text-foreground mb-4">
-              Welcome to LogTrace Debug Mode
-            </h1>
-            <p className="text-lg text-muted-foreground mb-8">
-              This is a demo page to learn how to use LogTrace. Try hovering over elements, clicking them, and using the debug features.
-            </p>
-            
             {/* Sample interactive elements for testing */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-card p-6 rounded-lg border shadow-sm">
