@@ -83,14 +83,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   };
 
   if (!showTerminal) {
-    return (
-      <Button
-        onClick={() => setShowTerminal(true)}
-        className="fixed bottom-4 right-4 z-30 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
-      >
-        <span style={{ fontSize: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{'>'}</span>
-      </Button>
-    );
+    return null;
   }
 
   return (
