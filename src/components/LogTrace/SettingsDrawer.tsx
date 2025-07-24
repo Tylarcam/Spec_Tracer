@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Settings, Keyboard, Zap, Eye, Terminal, MousePointer, Bell, Palette, Share2, Crown, User, Mail, Shield, Download, Trash2, LogOut, EyeOff, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/hooks/useNotification';
 import { useEnhancedCredits } from '@/hooks/useEnhancedCredits';
 import { supabase } from '@/integrations/supabase/client';
+import ShareModal from '@/components/ShareModal';
 
 interface SettingsDrawerProps {
   isOpen: boolean;
@@ -76,8 +76,8 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
   };
 
   const handleShare = async (platform: string) => {
-    const success = await awardShareCredits(platform);
-    if (success) {
+    const shareSuccess = await awardShareCredits(platform);
+    if (shareSuccess) {
       success({
         title: 'Credits awarded!',
         description: 'You earned +5 bonus credits for sharing LogTrace!'
@@ -92,8 +92,8 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ email: newEmail });
-      if (error) throw error;
+      const { error: updateError } = await supabase.auth.updateUser({ email: newEmail });
+      if (updateError) throw updateError;
       
       success({
         title: 'Email update requested',
@@ -119,8 +119,8 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: passwords.new });
-      if (error) throw error;
+      const { error: updateError } = await supabase.auth.updateUser({ password: passwords.new });
+      if (updateError) throw updateError;
       
       success({
         title: 'Password updated',
@@ -139,11 +139,11 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resend({
+      const { error: resendError } = await supabase.auth.resend({
         type: 'signup',
         email: user.email
       });
-      if (error) throw error;
+      if (resendError) throw resendError;
       
       success({
         title: 'Confirmation sent',
@@ -240,7 +240,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
       <div 
         data-settings
         className={`
-        fixed right-0 top-0 h-full w-full max-w-2xl bg-slate-900 border-l border-green-500/30 
+        fixed right-0 top-0 h-full w-full max-w-3xl bg-slate-900 border-l border-green-500/30 
         shadow-2xl z-50 transform transition-transform duration-300 ease-out
         ${isOpen ? 'translate-x-0' : 'translate-x-full'}
       `}>
@@ -691,6 +691,14 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
           </Tabs>
         </div>
       </div>
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <ShareModal 
+          isOpen={showShareModal} 
+          onClose={() => setShowShareModal(false)} 
+        />
+      )}
     </>
   );
 };

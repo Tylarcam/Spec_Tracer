@@ -1,11 +1,12 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { X, Download, Play, History } from 'lucide-react';
+import { X, Download, Play, History, GripHorizontal, Copy } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { parseAIResponse, formatAIResponseForDisplay } from '@/utils/sanitization';
+import { formatElementDataForCopy } from '@/utils/elementDataFormatter';
+import { useToast } from '@/hooks/use-toast';
 
 interface TabbedTerminalProps {
   showTerminal: boolean;
@@ -17,6 +18,7 @@ interface TabbedTerminalProps {
   clearDebugResponses: () => void;
   currentElement?: any;
   terminalHeight?: number;
+  onTerminalHeightChange?: (height: number) => void;
 }
 
 const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
@@ -28,11 +30,57 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   debugResponses = [],
   clearDebugResponses,
   currentElement,
-  terminalHeight,
+  terminalHeight = 384,
+  onTerminalHeightChange,
 }) => {
   const [activeTab, setActiveTab] = useState<'events' | 'debug' | 'console'>('events');
   const [associateWithElement, setAssociateWithElement] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [currentHeight, setCurrentHeight] = useState(terminalHeight);
+  const resizeRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const { toast } = useToast();
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    
+    const startY = e.clientY;
+    const startHeight = currentHeight;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaY = startY - e.clientY;
+      const newHeight = Math.max(200, Math.min(800, startHeight + deltaY));
+      setCurrentHeight(newHeight);
+    };
+    
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      onTerminalHeightChange?.(currentHeight);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [currentHeight, onTerminalHeightChange]);
+
+  const handleCopyEvent = (event: any) => {
+    const formattedData = formatElementDataForCopy(event.element, event.position);
+    navigator.clipboard.writeText(formattedData);
+    toast({
+      title: "Event copied to clipboard",
+      description: "Element details have been copied successfully",
+    });
+  };
+
+  const handleCopyDebugResponse = (response: string) => {
+    navigator.clipboard.writeText(response);
+    toast({
+      title: "Response copied to clipboard",
+      description: "AI debug response has been copied successfully",
+    });
+  };
 
   if (!showTerminal) {
     return (
@@ -40,7 +88,6 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
         onClick={() => setShowTerminal(true)}
         className="fixed bottom-4 right-4 z-30 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
       >
-        {/* Keep the green circle terminal icon */}
         <span style={{ fontSize: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{'>'}</span>
       </Button>
     );
@@ -48,10 +95,22 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
 
   return (
     <div
-      className={`w-full h-full ${isMobile ? 'z-100' : 'z-50'}`}
+      className={`w-full ${isMobile ? 'z-100' : 'z-50'}`}
+      style={{ height: `${currentHeight}px` }}
     >
       <Card className={`bg-slate-900/95 border-green-500/50 ${isMobile ? 'rounded-none border-x-0 border-b-0' : 'rounded-t-lg border-b-0'} h-full`}>
-        <div className={`${isMobile ? 'p-2' : 'p-4'} h-full flex flex-col min-h-0`}>
+        {/* Resize Handle */}
+        {!isMobile && (
+          <div
+            ref={resizeRef}
+            className={`h-2 w-full cursor-row-resize bg-green-500/20 hover:bg-green-500/30 transition-colors flex items-center justify-center group ${isResizing ? 'bg-green-500/40' : ''}`}
+            onMouseDown={handleMouseDown}
+          >
+            <GripHorizontal className="h-3 w-3 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        )}
+        
+        <div className={`${isMobile ? 'p-2' : 'p-4'} h-full flex flex-col min-h-0`} style={{ height: isMobile ? '100%' : 'calc(100% - 8px)' }}>
           {!isMobile && (
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
@@ -97,6 +156,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                 Console (0)
               </TabsTrigger>
             </TabsList>
+            
             <TabsContent value="events" className="mt-4 relative flex-1 min-h-0">
               <div className="flex justify-between items-center shrink-0 h-6">
                 <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400`}>Interaction Events</span>
@@ -168,11 +228,11 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                           <div className="text-gray-400 text-xs min-w-0 max-w-full" title={size}>{size}</div>
                           <div className="flex justify-end items-center col-span-9">
                             <button
-                              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground rounded-md h-6 w-6 p-0 ml-2"
+                              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground rounded-md h-6 w-6 p-0 ml-2"
                               title="Copy event details"
-                              onClick={() => navigator.clipboard.writeText(copyString)}
+                              onClick={() => handleCopyEvent(event)}
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy w-3 h-3 text-gray-400"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                              <Copy className="w-3 h-3 text-gray-400" />
                             </button>
                           </div>
                         </div>
@@ -210,11 +270,11 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                             <span className="text-xs text-green-400 font-semibold">AI Debug</span>
                           </div>
                           <button
-                            onClick={() => navigator.clipboard.writeText(formattedResponse)}
+                            onClick={() => handleCopyDebugResponse(formattedResponse)}
                             className="text-gray-400 hover:text-white transition-colors"
                             title="Copy response"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy w-3 h-3 text-gray-400"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                            <Copy className="w-3 h-3" />
                           </button>
                         </div>
                         {/* Prompt */}
