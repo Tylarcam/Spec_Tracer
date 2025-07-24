@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -33,12 +32,6 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   const [activeTab, setActiveTab] = useState<'events' | 'debug' | 'console'>('events');
   const [associateWithElement, setAssociateWithElement] = useState(false);
   const isMobile = useIsMobile();
-
-  const handleClearEvents = () => {
-    console.log('Clearing events - current count:', events.length);
-    clearEvents();
-    console.log('Events cleared');
-  };
 
   if (!showTerminal) {
     return (
@@ -117,7 +110,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                   )}
                   <button
                     className={`bg-red-500/10 text-red-400 border border-red-500/50 rounded ${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-xs'} hover:bg-red-500/20 transition`}
-                    onClick={handleClearEvents}
+                    onClick={clearEvents}
                   >
                     Clear
                   </button>
@@ -258,7 +251,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                   </label>
                   <button
                     className="bg-red-500/10 text-red-400 border border-red-500/50 rounded px-3 py-1 text-xs hover:bg-red-500/20 transition"
-                    onClick={handleClearEvents}
+                    onClick={clearEvents}
                   >
                     Clear Console
                   </button>

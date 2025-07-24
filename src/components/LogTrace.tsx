@@ -1,38 +1,42 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useHotkeys } from 'react-hotkeys-hook';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
-import { useMultipleInspectors } from '@/shared/hooks/useMultipleInspectors';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Button } from '@/components/ui/button';
-import { Terminal } from 'lucide-react';
-import InstructionsCard from './LogTrace/InstructionsCard';
+
 import MouseOverlay from './LogTrace/MouseOverlay';
 import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
 import TabbedTerminal from './LogTrace/TabbedTerminal';
-import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
+import SettingsDrawer from './LogTrace/SettingsDrawer';
+import OnboardingWalkthrough from './LogTrace/OnboardingWalkthrough';
+import MobileQuickActionsMenu from './LogTrace/MobileQuickActionsMenu';
+import QuickActionPill from './LogTrace/QuickActionPill';
+import InstructionsCard from './LogTrace/InstructionsCard';
+
+import { useTracingContext } from '@/App';
+import { QuickActionType } from '@/shared/types';
 
 interface LogTraceProps {
-  captureActive: boolean;
-  onCaptureToggle: (active: boolean) => void;
-  onEventCountChange?: (count: number) => void;
+  captureActive?: boolean;
+  onCaptureToggle?: (active: boolean) => void;
 }
 
-const LogTrace: React.FC<LogTraceProps> = ({ 
-  captureActive, 
-  onCaptureToggle,
-  onEventCountChange 
-}) => {
+const LogTrace: React.FC<LogTraceProps> = React.memo(({ captureActive, onCaptureToggle }) => {
+  const { tracingActive: contextTracingActive, setTracingActive: setContextTracingActive } = useTracingContext();
+  const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
-  const [showTerminal, setShowTerminal] = useState(false);
-  const [isHoverPaused, setIsHoverPaused] = useState(false);
-  const [terminalHeight, setTerminalHeight] = useState(400);
   
+  // Use external props if provided, otherwise use context
+  const tracingActive = captureActive !== undefined ? captureActive : contextTracingActive;
+  const setTracingActive = onCaptureToggle || setContextTracingActive;
+  
+  // Initialize the main orchestrator hook
   const orchestrator = useLogTraceOrchestrator();
-  const { debugResponses, clearDebugResponses } = useDebugResponses();
-  const { inspectors, addInspector, removeInspector, bringToFront, clearAllInspectors } = useMultipleInspectors();
-
+  
+  // Stable references to prevent flickering
   const {
     isTraceActive,
     setIsTraceActive,
@@ -42,172 +46,289 @@ const LogTrace: React.FC<LogTraceProps> = ({
     setDetectedElement,
     showAIDebugModal,
     setShowAIDebugModal,
+    showTerminalPanel,
+    setShowTerminalPanel,
     capturedEvents,
+    traceSettings,
+    updateTraceSettings,
     isAIAnalyzing,
+    isLoading,
+    hasAnyErrors,
+    allErrors,
+    clearAllErrors,
+    overlayRef,
+    modalRef,
     recordEvent,
     extractElementDetails,
     analyzeElementWithAI,
     clearCapturedEvents,
     exportCapturedEvents,
     generateElementPrompt,
-    overlayRef,
-    modalRef,
+    debugContext,
   } = orchestrator;
 
-  // Sync event count with parent component
-  useEffect(() => {
-    if (onEventCountChange) {
-      onEventCountChange(capturedEvents?.length || 0);
-    }
-  }, [capturedEvents, onEventCountChange]);
+  // Onboarding state
+  const [onboardingStep, setOnboardingStep] = React.useState(0);
+  const [showOnboarding, setShowOnboarding] = React.useState(false);
+  const [onboardingCompleted, setOnboardingCompleted] = React.useState(false);
 
-  // Handle escape key functionality
-  const handleEscapeKey = () => {
+  // UI state
+  const [isHoverEnabled, setIsHoverEnabled] = React.useState(true);
+  const [isHoverPaused, setIsHoverPaused] = React.useState(false);
+  const [showInteractivePanel, setShowInteractivePanel] = React.useState(false);
+  const [showSettingsDrawer, setShowSettingsDrawer] = React.useState(false);
+  const [showMobileMenu, setShowMobileMenu] = React.useState(false);
+  const [showQuickActions, setShowQuickActions] = React.useState(false);
+  const [quickActionPosition, setQuickActionPosition] = React.useState({ x: 0, y: 0 });
+  const [inspectorPanels, setInspectorPanels] = React.useState<Array<{
+    id: string;
+    element: any;
+    position: { x: number; y: number };
+  }>>([]);
+
+  // Single source of truth for tracing state - only sync once on mount
+  useEffect(() => {
+    if (tracingActive !== isTraceActive) {
+      setIsTraceActive(tracingActive);
+    }
+  }, [tracingActive]); // Only depend on tracingActive from context
+
+  // Update context when internal state changes
+  useEffect(() => {
+    if (isTraceActive !== tracingActive) {
+      setTracingActive(isTraceActive);
+    }
+  }, [isTraceActive]); // Only depend on isTraceActive
+
+  // Handle onboarding from URL parameter
+  useEffect(() => {
+    const onboardingParam = searchParams.get('onboarding');
+    if (onboardingParam === 'true' && !onboardingCompleted) {
+      setShowOnboarding(true);
+    }
+  }, [searchParams, onboardingCompleted]);
+
+  // Memoized handlers to prevent flickering
+  const handleEscapeKey = useCallback(() => {
     if (showAIDebugModal) {
       setShowAIDebugModal(false);
-    } else if (inspectors.length > 0) {
-      // Close most recent inspector
-      const mostRecent = inspectors.reduce((latest, current) => 
-        current.createdAt > latest.createdAt ? current : latest
-      );
-      removeInspector(mostRecent.id);
-    } else if (detectedElement) {
-      setDetectedElement(null);
+    } else if (showQuickActions) {
+      setShowQuickActions(false);
+    } else if (inspectorPanels.length > 0) {
+      setInspectorPanels(prev => prev.slice(0, -1));
+    } else if (showSettingsDrawer) {
+      setShowSettingsDrawer(false);
     }
-  };
+  }, [showAIDebugModal, showQuickActions, inspectorPanels.length, showSettingsDrawer, setShowAIDebugModal]);
 
-  // Handle element click for inspection
-  const handleElementClick = () => {
-    if (detectedElement) {
-      addInspector(detectedElement, cursorPosition);
+  const handleElementClick = useCallback(() => {
+    if (!detectedElement || inspectorPanels.length >= 3) return;
+    
+    const newInspector = {
+      id: `inspector-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      element: detectedElement,
+      position: { x: cursorPosition.x, y: cursorPosition.y }
+    };
+    
+    setInspectorPanels(prev => [...prev, newInspector]);
+  }, [detectedElement, cursorPosition, inspectorPanels.length]);
+
+  const handleQuickAction = useCallback((action: QuickActionType) => {
+    setShowQuickActions(false);
+    
+    switch (action) {
+      case 'details':
+        if (detectedElement) {
+          const newInspector = {
+            id: `inspector-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            element: detectedElement,
+            position: { x: cursorPosition.x, y: cursorPosition.y }
+          };
+          setInspectorPanels(prev => [...prev, newInspector]);
+        }
+        break;
+      case 'debug':
+        if (detectedElement) {
+          setShowAIDebugModal(true);
+        }
+        break;
+      case 'screenshot':
+        // Handle screenshot
+        break;
+      case 'copy':
+        // Handle copy
+        break;
+      case 'context':
+        // Handle context
+        break;
     }
-  };
+  }, [detectedElement, cursorPosition, setShowAIDebugModal]);
 
-  // Set up interaction handlers
-  const {
-    handleCursorMovement,
-    handleElementClick: handleElementClickEvent,
-    handleTouchStart,
-    handleTouchEnd,
-  } = useInteractionHandlers({
+  // Memoized interaction handlers
+  const interactionHandlers = useMemo(() => ({
     isTraceActive,
     isHoverPaused,
     detectedElement,
     cursorPosition,
-    showInteractivePanel: false, // No longer used
+    showInteractivePanel,
     setCursorPosition,
     setDetectedElement,
-    setShowInteractivePanel: () => {}, // No longer used
+    setShowInteractivePanel,
     setShowAIDebugModal,
     extractElementDetails,
     recordEvent,
     handleEscapeKey,
     onElementClick: handleElementClick,
-  });
+    onQuickAction: handleQuickAction,
+  }), [
+    isTraceActive,
+    isHoverPaused,
+    detectedElement,
+    cursorPosition,
+    showInteractivePanel,
+    setCursorPosition,
+    setDetectedElement,
+    setShowInteractivePanel,
+    setShowAIDebugModal,
+    extractElementDetails,
+    recordEvent,
+    handleEscapeKey,
+    handleElementClick,
+    handleQuickAction,
+  ]);
 
-  // Sync capture state with parent
-  useEffect(() => {
-    setIsTraceActive(captureActive);
-  }, [captureActive, setIsTraceActive]);
+  // Interaction handlers
+  const {
+    handleCursorMovement,
+    handleElementClick: handleInteractionClick,
+    handleTouchStart,
+    handleTouchEnd,
+  } = useInteractionHandlers(interactionHandlers);
 
-  useEffect(() => {
-    onCaptureToggle(isTraceActive);
-  }, [isTraceActive, onCaptureToggle]);
+  // Keyboard shortcuts
+  useHotkeys('ctrl+shift+l', () => setIsTraceActive(!isTraceActive));
+  useHotkeys('ctrl+shift+t', () => setShowTerminalPanel(!showTerminalPanel));
+  useHotkeys('ctrl+shift+s', () => setShowSettingsDrawer(!showSettingsDrawer));
+  useHotkeys('escape', handleEscapeKey);
 
-  // Set up DOM event listeners
-  useEffect(() => {
-    if (!isTraceActive) return;
+  // Onboarding handlers
+  const handleOnboardingNext = useCallback(() => {
+    setOnboardingStep(prev => prev + 1);
+  }, []);
 
-    const handleMouseMove = (e: MouseEvent) => {
-      handleCursorMovement(e as any);
-    };
+  const handleOnboardingSkip = useCallback(() => {
+    setShowOnboarding(false);
+    setOnboardingCompleted(true);
+  }, []);
 
-    const handleClick = (e: MouseEvent) => {
-      handleElementClickEvent(e as any);
-    };
+  const handleOnboardingComplete = useCallback(() => {
+    setShowOnboarding(false);
+    setOnboardingCompleted(true);
+  }, []);
 
-    const handleTouchStartEvent = (e: TouchEvent) => {
-      if (handleTouchStart) {
-        handleTouchStart(e as any);
-      }
-    };
+  // Close inspector panel
+  const closeInspectorPanel = useCallback((id: string) => {
+    setInspectorPanels(prev => prev.filter(panel => panel.id !== id));
+  }, []);
 
-    const handleTouchEndEvent = (e: TouchEvent) => {
-      if (handleTouchEnd) {
-        handleTouchEnd(e as any);
-      }
-    };
-
-    // Add event listeners
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('click', handleClick);
-    
-    if (isMobile) {
-      document.addEventListener('touchstart', handleTouchStartEvent);
-      document.addEventListener('touchend', handleTouchEndEvent);
+  // Memoized context menu handler
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    if (isTraceActive && detectedElement) {
+      e.preventDefault();
+      setQuickActionPosition({ x: e.clientX, y: e.clientY });
+      setShowQuickActions(true);
     }
+  }, [isTraceActive, detectedElement]);
 
-    // Cleanup function
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('click', handleClick);
-      
-      if (isMobile) {
-        document.removeEventListener('touchstart', handleTouchStartEvent);
-        document.removeEventListener('touchend', handleTouchEndEvent);
-      }
-    };
-  }, [isTraceActive, handleCursorMovement, handleElementClickEvent, handleTouchStart, handleTouchEnd, isMobile]);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading LogTrace...</p>
+        </div>
+      </div>
+    );
+  }
 
-  // Clear all inspectors when trace is deactivated
-  useEffect(() => {
-    if (!isTraceActive) {
-      clearAllInspectors();
-    }
-  }, [isTraceActive, clearAllInspectors]);
-
-  console.log('LogTrace rendering with capturedEvents:', capturedEvents?.length || 0);
+  if (hasAnyErrors) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="text-red-400 mb-4">
+            <h2 className="text-xl font-bold mb-2">Configuration Error</h2>
+            <p className="text-sm">
+              {allErrors.settings || allErrors.storage || allErrors.loading || 'Unknown error occurred'}
+            </p>
+          </div>
+          <button
+            onClick={clearAllErrors}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative w-full h-full">
-      {/* Instructions Card - Always visible */}
-      <div className="relative z-10 p-4 md:p-6">
-        <InstructionsCard />
+    <div 
+      className="min-h-screen bg-slate-900 text-white relative overflow-hidden"
+      onMouseMove={handleCursorMovement}
+      onClick={handleInteractionClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onContextMenu={handleContextMenu}
+    >
+      {/* Main Content */}
+      <div className="pt-20 pb-8 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-green-400 mb-4">Welcome to LogTrace</h1>
+            <p className="text-slate-300 text-lg">
+              The AI-powered debugging tool that helps you capture perfect context for any UI element.
+            </p>
+          </div>
+
+          <InstructionsCard />
+        </div>
       </div>
 
-      {/* Mouse Overlay for element detection */}
-      <MouseOverlay 
-        isActive={isTraceActive}
+      {/* Mouse Overlay */}
+      <MouseOverlay
+        isActive={isTraceActive && isHoverEnabled && !isHoverPaused}
         currentElement={detectedElement}
         mousePosition={cursorPosition}
         overlayRef={overlayRef}
-        inspectorCount={inspectors.length}
+        inspectorCount={inspectorPanels.length}
       />
 
-      {/* Multiple Element Inspectors */}
-      {inspectors.map((inspector) => (
+      {/* Inspector Panels */}
+      {inspectorPanels.map((panel) => (
         <ElementInspector
-          key={inspector.id}
+          key={panel.id}
           isVisible={true}
-          currentElement={inspector.element}
-          mousePosition={inspector.position}
+          currentElement={panel.element}
+          mousePosition={panel.position}
           onDebug={() => {
-            setDetectedElement(inspector.element);
+            setDetectedElement(panel.element);
             setShowAIDebugModal(true);
           }}
-          onClose={() => removeInspector(inspector.id)}
+          onClose={() => closeInspectorPanel(panel.id)}
+          panelRef={overlayRef}
+          isExtensionMode={false}
+          isDraggable={true}
+          isPinned={false}
+          onPin={() => {}}
           onShowMoreDetails={() => {}}
-          // Static positioning props
-          isStatic={true}
-          staticPosition={inspector.position}
-          zIndex={inspector.zIndex}
-          inspectorId={inspector.id}
-          onBringToFront={() => bringToFront(inspector.id)}
+          onMouseEnter={() => setIsHoverPaused(true)}
+          onMouseLeave={() => setIsHoverPaused(false)}
         />
       ))}
 
-      {/* AI Debug Modal */}
-      <DebugModal 
+      {/* Debug Modal */}
+      <DebugModal
         showDebugModal={showAIDebugModal}
         setShowDebugModal={setShowAIDebugModal}
         currentElement={detectedElement}
@@ -216,35 +337,97 @@ const LogTrace: React.FC<LogTraceProps> = ({
         analyzeWithAI={analyzeElementWithAI}
         generateAdvancedPrompt={generateElementPrompt}
         modalRef={modalRef}
+        isExtensionMode={false}
+        showAuthModal={false}
+        setShowAuthModal={() => {}}
+        user={null}
+        guestDebugCount={0}
+        maxGuestDebugs={3}
+        terminalHeight={showTerminalPanel ? 400 : 0}
       />
 
-      {/* Floating Terminal Toggle Button */}
-      {!showTerminal && (
-        <Button
-          onClick={() => setShowTerminal(true)}
-          className="fixed bottom-4 left-4 z-50 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
-          size="sm"
-        >
-          <Terminal className="h-5 w-5" />
-        </Button>
+      {/* Terminal Panel */}
+      <TabbedTerminal
+        showTerminal={showTerminalPanel}
+        setShowTerminal={setShowTerminalPanel}
+        events={capturedEvents}
+        exportEvents={exportCapturedEvents}
+        clearEvents={clearCapturedEvents}
+        debugResponses={[]}
+        clearDebugResponses={() => {}}
+        currentElement={detectedElement}
+        terminalHeight={400}
+      />
+
+      {/* Settings Drawer */}
+      <SettingsDrawer
+        isOpen={showSettingsDrawer}
+        onClose={() => setShowSettingsDrawer(false)}
+        onUpgradeClick={() => {}}
+      />
+
+      {/* Mobile Menu */}
+      {isMobile && (
+        <MobileQuickActionsMenu
+          isOpen={showMobileMenu}
+          onClose={() => setShowMobileMenu(false)}
+          onStartTrace={() => setIsTraceActive(true)}
+          onEndTrace={() => setIsTraceActive(false)}
+          onToggleHover={() => setIsHoverEnabled(!isHoverEnabled)}
+          onUpgrade={() => {}}
+          onSettings={() => setShowSettingsDrawer(true)}
+          isTracing={isTraceActive}
+          isHoverEnabled={isHoverEnabled}
+        />
       )}
 
-      {/* Terminal Panel */}
-      <div className={`fixed bottom-0 left-0 right-0 ${showTerminal ? `h-[${terminalHeight}px]` : 'h-auto'} z-40 transition-all duration-300 ease-in-out`}>
-        <TabbedTerminal
-          showTerminal={showTerminal}
-          setShowTerminal={setShowTerminal}
-          events={capturedEvents || []}
-          exportEvents={exportCapturedEvents}
-          clearEvents={clearCapturedEvents}
-          debugResponses={debugResponses}
-          clearDebugResponses={clearDebugResponses}
+      {/* Quick Actions */}
+      <QuickActionPill
+        visible={showQuickActions}
+        x={quickActionPosition.x}
+        y={quickActionPosition.y}
+        onClose={() => setShowQuickActions(false)}
+        onAction={handleQuickAction}
+      />
+
+      {/* Onboarding Walkthrough */}
+      {showOnboarding && (
+        <OnboardingWalkthrough
+          step={onboardingStep}
+          onNext={handleOnboardingNext}
+          onSkip={handleOnboardingSkip}
+          onComplete={handleOnboardingComplete}
+          isActive={isTraceActive}
           currentElement={detectedElement}
-          terminalHeight={terminalHeight}
+          mousePosition={cursorPosition}
+          showInspectorOpen={inspectorPanels.length > 0}
+          showTerminal={showTerminalPanel}
         />
-      </div>
+      )}
+
+      {/* Mobile Menu Toggle */}
+      {isMobile && (
+        <button
+          onClick={() => setShowMobileMenu(true)}
+          className="fixed bottom-4 right-4 z-40 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
+        >
+          ⚙️
+        </button>
+      )}
+
+      {/* Terminal Toggle */}
+      {!showTerminalPanel && (
+        <button
+          onClick={() => setShowTerminalPanel(true)}
+          className="fixed bottom-4 left-4 z-40 bg-slate-700 hover:bg-slate-600 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
+        >
+          &gt;
+        </button>
+      )}
     </div>
   );
-};
+});
+
+LogTrace.displayName = 'LogTrace';
 
 export default LogTrace;

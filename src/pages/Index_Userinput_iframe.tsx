@@ -11,7 +11,6 @@ const Index: React.FC = () => {
   const params = new URLSearchParams(location.search);
   const siteUrl = params.get('site');
   const [iframeError, setIframeError] = useState(false);
-  const [tracingActive, setTracingActive] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,10 +57,7 @@ const Index: React.FC = () => {
       )}
       
       <Suspense fallback={<div className="flex justify-center items-center h-screen"><Spinner size={48} /></div>}>
-        <LogTrace 
-          captureActive={tracingActive}
-          onCaptureToggle={setTracingActive}
-        />
+        <LogTrace />
       </Suspense>
     </div>
   );

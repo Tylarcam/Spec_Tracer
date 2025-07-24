@@ -1,53 +1,26 @@
 
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React from 'react';
 import LogTrace from '@/components/LogTrace';
-import NavBar from '@/components/NavBar';
+import { useTracingContext } from '@/App';
 
 const Index = () => {
-  const [searchParams] = useSearchParams();
-  const showOnboarding = searchParams.get('onboarding') === 'true';
-  const [showTerminal, setShowTerminal] = useState(false);
-  const [isTracing, setIsTracing] = useState(false);
-  const [isHoverEnabled, setIsHoverEnabled] = useState(true);
-  const [eventCount, setEventCount] = useState(0);
-
-  const handleToggleTracing = () => {
-    setIsTracing(!isTracing);
-  };
-
-  const handleToggleHover = () => {
-    setIsHoverEnabled(!isHoverEnabled);
-  };
-
-  const handleToggleTerminal = () => {
-    setShowTerminal(!showTerminal);
-  };
-
-  const handleEventCountChange = (count: number) => {
-    setEventCount(count);
-  };
-
+  const { 
+    tracingActive, 
+    setTracingActive,
+    isHoverEnabled,
+    setIsHoverEnabled,
+    eventCount,
+    setEventCount,
+    showTerminal,
+    setShowTerminal
+  } = useTracingContext();
+  
   return (
-    <div className="min-h-screen bg-slate-900">
-      <NavBar
-        isTracing={isTracing}
-        isHoverEnabled={isHoverEnabled}
-        onToggleTracing={handleToggleTracing}
-        onToggleHover={handleToggleHover}
-        onOpenSettings={() => {}}
-        onToggleTerminal={handleToggleTerminal}
-        eventCount={eventCount}
-        showTerminal={showTerminal}
+    <div className="pt-16"> {/* Add padding to account for fixed navbar */}
+      <LogTrace 
+        captureActive={tracingActive}
+        onCaptureToggle={setTracingActive}
       />
-      
-      <div className="pt-16">
-        <LogTrace
-          captureActive={isTracing}
-          onCaptureToggle={setIsTracing}
-          onEventCountChange={handleEventCountChange}
-        />
-      </div>
     </div>
   );
 };
