@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 
 const STORAGE_KEY = 'logtrace-usage';
-const FREE_LIMIT = 3;
+const FREE_LIMIT = 5; // Updated to match the new system
 
 interface UsageData {
   aiDebugCount: number;
@@ -59,7 +59,7 @@ export const useUsageTracking = () => {
     hasReachedLimit: hasReachedLimit(),
     canUseAiDebug: canUseAiDebug(),
     incrementAiDebugUsage,
-    isPremium: false, // Add this property
-    waitlistBonusRemaining: 0, // Add this property
+    isPremium: false,
+    waitlistBonusRemaining: 0,
   };
 };

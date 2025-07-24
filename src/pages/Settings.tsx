@@ -193,7 +193,7 @@ const Settings: React.FC = () => {
                       </div>
                       {!creditStatus.isPremium && (
                         <div className="text-xs text-slate-500 mt-1">
-                          Daily: {creditStatus.dailyCredits}/10 • Bonus: {creditStatus.waitlistBonus}
+                          Daily: {creditStatus.dailyCredits}/5 • Bonus: {creditStatus.waitlistBonus}
                         </div>
                       )}
                     </div>

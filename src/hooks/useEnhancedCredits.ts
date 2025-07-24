@@ -136,7 +136,7 @@ export const useEnhancedCredits = () => {
         return false; // Already shared today
       }
 
-      // Award 5 bonus credits
+      // Award 5 bonus credits by updating the user_credits table
       const { error } = await supabase
         .from('user_credits')
         .upsert({

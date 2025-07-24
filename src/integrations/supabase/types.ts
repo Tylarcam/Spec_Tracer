@@ -60,6 +60,9 @@ export type Database = {
           session_start_time: string
           updated_at: string
           user_id: string | null
+          waitlist_bonus_expires_at: string | null
+          waitlist_bonus_granted: number | null
+          waitlist_bonus_used: number | null
         }
         Insert: {
           created_at?: string
@@ -70,6 +73,9 @@ export type Database = {
           session_start_time?: string
           updated_at?: string
           user_id?: string | null
+          waitlist_bonus_expires_at?: string | null
+          waitlist_bonus_granted?: number | null
+          waitlist_bonus_used?: number | null
         }
         Update: {
           created_at?: string
@@ -80,48 +86,9 @@ export type Database = {
           session_start_time?: string
           updated_at?: string
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      user_subscriptions: {
-        Row: {
-          cancel_at_period_end: boolean | null
-          created_at: string
-          current_period_end: string | null
-          current_period_start: string | null
-          id: string
-          plan_type: string | null
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
-          subscription_status: string | null
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          cancel_at_period_end?: boolean | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          id?: string
-          plan_type?: string | null
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          subscription_status?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          cancel_at_period_end?: boolean | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          id?: string
-          plan_type?: string | null
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          subscription_status?: string | null
-          updated_at?: string
-          user_id?: string | null
+          waitlist_bonus_expires_at?: string | null
+          waitlist_bonus_granted?: number | null
+          waitlist_bonus_used?: number | null
         }
         Relationships: []
       }
@@ -155,39 +122,6 @@ export type Database = {
           source?: string | null
           status?: string | null
           updated_at?: string
-        }
-        Relationships: []
-      }
-      waitlist_credits: {
-        Row: {
-          bonus_credits_granted: number
-          created_at: string
-          credits_used: number
-          email: string
-          expires_at: string | null
-          granted_at: string
-          id: string
-          user_id: string | null
-        }
-        Insert: {
-          bonus_credits_granted?: number
-          created_at?: string
-          credits_used?: number
-          email: string
-          expires_at?: string | null
-          granted_at?: string
-          id?: string
-          user_id?: string | null
-        }
-        Update: {
-          bonus_credits_granted?: number
-          created_at?: string
-          credits_used?: number
-          email?: string
-          expires_at?: string | null
-          granted_at?: string
-          id?: string
-          user_id?: string | null
         }
         Relationships: []
       }

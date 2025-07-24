@@ -1,13 +1,14 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Crown, Check, Zap, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUsageTracking } from '@/hooks/useUsageTracking';
+import { useEnhancedCredits } from '@/hooks/useEnhancedCredits';
 
 const Upgrade: React.FC = () => {
   const navigate = useNavigate();
-  const { remainingUses } = useUsageTracking();
+  const { creditStatus } = useEnhancedCredits();
 
   const handleUpgrade = () => {
     // Replace with your actual Stripe checkout URL
@@ -54,9 +55,12 @@ const Upgrade: React.FC = () => {
                 <span className="text-red-400 font-semibold text-lg">Free Limit Reached</span>
               </div>
               <p className="text-gray-300">
-                You've used all {5 - remainingUses} free AI debugging requests. 
+                You've used all your free AI debugging requests. 
                 Upgrade to continue with unlimited access.
               </p>
+              <div className="mt-2 text-sm text-gray-400">
+                Daily: {creditStatus.dailyCredits}/5 • Bonus: {creditStatus.waitlistBonus}
+              </div>
             </div>
 
             {/* Pricing */}
@@ -109,4 +113,4 @@ const Upgrade: React.FC = () => {
   );
 };
 
-export default Upgrade; 
+export default Upgrade;

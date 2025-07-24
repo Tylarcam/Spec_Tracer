@@ -44,10 +44,10 @@ const CreditLimitModal: React.FC<CreditLimitModalProps> = ({
         <div className="p-4 space-y-4">
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
             <p className="text-red-400 text-sm font-medium mb-1">
-              You've used all {10 - (creditStatus.dailyCredits || 0)} daily credits
+              You've used all your daily credits
             </p>
             <p className="text-gray-400 text-xs">
-              Resets in 24 hours • {creditStatus.totalCredits || 0} total credits remaining
+              Daily: {creditStatus.dailyCredits}/5 • Bonus: {creditStatus.waitlistBonus}
             </p>
           </div>
 
