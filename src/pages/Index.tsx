@@ -5,13 +5,16 @@ import LogTrace from '@/components/LogTrace';
 import OnboardingWalkthrough from '@/components/LogTrace/OnboardingWalkthrough';
 import InstructionsCard from '@/components/LogTrace/InstructionsCard';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTracingContext } from '@/App';
 
 const Index: React.FC = () => {
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
-  const [captureActive, setCaptureActive] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
+  
+  // Use the global tracing context instead of local state
+  const { tracingActive } = useTracingContext();
 
   // Check if onboarding should be shown
   useEffect(() => {
@@ -54,12 +57,12 @@ const Index: React.FC = () => {
           </div>
         )}
 
-        {/* LogTrace Overlay */}
+        {/* LogTrace Overlay - now connected to global tracing state */}
         <div className="absolute inset-0 pointer-events-none z-30">
           <div className="pointer-events-auto">
             <LogTrace 
-              captureActive={captureActive}
-              onCaptureToggle={setCaptureActive}
+              captureActive={tracingActive}
+              onCaptureToggle={() => {}} // No-op since NavBar controls this
             />
           </div>
         </div>
@@ -72,7 +75,7 @@ const Index: React.FC = () => {
           onNext={handleOnboardingNext}
           onSkip={handleOnboardingSkip}
           onComplete={handleOnboardingComplete}
-          isActive={captureActive}
+          isActive={tracingActive}
         />
       )}
     </div>
