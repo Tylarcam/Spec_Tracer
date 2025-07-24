@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Play, Pause, MousePointer, Crown, Zap, Activity, Infinity, LogIn, LogOut } from 'lucide-react';
+import { Play, Pause, Crown, Zap, Activity, Infinity, LogIn, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Badge } from '@/components/ui/badge';
@@ -96,25 +96,6 @@ const NavBar: React.FC<NavBarProps> = ({
               </Toggle>
             </div>
 
-            {/* Hover Toggle */}
-            <div className="flex items-center space-x-2">
-              <Toggle
-                pressed={isHoverEnabled}
-                onPressedChange={onToggleHover}
-                aria-label="Toggle hover detection"
-                className={`
-                  transition-colors duration-200
-                  ${isHoverEnabled 
-                    ? 'bg-green-600 hover:bg-green-700 text-white data-[state=on]:bg-green-600 data-[state=on]:text-white' 
-                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white'
-                  }
-                `}
-              >
-                <MousePointer className="h-4 w-4" />
-                <span className="ml-2">Hover</span>
-              </Toggle>
-            </div>
-
             {/* Event Status Icons */}
             <div className="flex items-center space-x-2">
               <div className="flex items-center gap-1 px-3 py-1 bg-slate-800/50 rounded-full border border-green-500/30">
@@ -144,6 +125,16 @@ const NavBar: React.FC<NavBarProps> = ({
                 <span className="text-xs text-yellow-400 font-medium">Pro</span>
               </div>
             )}
+
+            {/* Settings Button */}
+            <Button
+              onClick={onOpenSettings}
+              variant="ghost"
+              size="sm"
+              className="text-slate-400 hover:text-white hover:bg-slate-700"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
 
             {/* Sign In/Out */}
             {user ? (
