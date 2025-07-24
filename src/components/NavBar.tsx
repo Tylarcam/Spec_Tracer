@@ -30,7 +30,7 @@ const NavBar: React.FC<NavBarProps> = ({
   showTerminal
 }) => {
   const [showSettings, setShowSettings] = useState(false);
-  const { creditStatus } = useEnhancedCredits();
+  const { creditStatus, isLoading, error } = useEnhancedCredits();
   const { user, signOut } = useAuth();
 
   const handleSettingsClick = () => {
@@ -42,11 +42,22 @@ const NavBar: React.FC<NavBarProps> = ({
   };
 
   const handleSignOut = async () => {
-    await signOut();
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleSignIn = () => {
     window.location.href = '/auth';
+  };
+
+  // Safe credit display with fallbacks
+  const safeCredits = () => {
+    if (isLoading) return '...';
+    if (error) return '0';
+    return creditStatus.isPremium ? <Infinity className="h-4 w-4 inline" /> : `${creditStatus.totalCredits}/40`;
   };
 
   return (
@@ -133,16 +144,12 @@ const NavBar: React.FC<NavBarProps> = ({
               <div className="flex items-center gap-1 bg-slate-800/50 border border-green-500/30 rounded-full px-3 py-1">
                 <Zap className="h-4 w-4 text-green-400" />
                 <span className="text-sm text-green-400 font-medium">
-                  {creditStatus.isPremium ? (
-                    <Infinity className="h-4 w-4 inline" />
-                  ) : (
-                    `${creditStatus.totalCredits}/40`
-                  )}
+                  {safeCredits()}
                 </span>
               </div>
 
               {/* Pro Badge */}
-              {creditStatus.isPremium && (
+              {!isLoading && !error && creditStatus.isPremium && (
                 <div className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-3 py-1">
                   <Crown className="h-3 w-3 text-yellow-400" />
                   <span className="text-xs text-yellow-400 font-medium">Pro</span>
