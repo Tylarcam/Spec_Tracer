@@ -12,6 +12,7 @@ import { sanitizeText } from '@/utils/sanitization';
 import { useToast } from '@/hooks/use-toast';
 import { useConsoleLogs } from '@/shared/hooks/useConsoleLogs';
 import { useContextEngine } from '@/shared/hooks/useContextEngine';
+import { transformContextRequest } from '@/shared/api';
 import QuickObjectivePill from './QuickObjectivePill';
 import { Badge } from '../ui/badge';
 
@@ -32,6 +33,7 @@ interface DebugModalProps {
   guestDebugCount?: number;
   maxGuestDebugs?: number;
   terminalHeight?: number; // height of bottom terminal in pixels
+  recordEvent?: (event: any) => void; // Add recordEvent prop
 }
 
 const quickObjectives = [
@@ -68,11 +70,13 @@ const DebugModal: React.FC<DebugModalProps> = ({
   guestDebugCount = 0,
   maxGuestDebugs = 5,
   terminalHeight = 0,
+  recordEvent,
 }) => {
   const [userIntent, setUserIntent] = useState('');
   const [advancedPrompt, setAdvancedPrompt] = useState('');
   const [generatedPrompt, setGeneratedPrompt] = useState('');
   const [activeTab, setActiveTab] = useState('quick');
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const { toast } = useToast();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedQuickObjective, setSelectedQuickObjective] = useState<string | null>(null);
@@ -191,49 +195,61 @@ const DebugModal: React.FC<DebugModalProps> = ({
   };
 
   const handleGeneratePrompt = async () => {
-    let contextInfo = '';
-    if (currentElement) {
-      const isInteractive = ['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null;
-      const eventListeners = [];
-      const el = currentElement.element as any;
-      [
-        'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmouseout',
-        'onmouseenter', 'onmouseleave', 'onkeydown', 'onkeyup', 'oninput',
-        'onchange', 'onfocus', 'onblur', 'onsubmit'
-      ].forEach(listener => {
-        if (typeof el[listener] === 'function') eventListeners.push(listener);
-      });
-      const styles = window.getComputedStyle(currentElement.element);
-      contextInfo = `Target Context For Debug:\n- Tag: <${currentElement.tag}>\n- ID: ${currentElement.id || 'none'}\n- Classes: ${currentElement.classes.join(', ') || 'none'}\n- Text: \"${currentElement.text || 'none'}\"\n- Interactive: ${isInteractive ? 'Yes' : 'No'}\n- Event Listeners: ${eventListeners.join(', ') || 'none'}\n- Styles: display=${styles.display}, visibility=${styles.visibility}, pointer-events=${styles.pointerEvents}`;
-    }
-    const selectedQuick = selectedQuickObjective ? `Selected Quick Objective: ${selectedQuickObjective}\n` : '';
-    const userInput = advancedPrompt ? `User Input: ${advancedPrompt}\n` : '';
-    const preamble = 'Generate a prompt based on the user\'s data, context, and request. Output a clear, concise, detailed prompt for understanding and/or debugging an issue with a component or element they want to change.\n';
-    const fullPrompt = `${preamble}${selectedQuick}${userInput}${contextInfo}`;
-    toast({
-      title: 'Generating AI Context Prompt...',
-      description: 'Please wait while the AI generates a detailed prompt.',
-      variant: 'default',
-      duration: 5000,
-    });
-    try {
-    setActiveTab('prompt');
-      // setShowTerminal?.(true); // Removed, not defined here
-      // Call OpenAI via analyzeWithAI (assume it returns the generated prompt)
-      const aiResponse = await analyzeWithAI(fullPrompt);
-      // Only set state if aiResponse is a string
-      if (typeof aiResponse === 'string') {
-        setGeneratedPrompt(aiResponse);
-        setUserIntent(aiResponse);
-      }
-      // TODO: Handle AI response in the central terminal if needed
-      // Optionally, add to debug terminal if not already handled by analyzeWithAI
-    } catch (error) {
+    if (!userIntent.trim()) {
       toast({
-        title: 'Prompt Generation Failed',
-        description: 'There was an error generating the prompt.',
+        title: 'User Intent Required',
+        description: 'Please enter your intent before generating a prompt.',
         variant: 'destructive',
       });
+      return;
+    }
+
+    try {
+      setIsGeneratingPrompt(true);
+      setErrorMessage(null);
+
+      // Generate the raw request using context engine
+      const rawRequest = contextEngine.generatePrompt();
+      
+      // Transform the raw request into a proper prompt
+      const transformResult = await transformContextRequest(rawRequest);
+      
+      // Set the generated prompt in state
+      setGeneratedPrompt(transformResult.transformedPrompt);
+      
+      // Log the generated prompt to the terminal
+      if (recordEvent) {
+        recordEvent({
+          id: `prompt-${Date.now()}`,
+          type: 'llm_response',
+          timestamp: new Date().toISOString(),
+          position: mousePosition,
+          element: currentElement,
+          prompt: transformResult.originalRequest,
+          response: transformResult.transformedPrompt,
+        });
+      }
+
+      // Switch to the prompt tab
+      setActiveTab('prompt');
+      
+      toast({
+        title: 'Context Prompt Generated',
+        description: 'A detailed prompt has been generated based on your input and element context.',
+        variant: 'default',
+      });
+
+    } catch (error: any) {
+      console.error('Prompt generation error:', error);
+      const msg = error?.message || 'Failed to generate context prompt';
+      setErrorMessage(msg);
+      toast({
+        title: 'Prompt Generation Failed',
+        description: msg,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingPrompt(false);
     }
   };
 
@@ -454,12 +470,12 @@ const DebugModal: React.FC<DebugModalProps> = ({
                   <div className="flex gap-2">
                     <Button 
                       onClick={handleGeneratePrompt}
-                      disabled={!userIntent.trim()}
+                      disabled={isGeneratingPrompt || !userIntent.trim()}
                       className={`bg-yellow-600 hover:bg-yellow-700 text-white ${isMobile ? 'text-xs h-8' : ''}`}
                       size={isMobile ? "sm" : "default"}
                     >
                       <Sparkles className={`text-yellow-200 ${isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'}`} />
-                      {isMobile ? 'Generate' : 'Generate Context Prompt'}
+                      {isGeneratingPrompt ? 'Generating...' : (isMobile ? 'Generate' : 'Generate Context Prompt')}
                     </Button>
                   </div>
                 </TabsContent>
