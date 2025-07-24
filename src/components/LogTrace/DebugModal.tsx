@@ -9,60 +9,23 @@ import { callAIDebugFunction } from '@/shared/api';
 import { ElementInfo } from '@/shared/types';
 
 interface DebugModalProps {
-  // Props from LogTrace.tsx
-  showDebugModal?: boolean;
-  setShowDebugModal?: (show: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
   currentElement: ElementInfo | null;
   mousePosition: { x: number; y: number };
-  isAnalyzing?: boolean;
-  analyzeWithAI?: (prompt: string) => Promise<string>;
-  generateAdvancedPrompt?: () => string;
-  modalRef?: React.RefObject<HTMLDivElement>;
-  isExtensionMode?: boolean;
-  showAuthModal?: boolean;
-  setShowAuthModal?: (show: boolean) => void;
-  user?: any;
-  guestDebugCount?: number;
-  maxGuestDebugs?: number;
-  terminalHeight?: number;
-  
-  // Props from ElementInspector.tsx
-  isOpen?: boolean;
-  onClose?: () => void;
   onDebugResponse?: (response: string) => void;
 }
 
 const DebugModal: React.FC<DebugModalProps> = ({
-  // LogTrace props
-  showDebugModal,
-  setShowDebugModal,
-  currentElement,
-  mousePosition,
-  isAnalyzing = false,
-  analyzeWithAI,
-  generateAdvancedPrompt,
-  modalRef,
-  isExtensionMode = false,
-  showAuthModal = false,
-  setShowAuthModal,
-  user = null,
-  guestDebugCount = 0,
-  maxGuestDebugs = 3,
-  terminalHeight = 0,
-  
-  // ElementInspector props
   isOpen,
   onClose,
+  currentElement,
+  mousePosition,
   onDebugResponse,
 }) => {
   const [prompt, setPrompt] = useState('');
-  const [isAnalyzingLocal, setIsAnalyzingLocal] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
-
-  // Determine which props to use based on what's provided
-  const isModalOpen = isOpen !== undefined ? isOpen : showDebugModal || false;
-  const handleClose = onClose || (() => setShowDebugModal?.(false));
-  const isCurrentlyAnalyzing = isAnalyzing || isAnalyzingLocal;
 
   const handleSubmit = async () => {
     if (!prompt.trim()) {
@@ -74,17 +37,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
       return;
     }
 
-    setIsAnalyzingLocal(true);
+    setIsAnalyzing(true);
     try {
       console.log('Sending debug request:', { prompt, currentElement, mousePosition });
       
-      let response: string;
-      
-      if (analyzeWithAI) {
-        response = await analyzeWithAI(prompt);
-      } else {
-        response = await callAIDebugFunction(prompt, currentElement, mousePosition);
-      }
+      const response = await callAIDebugFunction(prompt, currentElement, mousePosition);
       
       console.log('Debug response received:', response);
       
@@ -97,7 +54,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
         description: 'Debug analysis completed',
       });
       
-      handleClose();
+      onClose();
       setPrompt('');
     } catch (error) {
       console.error('Debug API error:', error);
@@ -122,7 +79,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
         variant: 'destructive',
       });
     } finally {
-      setIsAnalyzingLocal(false);
+      setIsAnalyzing(false);
     }
   };
 
@@ -133,24 +90,41 @@ const DebugModal: React.FC<DebugModalProps> = ({
     }
   };
 
-  const handleGeneratePrompt = () => {
-    if (generateAdvancedPrompt) {
-      const generatedPrompt = generateAdvancedPrompt();
-      setPrompt(generatedPrompt);
-    }
+  const generateAdvancedPrompt = () => {
+    if (!currentElement) return '';
+    
+    const element = currentElement.element;
+    const styles = window.getComputedStyle(element);
+    const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(currentElement.tag) || 
+                         element.onclick !== null || 
+                         styles.cursor === 'pointer';
+
+    return `Debug this element in detail:
+
+Element: <${currentElement.tag}${currentElement.id ? ` id="${currentElement.id}"` : ''}${currentElement.classes.length ? ` class="${currentElement.classes.join(' ')}"` : ''}>
+Text: "${currentElement.text}"
+Position: x:${mousePosition.x}, y:${mousePosition.y}
+Interactive: ${isInteractive ? 'Yes' : 'No'}
+Cursor: ${styles.cursor}
+Display: ${styles.display}
+Visibility: ${styles.visibility}
+Pointer Events: ${styles.pointerEvents}
+
+Consider:
+1. Why might this element not be behaving as expected?
+2. Are there any CSS properties preventing interaction?
+3. Are there any event listeners that might be interfering?
+4. What accessibility concerns might exist?
+5. How could the user experience be improved?
+
+Provide specific, actionable debugging steps and potential solutions.`;
   };
 
   return (
-    <Dialog open={isModalOpen} onOpenChange={handleClose}>
-      <DialogContent 
-        ref={modalRef}
-        className="sm:max-w-[500px] bg-slate-900 border-green-500/50"
-        style={{ 
-          marginBottom: terminalHeight ? `${terminalHeight}px` : '0px' 
-        }}
-      >
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] bg-slate-900 border-green-500/50">
         <DialogHeader>
-          <DialogTitle className="text-green-400">Debug Assistant</DialogTitle>
+          <DialogTitle className="text-green-400">AI Debug Assistant</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
@@ -175,16 +149,14 @@ const DebugModal: React.FC<DebugModalProps> = ({
               <label className="text-sm font-medium text-green-400">
                 What would you like to debug?
               </label>
-              {generateAdvancedPrompt && (
-                <Button
-                  onClick={handleGeneratePrompt}
-                  size="sm"
-                  variant="outline"
-                  className="border-green-500/50 text-green-400 hover:bg-green-500/10"
-                >
-                  Generate Prompt
-                </Button>
-              )}
+              <Button
+                onClick={() => setPrompt(generateAdvancedPrompt())}
+                size="sm"
+                variant="outline"
+                className="border-green-500/50 text-green-400 hover:bg-green-500/10"
+              >
+                Generate Prompt
+              </Button>
             </div>
             <Textarea
               value={prompt}
@@ -192,21 +164,15 @@ const DebugModal: React.FC<DebugModalProps> = ({
               onKeyPress={handleKeyPress}
               placeholder="E.g., 'Why isn't this button clickable?', 'Check accessibility', 'Analyze layout issues'..."
               className="bg-slate-800 border-green-500/50 text-white placeholder-gray-400 min-h-[100px]"
-              disabled={isCurrentlyAnalyzing}
+              disabled={isAnalyzing}
             />
           </div>
-          
-          {!isExtensionMode && guestDebugCount > 0 && (
-            <div className="text-sm text-gray-400">
-              Debug count: {guestDebugCount}/{maxGuestDebugs}
-            </div>
-          )}
           
           <div className="flex justify-end space-x-2">
             <Button
               variant="outline"
-              onClick={handleClose}
-              disabled={isCurrentlyAnalyzing}
+              onClick={onClose}
+              disabled={isAnalyzing}
               className="border-green-500/50 text-green-400 hover:bg-green-500/10"
             >
               <X className="h-4 w-4 mr-2" />
@@ -214,10 +180,10 @@ const DebugModal: React.FC<DebugModalProps> = ({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={isCurrentlyAnalyzing || !prompt.trim()}
+              disabled={isAnalyzing || !prompt.trim()}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
-              {isCurrentlyAnalyzing ? (
+              {isAnalyzing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Analyzing...

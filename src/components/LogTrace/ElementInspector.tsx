@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { ElementInfo } from '@/shared/types';
 import { Button } from '../ui/button';
@@ -58,11 +59,16 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
     }
     
     console.log('Debug button clicked:', { currentElement, mousePosition });
-    onDebug?.();
+    setShowDebugModal(true);
   };
 
   const handleDebugResponse = (response: string) => {
     setDebugResponse(response);
+    console.log('Debug response received:', response);
+    toast({
+      title: 'Debug Analysis Complete',
+      description: 'AI analysis has been completed successfully.',
+    });
   };
 
   return (
@@ -134,6 +140,15 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
               <X className="h-4 w-4" />
             </Button>
           </div>
+          
+          {debugResponse && (
+            <div className="mt-4 p-3 bg-slate-800 rounded-lg border border-green-500/30">
+              <h4 className="text-green-400 font-medium mb-2">Debug Response:</h4>
+              <div className="text-sm text-gray-300 whitespace-pre-wrap">
+                {debugResponse}
+              </div>
+            </div>
+          )}
         </div>
       )}
       
