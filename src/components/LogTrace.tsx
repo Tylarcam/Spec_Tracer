@@ -1,4 +1,3 @@
-
 import React, { useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -240,6 +239,12 @@ const LogTrace: React.FC<LogTraceProps> = React.memo(({ captureActive, onCapture
     }
   }, [isTraceActive, detectedElement]);
 
+  // Debug response handler
+  const handleDebugResponse = useCallback((response: string) => {
+    console.log('Debug response received:', response);
+    // Handle the debug response as needed
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
@@ -329,21 +334,11 @@ const LogTrace: React.FC<LogTraceProps> = React.memo(({ captureActive, onCapture
 
       {/* Debug Modal */}
       <DebugModal
-        showDebugModal={showAIDebugModal}
-        setShowDebugModal={setShowAIDebugModal}
+        isOpen={showAIDebugModal}
+        onClose={() => setShowAIDebugModal(false)}
         currentElement={detectedElement}
         mousePosition={cursorPosition}
-        isAnalyzing={isAIAnalyzing}
-        analyzeWithAI={analyzeElementWithAI}
-        generateAdvancedPrompt={generateElementPrompt}
-        modalRef={modalRef}
-        isExtensionMode={false}
-        showAuthModal={false}
-        setShowAuthModal={() => {}}
-        user={null}
-        guestDebugCount={0}
-        maxGuestDebugs={3}
-        terminalHeight={showTerminalPanel ? 400 : 0}
+        onDebugResponse={handleDebugResponse}
       />
 
       {/* Terminal Panel */}
