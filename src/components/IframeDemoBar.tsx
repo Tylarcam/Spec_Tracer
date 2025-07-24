@@ -31,7 +31,7 @@ const IframeDemoBar: React.FC = () => {
     if (!/^https?:\/\//.test(fullUrl)) {
       fullUrl = 'https://' + fullUrl;
     }
-    window.location.href = `/debug?site=${encodeURIComponent(fullUrl)}`;
+    window.location.href = `/interactive-demo?site=${encodeURIComponent(fullUrl)}`;
   };
 
   const handleSignIn = () => {

@@ -35,7 +35,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/debug" element={<Index />} />
+                <Route path="/interactive-demo" element={<Index />} />
                 <Route path="/context-transform" element={<ContextTransform />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

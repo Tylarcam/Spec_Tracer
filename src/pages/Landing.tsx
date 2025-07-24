@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Code, Zap, Target, Sparkles, Play, Eye, Mail, Users, Download, Chrome, Shield, MousePointer } from 'lucide-react';
@@ -78,7 +77,7 @@ const Landing = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            <Link to="/debug">
+            <Link to="/interactive-demo">
               <Button
                 variant="outline"
                 className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-4 py-2"
@@ -141,7 +140,7 @@ const Landing = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link to="/debug">
+              <Link to="/interactive-demo">
                 <Button
                   size="lg"
                   variant="outline"
@@ -231,7 +230,7 @@ const Landing = () => {
               with our web demo. Limited to iframe-compatible sites, but showcases the full AI debugging power.
             </p>
             
-            <Link to="/debug">
+            <Link to="/interactive-demo">
               <Button
                 size="lg"
                 variant="outline"
@@ -336,7 +335,7 @@ const Landing = () => {
                 </Button>
               </div>
               
-              <Link to="/debug">
+              <Link to="/interactive-demo">
                 <Button
                   size="lg"
                   variant="outline"
