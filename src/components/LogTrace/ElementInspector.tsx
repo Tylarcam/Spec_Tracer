@@ -464,27 +464,27 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
               </AccordionItem>
             )}
 
-            <AccordionItem value="styles" className="border-orange-500/20">
-              <AccordionTrigger className={`text-orange-400 ${isMobile ? 'text-xs py-1.5' : 'text-sm py-2'} hover:no-underline`}>
+            <AccordionItem value="styles" className="border-amber-500/20">
+              <AccordionTrigger className={`text-amber-400 ${isMobile ? 'text-xs py-1.5' : 'text-sm py-2'} hover:no-underline`}>
                 <div className="flex items-center gap-2">
                   <Settings className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                   <span>Computed Styles</span>
                 </div>
               </AccordionTrigger>
               <AccordionContent className={`space-y-2 ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                <div className={`bg-slate-800/50 ${isMobile ? 'p-2' : 'p-3'} rounded border border-orange-500/20 ${isMobile ? 'max-h-40' : 'max-h-48'} overflow-y-auto`}>
+                <div className={`bg-slate-800/50 ${isMobile ? 'p-2' : 'p-3'} rounded border border-amber-500/20 ${isMobile ? 'max-h-40' : 'max-h-48'} overflow-y-auto`}>
                   <table className="min-w-full">
                     <thead>
                       <tr className="border-b border-gray-700/50">
-                        <th className={`text-left py-1 ${isMobile ? 'px-1' : 'px-2'} text-orange-300 font-medium`}>property</th>
-                        <th className={`text-left py-1 ${isMobile ? 'px-1' : 'px-2'} text-orange-300 font-medium`}>value</th>
-                        <th className={`text-left py-1 ${isMobile ? 'px-1 w-12' : 'px-2 w-16'} text-orange-300 font-medium`}>actions</th>
+                        <th className={`text-left py-1 ${isMobile ? 'px-1' : 'px-2'} text-amber-300 font-medium`}>property</th>
+                        <th className={`text-left py-1 ${isMobile ? 'px-1' : 'px-2'} text-amber-300 font-medium`}>value</th>
+                        <th className={`text-left py-1 ${isMobile ? 'px-1 w-12' : 'px-2 w-16'} text-amber-300 font-medium`}>actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {Object.entries(computedStyles).map(([property, value], idx) => (
                         <tr key={property} className="border-b border-gray-700/50 last:border-b-0">
-                          <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} text-orange-200 font-mono align-top`}>{property}</td>
+                          <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} text-amber-200 font-mono align-top`}>{property}</td>
                           <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} align-top`}>
                             <span className={`text-gray-300 font-mono break-all ${isMobile ? 'max-w-[150px]' : 'max-w-[300px]'}`}>{sanitizeText(String(value))}</span>
                           </td>
@@ -494,7 +494,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                                 navigator.clipboard.writeText(String(value));
                                 toast({ title: 'Copied!', description: 'Style value copied to clipboard', variant: 'success' });
                               }}
-                              className="text-gray-400 hover:text-orange-300 transition-colors"
+                              className="text-gray-400 hover:text-amber-300 transition-colors"
                               title="Copy value"
                             >
                               <Copy className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
