@@ -45,10 +45,8 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
 }) => {
   const { toast } = useToast();
   const [showDebugModal, setShowDebugModal] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { adjustedPosition } = useDraggable(panelRef, mousePosition, isDraggable);
   const [debugResponse, setDebugResponse] = useState<string | null>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
 
   const handleDebugClick = () => {
     if (currentDebugCount >= maxDebugCount) {
@@ -64,50 +62,13 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
     setShowDebugModal(true);
   };
 
-  const analyzeWithAI = async (prompt: string): Promise<string | null> => {
-    setIsAnalyzing(true);
-    try {
-      // Mock AI analysis for now - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const response = `AI Analysis: Element appears to be a ${currentElement?.tag} with potential issues...`;
-      setDebugResponse(response);
-      return response;
-    } catch (error) {
-      console.error('AI analysis failed:', error);
-      throw error;
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const generateAdvancedPrompt = (element: ElementInfo | null): string => {
-    if (!element) return '';
-    
-    const elementRef = element.element;
-    const styles = window.getComputedStyle(elementRef);
-    const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(element.tag) || 
-                         elementRef.onclick !== null || 
-                         styles.cursor === 'pointer';
-
-    return `Debug this element in detail:
-
-Element: <${element.tag}${element.id ? ` id="${element.id}"` : ''}${element.classes.length ? ` class="${element.classes.join(' ')}"` : ''}>
-Text: "${element.text}"
-Position: x:${mousePosition.x}, y:${mousePosition.y}
-Interactive: ${isInteractive ? 'Yes' : 'No'}
-Cursor: ${styles.cursor}
-Display: ${styles.display}
-Visibility: ${styles.visibility}
-Pointer Events: ${styles.pointerEvents}
-
-Consider:
-1. Why might this element not be behaving as expected?
-2. Are there any CSS properties preventing interaction?
-3. Are there any event listeners that might be interfering?
-4. What accessibility concerns might exist?
-5. How could the user experience be improved?
-
-Provide specific, actionable debugging steps and potential solutions.`;
+  const handleDebugResponse = (response: string) => {
+    setDebugResponse(response);
+    console.log('Debug response received:', response);
+    toast({
+      title: 'Debug Analysis Complete',
+      description: 'AI analysis has been completed successfully.',
+    });
   };
 
   return (
@@ -192,21 +153,11 @@ Provide specific, actionable debugging steps and potential solutions.`;
       )}
       
       <DebugModal
-        showDebugModal={showDebugModal}
-        setShowDebugModal={setShowDebugModal}
+        isOpen={showDebugModal}
+        onClose={() => setShowDebugModal(false)}
         currentElement={currentElement}
         mousePosition={mousePosition}
-        isAnalyzing={isAnalyzing}
-        analyzeWithAI={analyzeWithAI}
-        generateAdvancedPrompt={generateAdvancedPrompt}
-        modalRef={modalRef}
-        isExtensionMode={isExtensionMode}
-        showAuthModal={false}
-        setShowAuthModal={() => {}}
-        user={null}
-        guestDebugCount={currentDebugCount}
-        maxGuestDebugs={maxDebugCount}
-        terminalHeight={400}
+        onDebugResponse={handleDebugResponse}
       />
     </>
   );
