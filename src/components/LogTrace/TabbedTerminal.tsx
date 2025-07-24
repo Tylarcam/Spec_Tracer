@@ -218,7 +218,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                         <div key={idx} className="contents">
                           <div className="text-gray-500 break-all min-w-0 max-w-full" title={event.timestamp}>[{event.timestamp}]</div>
                           <div className={`${color} font-semibold break-all min-w-0 max-w-full`}>{type}</div>
-                          <div className="text-cyan-300 font-mono break-all min-w-0 max-w-full" title={`${tag}${id}${classes}`}>{tag}{id}{classes}</div>
+                          <div className="text-cyan-300 font-mono truncate whitespace-nowrap min-w-0 max-w-full" title={`${tag}${id}${classes}`}>{tag}{id}{classes}</div>
                           <div className="italic text-blue-300 break-all min-w-0 max-w-full" title={text}>{text}</div>
                           <div className="text-purple-300 text-xs break-all min-w-0 max-w-full" title={parentPath && `${parentPath} > ${tag}`}>{parentPath && `${parentPath} > ${tag}`}</div>
                           <div className="text-orange-300 text-xs break-all min-w-0 max-w-full" title={attributes}>{attributes.length > 40 ? attributes.slice(0, 40) + '…' : attributes}</div>
