@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
@@ -15,11 +14,13 @@ import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 interface LogTraceProps {
   captureActive: boolean;
   onCaptureToggle: (active: boolean) => void;
+  onEventCountChange?: (count: number) => void;
 }
 
 const LogTrace: React.FC<LogTraceProps> = ({ 
   captureActive, 
-  onCaptureToggle 
+  onCaptureToggle,
+  onEventCountChange 
 }) => {
   const isMobile = useIsMobile();
   const [showTerminal, setShowTerminal] = useState(false);
@@ -50,6 +51,13 @@ const LogTrace: React.FC<LogTraceProps> = ({
     overlayRef,
     modalRef,
   } = orchestrator;
+
+  // Sync event count with parent component
+  useEffect(() => {
+    if (onEventCountChange) {
+      onEventCountChange(capturedEvents?.length || 0);
+    }
+  }, [capturedEvents, onEventCountChange]);
 
   // Handle escape key functionality
   const handleEscapeKey = () => {
