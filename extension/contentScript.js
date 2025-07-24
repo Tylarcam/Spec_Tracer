@@ -19,6 +19,11 @@ let terminalActiveTab = 'events';
 // --- LogTrace Activation State and Overlay Management ---
 let overlayListenersRegistered = false;
 
+// Inspector hover state management
+let isInspectorHovered = false;
+let pausedElement = null;
+let pausedPosition = { x: 0, y: 0 };
+
 // Initialize content script
 function initializeContentScript() {
   console.log('Initializing Trace Sight Content Script');
@@ -156,11 +161,9 @@ function createLogTraceOverlay() {
   highlighter.style.cssText = `
     position: fixed;
     border: 2px solid #06b6d4;
-    background: rgba(6, 182, 212, 0.1);
     pointer-events: none;
     z-index: 9998;
     display: none;
-    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
   `;
   document.body.appendChild(highlighter);
   
@@ -176,13 +179,12 @@ function createInfoPanel() {
     position: fixed;
     top: 20px;
     right: 20px;
-    width: 320px;
-    max-height: 500px;
+    width: 350px;
+    max-height: 80vh;
     background: rgba(15, 23, 42, 0.95);
     backdrop-filter: blur(16px);
     border: 1px solid rgba(6, 182, 212, 0.5);
     border-radius: 8px;
-    padding: 16px;
     color: #e2e8f0;
     font-size: 14px;
     z-index: 10001;
@@ -190,26 +192,36 @@ function createInfoPanel() {
     overflow-y: auto;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(6, 182, 212, 0.05);
     transition: all 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   `;
   
   panel.innerHTML = `
-    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; cursor: move;">
-      <h3 style="margin: 0; color: #06b6d4; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"></circle>
-          <path d="m21 21-4.35-4.35"></path>
-        </svg>
-        Element Inspector
-      </h3>
-      <div style="display: flex; gap: 8px;">
-        <button id="pin-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px; display: flex; align-items: center; padding: 4px;" title="Pin panel">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(6, 182, 212, 0.2); cursor: move;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="background: rgba(6, 182, 212, 0.2); color: #06b6d4; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">ELEMENT INSPECTOR</div>
+        <div style="border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: none;" id="interactive-badge">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px;">
+            <polyline points="9,11 12,14 22,4"></polyline>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+          Interactive
+        </div>
+      </div>
+      <div style="display: flex; gap: 4px;">
+        <button id="pin-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px; display: flex; align-items: center; padding: 4px; border-radius: 4px; transition: all 0.2s;" title="Pin panel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
         </button>
-        <button id="close-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px; display: flex; align-items: center; padding: 4px;" title="Close panel">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button id="debug-element" style="background: none; border: none; color: #a855f7; cursor: pointer; font-size: 16px; display: flex; align-items: center; padding: 4px; border-radius: 4px; transition: all 0.2s;" title="Debug with AI">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16,18 22,12 16,6"></polyline>
+            <polyline points="8,6 2,12 8,18"></polyline>
+          </svg>
+        </button>
+        <button id="close-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px; display: flex; align-items: center; padding: 4px; border-radius: 4px; transition: all 0.2s;" title="Close panel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6 6 18"></path>
             <path d="m6 6 12 12"></path>
           </svg>
@@ -217,86 +229,93 @@ function createInfoPanel() {
       </div>
     </div>
     
-    <!-- Basic Info Accordion Section -->
-    <div class="accordion-section">
-      <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid rgba(34, 197, 94, 0.2);">
-        <h4 style="margin: 0; color: #06b6d4; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-          Basic Info
-        </h4>
-        <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▼</span>
+    <div style="padding: 16px;">
+      <!-- Basic Info Accordion Section -->
+      <div class="accordion-section">
+        <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid rgba(6, 182, 212, 0.2);">
+          <h4 style="margin: 0; color: #06b6d4; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            Basic Info
+          </h4>
+          <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▼</span>
+        </div>
+        <div class="accordion-content" style="padding: 8px 0; display: block;">
+          <div id="element-info" style="margin-bottom: 12px;"></div>
+        </div>
       </div>
-      <div class="accordion-content" style="padding: 8px 0; display: block;">
-        <div id="element-info" style="margin-bottom: 12px;"></div>
+      
+      <!-- Attributes Accordion Section -->
+      <div class="accordion-section">
+        <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid rgba(168, 85, 247, 0.2);">
+          <h4 style="margin: 0; color: #a855f7; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="4" x2="20" y1="9" y2="9"></line>
+              <line x1="4" x2="20" y1="15" y2="15"></line>
+              <line x1="10" x2="8" y1="3" y2="21"></line>
+              <line x1="16" x2="14" y1="3" y2="21"></line>
+            </svg>
+            Attributes
+          </h4>
+          <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▲</span>
+        </div>
+        <div class="accordion-content" style="padding: 8px 0; display: none;">
+          <div id="element-attributes" style="margin-bottom: 12px; font-size: 12px;"></div>
+        </div>
       </div>
-    </div>
-    
-    <!-- Computed Styles Accordion Section -->
-    <div class="accordion-section">
-      <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid rgba(168, 85, 247, 0.2);">
-        <h4 style="margin: 0; color: #a855f7; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-          Computed Styles
-        </h4>
-        <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▲</span>
+      
+      <!-- Computed Styles Accordion Section -->
+      <div class="accordion-section">
+        <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid rgba(249, 115, 22, 0.2);">
+          <h4 style="margin: 0; color: #f97316; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            Computed Styles
+          </h4>
+          <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▲</span>
+        </div>
+        <div class="accordion-content" style="padding: 8px 0; display: none;">
+          <div id="computed-styles" style="margin-bottom: 12px; font-size: 12px;"></div>
+        </div>
       </div>
-      <div class="accordion-content" style="padding: 8px 0; display: none;">
-        <div id="computed-styles" style="margin-bottom: 12px; font-size: 12px;"></div>
+      
+      <!-- Event Listeners Accordion Section -->
+      <div class="accordion-section">
+        <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid rgba(234, 179, 8, 0.2);">
+          <h4 style="margin: 0; color: #eab308; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9,11 12,14 22,4"></polyline>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+            Event Listeners
+          </h4>
+          <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▲</span>
+        </div>
+        <div class="accordion-content" style="padding: 8px 0; display: none;">
+          <div id="event-listeners" style="margin-bottom: 12px; font-size: 12px;"></div>
+        </div>
       </div>
-    </div>
-    
-    <!-- Attributes Accordion Section -->
-    <div class="accordion-section">
-      <div class="accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; border-bottom: 1px solid rgba(249, 115, 22, 0.2);">
-        <h4 style="margin: 0; color: #f97316; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" x2="20" y1="9" y2="9"></line>
-            <line x1="4" x2="20" y1="15" y2="15"></line>
-            <line x1="10" x2="8" y1="3" y2="21"></line>
-            <line x1="16" x2="14" y1="3" y2="21"></line>
-          </svg>
-          Attributes
-        </h4>
-        <span class="accordion-icon" style="color: #64748b; transition: transform 0.2s;">▲</span>
-      </div>
-      <div class="accordion-content" style="padding: 8px 0; display: none;">
-        <div id="element-attributes" style="margin-bottom: 12px; font-size: 12px;"></div>
-      </div>
-    </div>
-    
-    <div class="actions" style="display: flex; gap: 8px; margin-top: 16px;">
-      <button id="debug-element" style="
-        flex: 1;
-        background: #22c55e;
-        color: #0f172a;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
-        font-size: 12px;
-      ">Debug with AI</button>
-      <button id="copy-selector" style="
-        flex: 1;
-        background: #475569;
-        color: #e2e8f0;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
-        font-size: 12px;
-      ">Copy Selector</button>
     </div>
   `;
   
   document.body.appendChild(panel);
+  
+  // Add inspector panel mouse event handlers
+  panel.addEventListener('mouseenter', () => {
+    if (!isInspectorHovered) {
+      isInspectorHovered = true;
+      pauseHoverOverlay();
+    }
+  });
+  
+  panel.addEventListener('mouseleave', () => {
+    isInspectorHovered = false;
+    resumeHoverOverlay();
+  });
   
   // Make panel draggable
   let isPanelPinned = false;
@@ -339,12 +358,12 @@ function createInfoPanel() {
     pinButton.title = isPanelPinned ? 'Unpin panel' : 'Pin panel';
     
     // Update icon based on pinned state
-    const lockIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    const lockIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
       <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
     </svg>`;
     
-    const unlockIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    const unlockIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
       <path d="M7 11V7a5 5 0 0 0 0 0v4"></path>
     </svg>`;
@@ -370,19 +389,13 @@ function createInfoPanel() {
   // Add event listeners for panel
   document.getElementById('close-panel').addEventListener('click', () => {
     panel.style.display = 'none';
+    // Resume hover overlay when closing inspector
+    resumeHoverOverlay();
   });
   
   document.getElementById('debug-element').addEventListener('click', () => {
     if (currentElement) {
       openDebugModal(currentElement);
-    }
-  });
-  
-  document.getElementById('copy-selector').addEventListener('click', () => {
-    if (currentElement) {
-      const selector = generateSelector(currentElement);
-      navigator.clipboard.writeText(selector);
-      showNotification('Selector copied to clipboard!');
     }
   });
 }
@@ -420,6 +433,22 @@ function handleMouseOver(e) {
   if (!isLogTraceActive || isHoverPaused) return;
   
   const element = e.target;
+  
+  // Check if mouse is over inspector panel
+  if (element && isInspectorElement(element)) {
+    if (!isInspectorHovered) {
+      isInspectorHovered = true;
+      pauseHoverOverlay();
+    }
+    return;
+  }
+  
+  // Resume hover if leaving inspector
+  if (isInspectorHovered) {
+    isInspectorHovered = false;
+    resumeHoverOverlay();
+  }
+  
   if (element && !isLogTraceElement(element)) {
     highlightElement(element);
     currentElement = element;
@@ -445,6 +474,7 @@ function showHoverOverlay(element, mouseX, mouseY) {
 
   // Extract colors from element
   const colors = extractColorsFromElement(element);
+  
   // Get event listeners count
   const eventListeners = getEventListenerInfo(element);
   const eventCount = eventListeners.length;
@@ -455,18 +485,23 @@ function showHoverOverlay(element, mouseX, mouseY) {
   overlay.style.cssText = `
     position: fixed;
     z-index: 10002;
-    pointer-events: auto;
-    cursor: pointer;
+    pointer-events: none;
     transform: translate(-50%, -100%);
   `;
 
-  // Position the overlay
+  // Position the overlay (matching web app logic)
   const padding = 8;
   let left = mouseX;
   let top = mouseY - 10;
+  let below = false;
 
-  // Card content
-  const parentPath = element.parentElement ? element.parentElement.tagName.toLowerCase() + (element.parentElement.className ? '.' + String(element.parentElement.className).split(' ').join('.') : '') : '';
+  // Get element attributes for specific data attributes
+  const attributes = Array.from(element.attributes).map(attr => ({
+    name: attr.name,
+    value: attr.value
+  }));
+
+  // Card content matching web UI exactly
   const cardHTML = `
     <div style="
       background: rgba(15, 23, 42, 0.95);
@@ -480,82 +515,61 @@ function showHoverOverlay(element, mouseX, mouseY) {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 12px;
       color: #e2e8f0;
-      position: relative;
     ">
-      <div style="
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        box-shadow: 0 0 32px 12px rgba(34,211,238,0.35), 0 0 0 4px rgba(34,211,238,0.15);
-        background: radial-gradient(circle, rgba(34,211,238,0.18) 0%, rgba(34,211,238,0.08) 80%, transparent 100%);
-        pointer-events: none;
-        z-index: -1;
-      "></div>
+      <!-- Header: tag, event listeners, errors -->
       <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-        <span style="background: rgba(6, 182, 212, 0.2); color: #06b6d4; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 500;">${element.tagName.toLowerCase()}</span>
-        ${element.id ? `<span style=\"border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 11px;\">#${element.id}</span>` : ''}
-        <span style="border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${eventCount > 0 ? eventCount + ' events' : 'No events'}</span>
-        <span style="border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Errors: None</span>
+        <!-- Tag name badge -->
+        <span style="background: #22c55e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 500;">${element.tagName.toLowerCase()}</span>
+        <!-- Event Listeners badge: shows count or 'No events' -->
+        <span style="background: #22c55e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${eventCount > 0 ? eventCount + ' events' : 'No events'}</span>
+        <!-- Console Errors badge: placeholder for error count -->
+        <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Errors: None</span>
       </div>
-      ${colors.length > 0 ? `<div style=\"display: flex; gap: 4px; margin-bottom: 8px;\">${colors.map(color => `<div style=\\"width: 16px; height: 16px; border-radius: 2px; border: 1px solid #475569; background-color: ${color.value};\\" title=\\"${color.property}: ${color.value}\\"></div>`).join('')}</div>` : ''}
-      ${element.className ? `<div style=\"color: #22c55e; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px;\">.${element.className.split(' ').join('.').slice(0, 60)}${element.className.length > 60 ? '…' : ''}</div>` : ''}
-      ${element.textContent ? `<div style=\"color: #d1d5db; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px;\">\"${element.textContent.trim().replace(/\s+/g, ' ').slice(0, 60)}${element.textContent.length > 60 ? '…' : ''}\"</div>` : ''}
-      ${parentPath ? `<div style=\"color: #a3e635; font-size: 10px; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\">Parent: ${parentPath.slice(0, 60)}${parentPath.length > 60 ? '…' : ''}</div>` : ''}
-      <div style="color: #a855f7; font-size: 11px; margin-bottom: 4px;">Press D to pause details</div>
-      <div style="color: #06b6d4; font-size: 11px;">Click for details</div>
+      
+      <!-- Color palette: up to 3 squares for main colors -->
+      ${colors.length > 0 ? `<div style="display: flex; gap: 4px; margin-bottom: 8px;">${colors.map((color, i) => `<div style="width: 16px; height: 16px; border-radius: 2px; border: 1px solid #475569; background-color: ${color.value};" title="${color.property}: ${color.value}"></div>`).join('')}</div>` : ''}
+      
+      <!-- Basic Info Section -->
+      <div style="margin-bottom: 4px;">
+        <!-- data-lov-id value -->
+        ${attributes.some(attr => attr.name === 'data-lov-id') ? `<span style="color: #c084fc; display: block; margin-bottom: 4px; font-size: 11px; font-family: monospace;">data-lov-id: ${attributes.find(attr => attr.name === 'data-lov-id')?.value}</span>` : ''}
+        <!-- data-component-line value -->
+        ${attributes.some(attr => attr.name === 'data-component-line') ? `<span style="color: #06b6d4; display: block; margin-bottom: 4px; font-size: 11px; font-family: monospace;">data-component-line: ${attributes.find(attr => attr.name === 'data-component-line')?.value}</span>` : ''}
+        ${element.className ? `<span style="color: #22c55e; display: block; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-family: monospace;">class: .${element.className.split(' ').map(c => sanitizeText(c)).join(' .')}</span>` : ''}
+        <!-- Position (x, y) -->
+        <span style="color: #fdba74; display: block; margin-bottom: 4px; font-size: 11px; font-family: monospace;">Position: (${mouseX}, ${mouseY})</span>
+      </div>
     </div>
   `;
   overlay.innerHTML = cardHTML;
   document.body.appendChild(overlay);
 
-  // Position overlay in viewport
+  // Position overlay in viewport (matching web app logic)
   const overlayRect = overlay.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
+  
+  // Horizontal overflow handling
   if (left + overlayRect.width / 2 > viewportWidth - padding) {
     left = viewportWidth - overlayRect.width / 2 - padding;
   }
   if (left - overlayRect.width / 2 < padding) {
     left = overlayRect.width / 2 + padding;
   }
+  
+  // Vertical overflow handling
   if (top - overlayRect.height < padding) {
     top = mouseY + 20;
-    overlay.style.transform = 'translate(-50%, 0)';
+    below = true;
   }
   if (top + overlayRect.height > viewportHeight - padding) {
     top = viewportHeight - overlayRect.height - padding;
   }
+  
+  // Apply positioning with dynamic transform
   overlay.style.left = `${left}px`;
   overlay.style.top = `${top}px`;
-
-  // On click, show detailed info panel and remove overlay
-  overlay.addEventListener('click', () => {
-    updateInfoPanel(element);
-    const panel = document.getElementById('log-trace-info-panel');
-    if (panel) {
-      const rect = element.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const panelWidth = 300;
-      let left = rect.right + 10;
-      if (left + panelWidth > viewportWidth - 20) {
-        left = Math.max(20, rect.left - panelWidth - 10);
-      }
-      let top = rect.top;
-      if (top + 300 > viewportHeight - 20) {
-        top = Math.max(20, viewportHeight - 320);
-      }
-      panel.style.left = `${left}px`;
-      panel.style.top = `${top}px`;
-      panel.style.right = 'auto';
-      panel.style.display = 'block';
-    }
-    overlay.remove();
-  });
+  overlay.style.transform = `translate(-50%, ${below ? '0' : '-100%'})`;
 }
 
 // Handle click
@@ -604,72 +618,121 @@ function handleClick(e) {
   }
 }
 
+// Helper function to check if an element is in an input field
+function isInInputField(element) {
+  if (!element) return false;
+  
+  return (
+    // Standard input elements
+    element.tagName === 'INPUT' ||
+    element.tagName === 'TEXTAREA' ||
+    element.tagName === 'SELECT' ||
+    // Content editable elements
+    element.isContentEditable ||
+    // Any element with contenteditable attribute
+    element.getAttribute('contenteditable') === 'true' ||
+    // Check if element is inside a form
+    element.closest('form') ||
+    // Check if element is inside any input-related container
+    element.closest('[role="textbox"]') ||
+    element.closest('[role="searchbox"]') ||
+    element.closest('[role="combobox"]') ||
+    // LogTrace UI elements
+    element.closest('#log-trace-terminal') ||
+    element.closest('#log-trace-info-panel') ||
+    element.closest('#log-trace-hover-overlay') ||
+    element.closest('.debug-modal') ||
+    element.closest('.quick-actions-menu') ||
+    // Check for common input-related classes
+    element.classList.contains('input') ||
+    element.classList.contains('textarea') ||
+    element.classList.contains('editor') ||
+    // Check if element has input-related attributes
+    element.hasAttribute('data-input') ||
+    element.hasAttribute('data-editor')
+  );
+}
+
 // Handle keyboard shortcuts
 function handleKeyDown(e) {
-  // Ignore shortcuts while the user is typing or inside the terminal
-  const activeElement = document.activeElement;
-  if (
-    activeElement &&
-    (
-      activeElement.tagName === 'INPUT' ||
-      activeElement.tagName === 'TEXTAREA' ||
-      activeElement.isContentEditable ||
-      activeElement.closest('#log-trace-terminal')
-    )
-  ) {
-    return; // Don't intercept shortcuts when typing
+  // Ignore shortcuts while the user is typing or inside any input field
+  if (isInInputField(document.activeElement)) {
+    return; // Don't intercept shortcuts when typing or in input fields
   }
   
-  switch (e.key) {
-    case 'd':
-      if (!isLogTraceActive) return;
-      if (e.ctrlKey) {
-        // Ctrl+D: Quick debug
-        e.preventDefault();
-        if (currentElement) {
-          openDebugModal(currentElement);
-        }
-      } else {
-        // D: Pause/Resume hover
-        e.preventDefault();
-        toggleHoverPause();
+  // Ctrl+S: Start/Stop tracing 
+  if (e.ctrlKey && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    if (!isLogTraceActive) {
+      activateLogTrace();
+    } else {
+      deactivateLogTrace();
+    }
+    return;
+  }
+  
+  // Ctrl+E: End tracing session
+  if (e.ctrlKey && e.key.toLowerCase() === 'e') {
+    e.preventDefault();
+    if (isLogTraceActive) {
+      deactivateLogTrace();
+    }
+    return;
+  }
+  
+  // Ctrl+T: Toggle terminal panel
+  if (e.ctrlKey && e.key.toLowerCase() === 't') {
+    e.preventDefault();
+    toggleTerminal();
+    return;
+  }
+  
+  // Ctrl+D: Trigger AI debug
+  if (e.ctrlKey && e.key.toLowerCase() === 'd') {
+    e.preventDefault();
+    if (currentElement) {
+      openDebugModal(currentElement);
+    }
+    return;
+  }
+  
+  // Ctrl+P: Pause/Resume hover tracking
+  if (e.ctrlKey && e.key.toLowerCase() === 'p') {
+    e.preventDefault();
+    toggleHoverPause();
+    return;
+  }
+  
+  // Q: Quick actions (show context menu)
+  if (e.key.toLowerCase() === 'q' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    e.preventDefault();
+    if (isLogTraceActive && currentElement) {
+      // Show quick actions menu at current mouse position
+      showQuickActionsMenu(currentElement, mousePosition.x, mousePosition.y);
+    }
+    return;
+  }
+  
+  // Escape: Close panels/modals
+  if (e.key === 'Escape') {
+    if (isLogTraceActive) {
+      // Close any open modals first
+      const terminalModal = document.getElementById('log-trace-terminal-modal');
+      if (terminalModal) {
+        terminalModal.remove();
+        return;
       }
-      break;
       
-    case 's':
-      // S: Start (activate LogTrace)
-      if (!e.ctrlKey && !e.altKey && !e.metaKey) {
-        e.preventDefault();
-        if (!isLogTraceActive) {
-          activateLogTrace();
-        }
+      const debugModal = document.querySelector('.debug-modal');
+      if (debugModal) {
+        debugModal.remove();
+        return;
       }
-      break;
       
-    case 'e':
-      // E: End (deactivate LogTrace)
-      if (!e.ctrlKey && !e.altKey && !e.metaKey) {
-        e.preventDefault();
-        if (isLogTraceActive) {
-          deactivateLogTrace();
-        }
-      }
-      break;
-      
-    case 't':
-      // T: Toggle LogTrace Terminal
-      if (!e.ctrlKey && !e.altKey && !e.metaKey) {
-        e.preventDefault();
-        toggleTerminal();
-      }
-      break;
-      
-    case 'Escape':
-      if (isLogTraceActive) {
-        e.preventDefault();
-        deactivateLogTrace();
-      }
-      break;
+      // If no modals open, deactivate LogTrace
+      deactivateLogTrace();
+    }
+    return;
   }
 }
 
@@ -822,23 +885,59 @@ function toggleHoverPause() {
   showNotification(`Hover details ${status}`);
 }
 
+// Pause hover overlay (for inspector or quick actions)
+function pauseHoverOverlay() {
+  if (!isHoverPaused) {
+    isHoverPaused = true;
+    pausedElement = currentElement;
+    pausedPosition = { ...mousePosition };
+    
+    // Keep the current overlay visible
+    const overlay = document.getElementById('log-trace-hover-overlay');
+    if (overlay) {
+      overlay.style.pointerEvents = 'none';
+    }
+  }
+}
+
+// Resume hover overlay
+function resumeHoverOverlay() {
+  if (isHoverPaused && !isInspectorHovered) {
+    isHoverPaused = false;
+    pausedElement = null;
+    pausedPosition = { x: 0, y: 0 };
+    
+    // Remove the paused overlay
+    const overlay = document.getElementById('log-trace-hover-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
+  }
+}
+
+// Check if element is part of inspector panel
+function isInspectorElement(element) {
+  return element && (
+    element.closest('#log-trace-info-panel') ||
+    element.closest('.debug-modal') ||
+    element.closest('.quick-actions-menu') ||
+    element.closest('[data-inspector-panel]')
+  );
+}
+
 // Highlight element
 function highlightElement(element) {
   const highlighter = document.getElementById('element-highlighter');
   if (!highlighter) return;
   
   const rect = element.getBoundingClientRect();
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   
   highlighter.style.cssText = `
     position: fixed;
     border: 2px solid #06b6d4;
-    background: rgba(6, 182, 212, 0.1);
     pointer-events: none;
     z-index: 9998;
     display: block;
-    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
     left: ${rect.left}px;
     top: ${rect.top}px;
     width: ${rect.width}px;
@@ -851,64 +950,261 @@ function updateInfoPanel(element) {
   const infoDiv = document.getElementById('element-info');
   const computedStylesDiv = document.getElementById('computed-styles');
   const attributesDiv = document.getElementById('element-attributes');
+  const eventListenersDiv = document.getElementById('event-listeners');
+  const interactiveBadge = document.getElementById('interactive-badge');
   
-  if (!infoDiv || !computedStylesDiv || !attributesDiv) return;
+  if (!infoDiv || !computedStylesDiv || !attributesDiv || !eventListenersDiv) return;
   
   const rect = element.getBoundingClientRect();
   const styles = window.getComputedStyle(element);
   
+  // Check if element is interactive
+  const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(element.tagName.toLowerCase()) || 
+                       element.onclick !== null ||
+                       styles.cursor === 'pointer';
+  
+  // Show/hide interactive badge
+  if (interactiveBadge) {
+    interactiveBadge.style.display = isInteractive ? 'flex' : 'none';
+  }
+  
+  // Get element hierarchy
+  const hierarchy = [];
+  let parent = element.parentElement;
+  let depth = 0;
+  while (parent && depth < 3) {
+    const tagName = parent.tagName.toLowerCase();
+    const id = parent.id ? `#${parent.id}` : '';
+    const className = parent.className ? `.${parent.className.split(' ')[0]}` : '';
+    hierarchy.unshift(`${tagName}${id}${className}`);
+    parent = parent.parentElement;
+    depth++;
+  }
+  const hierarchyPath = hierarchy.length > 0 ? hierarchy.join(' > ') + ' > ' : '';
+  
   // Basic Info Section
   infoDiv.innerHTML = `
-    <div style="margin-bottom: 8px;">
-      <strong style="color: #06b6d4;">Tag:</strong> ${element.tagName.toLowerCase()}
+    <div style="background: rgba(30, 41, 59, 0.5); padding: 12px; border-radius: 6px; border: 1px solid rgba(6, 182, 212, 0.2);">
+      <div style="margin-bottom: 8px; display: flex; justify-content: space-between;">
+        <span style="color: #94a3b8;">Tag:</span>
+        <span style="color: #06b6d4; font-family: monospace;">&lt;${element.tagName.toLowerCase()}&gt;</span>
+      </div>
+      ${element.id ? `<div style="margin-bottom: 8px; display: flex; justify-content: space-between;">
+        <span style="color: #94a3b8;">ID:</span>
+        <span style="color: #22c55e; font-family: monospace;">#${element.id}</span>
+      </div>` : ''}
+      ${element.className ? `<div style="margin-bottom: 8px; display: flex; justify-content: space-between;">
+        <span style="color: #94a3b8;">Classes:</span>
+        <span style="color: #22c55e; font-family: monospace; text-align: right; max-width: 150px; overflow: hidden; text-overflow: ellipsis;">
+          .${element.className.split(' ').join(' .')}
+        </span>
+      </div>` : ''}
+      ${element.textContent ? `<div style="margin-bottom: 8px; display: flex; justify-content: space-between;">
+        <span style="color: #94a3b8;">Text:</span>
+        <span style="color: #3b82f6; font-family: monospace; text-align: right; max-width: 150px; overflow: hidden; text-overflow: ellipsis;">
+          "${element.textContent.trim().replace(/\s+/g, ' ').substring(0, 50)}${element.textContent.length > 50 ? '...' : ''}"
+        </span>
+      </div>` : ''}
+      <div style="margin-bottom: 8px; display: flex; justify-content: space-between;">
+        <span style="color: #94a3b8;">Position:</span>
+        <span style="color: #f97316; font-family: monospace;">
+          (${Math.round(mousePosition.x)}, ${Math.round(mousePosition.y)})
+        </span>
+      </div>
+      <div style="margin-bottom: 8px; display: flex; justify-content: space-between;">
+        <span style="color: #94a3b8;">Size:</span>
+        <span style="color: #f97316; font-family: monospace;">
+          ${Math.round(rect.width)}×${Math.round(rect.height)}
+        </span>
+      </div>
+      ${hierarchyPath ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(107, 114, 128, 0.3);">
+        <span style="color: #94a3b8; font-size: 12px;">Path:</span>
+        <div style="color: #a855f7; font-family: monospace; font-size: 12px; margin-top: 4px; word-break: break-all;">
+          ${hierarchyPath}${element.tagName.toLowerCase()}
+        </div>
+      </div>` : ''}
     </div>
-    ${element.id ? `<div style="margin-bottom: 8px;"><strong style="color: #06b6d4;">ID:</strong> #${element.id}</div>` : ''}
-    ${element.className ? `<div style="margin-bottom: 8px;"><strong style="color: #06b6d4;">Classes:</strong> .${element.className.split(' ').join('.')}</div>` : ''}
-    <div style="margin-bottom: 8px;">
-      <strong style="color: #06b6d4;">Size:</strong> ${Math.round(rect.width)}×${Math.round(rect.height)}
-    </div>
-    <div style="margin-bottom: 8px;">
-      <strong style="color: #06b6d4;">Position:</strong> (${Math.round(rect.left)}, ${Math.round(rect.top)})
-    </div>
-    ${element.textContent ? `<div style="margin-bottom: 8px;"><strong style="color: #06b6d4;">Text:</strong> ${element.textContent.substring(0, 50)}${element.textContent.length > 50 ? '...' : ''}</div>` : ''}
   `;
   
   // Computed Styles Section
-  const importantStyles = [
-    'display', 'position', 'width', 'height', 'margin', 'padding',
-    'color', 'background-color', 'font-size', 'font-family',
-    'z-index', 'opacity', 'visibility', 'overflow'
-  ];
+  const importantStyles = {
+    // Layout
+    display: styles.display,
+    position: styles.position,
+    zIndex: styles.zIndex,
+    visibility: styles.visibility,
+    opacity: styles.opacity,
+    overflow: styles.overflow,
+    // Dimensions
+    width: styles.width,
+    height: styles.height,
+    margin: styles.margin,
+    padding: styles.padding,
+    border: styles.border,
+    // Typography
+    color: styles.color,
+    backgroundColor: styles.backgroundColor,
+    fontSize: styles.fontSize,
+    fontFamily: styles.fontFamily,
+    lineHeight: styles.lineHeight,
+    textAlign: styles.textAlign,
+    // Interactive
+    pointerEvents: styles.pointerEvents,
+    cursor: styles.cursor,
+    userSelect: styles.userSelect,
+    // Flexbox
+    flexDirection: styles.flexDirection,
+    alignItems: styles.alignItems,
+    justifyContent: styles.justifyContent,
+    flexWrap: styles.flexWrap,
+    // Grid
+    gridTemplateColumns: styles.gridTemplateColumns,
+    gridTemplateRows: styles.gridTemplateRows,
+    gridArea: styles.gridArea,
+    // Visual Effects
+    borderRadius: styles.borderRadius,
+    boxShadow: styles.boxShadow,
+    transform: styles.transform,
+    filter: styles.filter,
+  };
   
-  let stylesHTML = '';
-  importantStyles.forEach(prop => {
-    const value = styles.getPropertyValue(prop);
-    if (value) {
+  let stylesHTML = `
+    <div style="background: rgba(30, 41, 59, 0.5); padding: 12px; border-radius: 6px; border: 1px solid rgba(249, 115, 22, 0.2); max-height: 200px; overflow-y: auto;">
+      <table style="width: 100%; font-size: 12px;">
+        <thead>
+          <tr style="border-bottom: 1px solid rgba(107, 114, 128, 0.3);">
+            <th style="text-align: left; padding: 4px 8px; color: #f97316; font-weight: 500;">property</th>
+            <th style="text-align: left; padding: 4px 8px; color: #f97316; font-weight: 500;">value</th>
+            <th style="text-align: left; padding: 4px 8px; color: #f97316; font-weight: 500; width: 60px;">copy</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  Object.entries(importantStyles).forEach(([property, value]) => {
+    if (value && value !== 'initial' && value !== 'normal') {
       stylesHTML += `
-        <div style="margin-bottom: 4px; display: flex;">
-          <strong style="color: #06b6d4; min-width: 100px;">${prop}:</strong> 
-          <span style="color: #e2e8f0; word-break: break-all;">${value}</span>
-        </div>
+        <tr style="border-bottom: 1px solid rgba(107, 114, 128, 0.2);">
+          <td style="padding: 4px 8px; color: #f97316; font-family: monospace; vertical-align: top;">${property}</td>
+          <td style="padding: 4px 8px; vertical-align: top;">
+            <span style="color: #e2e8f0; font-family: monospace; word-break: break-all; max-width: 200px; display: inline-block;">${value}</span>
+          </td>
+          <td style="padding: 4px 8px; vertical-align: top;">
+            <button onclick="navigator.clipboard.writeText('${value}'); this.style.color='#22c55e'; setTimeout(()=>this.style.color='#64748b', 1000);" style="background: none; border: none; color: #64748b; cursor: pointer; padding: 2px;" title="Copy value">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="14" height="20" x="8" y="2" rx="2" ry="2"></rect>
+                <path d="M22 20c.552 0 1-.448 1-1V9c0-.552-.448-1-1-1h-6.626c-.437 0-.853.174-1.162.484l-3.374 3.374A1.64 1.64 0 0 1 10 12.374V20c0 .552.448 1 1 1h11z"></path>
+              </svg>
+            </button>
+          </td>
+        </tr>
       `;
     }
   });
   
-  computedStylesDiv.innerHTML = stylesHTML || '<em style="color: #64748b;">No computed styles available</em>';
+  stylesHTML += `
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  computedStylesDiv.innerHTML = stylesHTML;
   
   // Attributes Section
-  let attributesHTML = '';
-  for (const attr of element.attributes) {
-    if (attr.name !== 'style') { // Skip style attribute as it's usually too long
-      attributesHTML += `
-        <div style="margin-bottom: 4px; display: flex;">
-          <strong style="color: #06b6d4; min-width: 100px;">${attr.name}:</strong> 
-          <span style="color: #e2e8f0; word-break: break-all;">${attr.value.substring(0, 100)}${attr.value.length > 100 ? '...' : ''}</span>
-        </div>
-      `;
+  let attributesHTML = `
+    <div style="background: rgba(30, 41, 59, 0.5); padding: 12px; border-radius: 6px; border: 1px solid rgba(168, 85, 247, 0.2); max-height: 200px; overflow-y: auto;">
+  `;
+  
+  if (element.attributes.length > 0) {
+    attributesHTML += `
+      <table style="width: 100%; font-size: 12px;">
+        <thead>
+          <tr style="border-bottom: 1px solid rgba(107, 114, 128, 0.3);">
+            <th style="text-align: left; padding: 4px 8px; color: #a855f7; font-weight: 500;">attribute</th>
+            <th style="text-align: left; padding: 4px 8px; color: #a855f7; font-weight: 500;">value</th>
+            <th style="text-align: left; padding: 4px 8px; color: #a855f7; font-weight: 500; width: 60px;">copy</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    for (const attr of element.attributes) {
+      if (attr.name !== 'style') { // Skip style attribute as it's usually too long
+        const displayValue = attr.value.length > 50 ? attr.value.substring(0, 50) + '...' : attr.value;
+        attributesHTML += `
+          <tr style="border-bottom: 1px solid rgba(107, 114, 128, 0.2);">
+            <td style="padding: 4px 8px; color: #a855f7; font-family: monospace; vertical-align: top;">${attr.name}</td>
+            <td style="padding: 4px 8px; vertical-align: top;">
+              <span style="color: #e2e8f0; font-family: monospace; word-break: break-all; max-width: 200px; display: inline-block;" title="${attr.value.length > 50 ? attr.value : ''}">"${displayValue}"</span>
+            </td>
+            <td style="padding: 4px 8px; vertical-align: top;">
+              <button onclick="navigator.clipboard.writeText('${attr.value}'); this.style.color='#22c55e'; setTimeout(()=>this.style.color='#64748b', 1000);" style="background: none; border: none; color: #64748b; cursor: pointer; padding: 2px;" title="Copy value">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect width="14" height="20" x="8" y="2" rx="2" ry="2"></rect>
+                  <path d="M22 20c.552 0 1-.448 1-1V9c0-.552-.448-1-1-1h-6.626c-.437 0-.853.174-1.162.484l-3.374 3.374A1.64 1.64 0 0 1 10 12.374V20c0 .552.448 1 1 1h11z"></path>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        `;
+      }
     }
+    
+    attributesHTML += `
+        </tbody>
+      </table>
+    `;
+  } else {
+    attributesHTML += '<em style="color: #64748b;">No attributes available</em>';
   }
   
-  attributesDiv.innerHTML = attributesHTML || '<em style="color: #64748b;">No attributes available</em>';
+  attributesHTML += '</div>';
+  attributesDiv.innerHTML = attributesHTML;
+  
+  // Event Listeners Section
+  const eventListeners = getEventListenerInfo(element);
+  let eventListenersHTML = `
+    <div style="background: rgba(30, 41, 59, 0.5); padding: 12px; border-radius: 6px; border: 1px solid rgba(234, 179, 8, 0.2);">
+  `;
+  
+  if (eventListeners.length > 0) {
+    eventListenersHTML += `
+      <div style="font-weight: 500; color: #eab308; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9,11 12,14 22,4"></polyline>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        </svg>
+        Events (${eventListeners.length})
+      </div>
+      <table style="width: 100%; font-size: 12px;">
+        <thead>
+          <tr style="border-bottom: 1px solid rgba(107, 114, 128, 0.3);">
+            <th style="text-align: left; padding: 4px 8px; color: #eab308; font-weight: 500;">Type</th>
+            <th style="text-align: left; padding: 4px 8px; color: #eab308; font-weight: 500;">Handler</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    eventListeners.forEach((listener, index) => {
+      eventListenersHTML += `
+        <tr style="border-bottom: 1px solid rgba(107, 114, 128, 0.2);">
+          <td style="padding: 4px 8px; color: #eab308; font-family: monospace;">${listener.type}</td>
+          <td style="padding: 4px 8px; color: #e2e8f0;">${listener.handler}</td>
+        </tr>
+      `;
+    });
+    
+    eventListenersHTML += `
+        </tbody>
+      </table>
+    `;
+  } else {
+    eventListenersHTML += '<em style="color: #64748b;">No event listeners found</em>';
+  }
+  
+  eventListenersHTML += '</div>';
+  eventListenersDiv.innerHTML = eventListenersHTML;
 }
 
 // Open debug modal with enhanced Debug Assistant
@@ -918,6 +1214,9 @@ function openDebugModal(element) {
   if (existingModal) {
     existingModal.remove();
   }
+
+  // Pause hover overlay when opening debug modal
+  pauseHoverOverlay();
 
   // Create modal with enhanced Debug Assistant
   const modal = document.createElement('div');
@@ -965,6 +1264,19 @@ function openDebugModal(element) {
   
   document.body.appendChild(modal);
   
+  // Add debug modal mouse event handlers
+  modal.addEventListener('mouseenter', () => {
+    if (!isInspectorHovered) {
+      isInspectorHovered = true;
+      pauseHoverOverlay();
+    }
+  });
+  
+  modal.addEventListener('mouseleave', () => {
+    isInspectorHovered = false;
+    resumeHoverOverlay();
+  });
+  
   // Set up advanced prompt
   const advancedTextarea = modal.querySelector('#advanced-debug-input');
   advancedTextarea.value = generateAdvancedPrompt(element);
@@ -972,6 +1284,8 @@ function openDebugModal(element) {
   // Add event listeners
   modal.querySelector('.close-btn').addEventListener('click', () => {
     modal.remove();
+    // Resume hover overlay when closing debug modal
+    resumeHoverOverlay();
   });
   
   modal.querySelector('#quick-debug-btn').addEventListener('click', () => {
@@ -993,8 +1307,10 @@ function openDebugModal(element) {
   
   // Add keyboard shortcuts
   modal.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && !isInInputField(document.activeElement)) {
       modal.remove();
+      // Resume hover overlay when closing debug modal
+      resumeHoverOverlay();
     } else if (e.key === 'Enter' && e.ctrlKey) {
       const activeElement = document.activeElement;
       if (activeElement.id === 'quick-debug-input') {
@@ -1004,6 +1320,8 @@ function openDebugModal(element) {
       }
     }
   });
+
+  document.body.appendChild(modal);
 }
 
 // Generate advanced debugging prompt
@@ -1228,23 +1546,31 @@ function gatherElementContext(element) {
 
 // Helper function to get event listener information
 function getEventListenerInfo(element) {
-  const listeners = {};
+  const listeners = [];
   
-  // Check for common event properties
-  const commonEvents = ['onclick', 'onmouseover', 'onmouseout', 'onmousedown', 'onmouseup', 
-                       'onkeydown', 'onkeyup', 'onkeypress', 'onfocus', 'onblur', 'onchange', 
-                       'onsubmit', 'onload', 'onerror', 'onresize', 'onscroll'];
+  // Check for common event properties (matching web app)
+  const commonEvents = [
+    'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmouseout',
+    'onmouseenter', 'onmouseleave', 'onkeydown', 'onkeyup', 'oninput',
+    'onchange', 'onfocus', 'onblur', 'onsubmit', 'onload', 'onerror'
+  ];
   
   commonEvents.forEach(event => {
-    if (element[event]) {
-      listeners[event] = 'attached';
+    if (typeof element[event] === 'function') {
+      listeners.push({
+        type: event.replace('on', ''),
+        handler: 'attached'
+      });
     }
   });
   
   // Check for data attributes that might indicate event handling
   Array.from(element.attributes).forEach(attr => {
     if (attr.name.startsWith('data-') && (attr.name.includes('click') || attr.name.includes('event'))) {
-      listeners[attr.name] = attr.value;
+      listeners.push({
+        type: attr.name,
+        handler: attr.value || 'data attribute'
+      });
     }
   });
   
@@ -1691,7 +2017,7 @@ function createSignInModal() {
 
   // Close on Escape key
   const handleEscape = (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && !isInInputField(document.activeElement)) {
       modal.remove();
       document.removeEventListener('keydown', handleEscape);
     }
@@ -1885,26 +2211,10 @@ function debouncedOverlayMouseMove(e) {
     const el = e.target;
     if (!el.closest('#log-trace-hover-overlay')) {
       highlightElement(el);
-      showOverlayCard(el, e.clientX, e.clientY);
+      showHoverOverlay(el, e.clientX, e.clientY);
     }
   }, 10);
 }
-
-// --- Keyboard Shortcuts for Activation/Deactivation ---
-document.addEventListener('keydown', function(e) {
-  if (e.key === 's' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-    e.preventDefault();
-    if (!isLogTraceActive) activateLogTrace();
-  }
-  if (e.key === 'e' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-    e.preventDefault();
-    if (isLogTraceActive) deactivateLogTrace();
-  }
-  if (e.key === 'Escape' && isLogTraceActive) {
-    e.preventDefault();
-    deactivateLogTrace();
-  }
-});
 
 // --- Ensure overlays are only shown when active ---
 // Remove any overlays/highlights on page load
@@ -1933,7 +2243,19 @@ function removeOverlayUI() {
   if (highlighter) highlighter.style.display = 'none';
 }
 
-// Utility to extract up to 3 unique colors from computed styles (getComputedStyle only)
+// Sanitization utility (matching web app)
+function sanitizeText(text, maxLength = 500) {
+  if (!text || typeof text !== 'string') return '';
+  
+  return text
+    .replace(/[<>]/g, '') // Remove potential HTML tags
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .trim()
+    .slice(0, maxLength);
+}
+
+// Utility to extract up to 3 unique colors from computed styles (matching web UI)
 function extractColorsFromElement(element) {
   if (!element) return [];
   const styles = window.getComputedStyle(element);
@@ -1941,6 +2263,10 @@ function extractColorsFromElement(element) {
     'color',
     'background-color',
     'border-color',
+    'border-top-color',
+    'border-right-color',
+    'border-bottom-color',
+    'border-left-color',
     'outline-color',
     'text-decoration-color',
     'fill',
@@ -1954,66 +2280,342 @@ function extractColorsFromElement(element) {
       value !== 'transparent' &&
       value !== 'rgba(0, 0, 0, 0)' &&
       value !== 'initial' &&
-      !colors.includes(value.trim())
+      value !== 'inherit'
     ) {
-      colors.push(value.trim());
+      colors.push({
+        property,
+        value: value.trim()
+      });
     }
   });
-  return colors.slice(0, 3);
+  // Remove duplicates and limit to 3
+  const uniqueColors = colors.filter((color, idx, arr) =>
+    arr.findIndex(c => c.value === color.value) === idx
+  );
+  return uniqueColors.slice(0, 3);
 }
 
-function showOverlayCard(element, x, y) {
-  // Remove old card
-  let card = document.getElementById('log-trace-hover-overlay');
-  if (card) card.remove();
 
-  // Extract info
-  const tag = element.tagName ? element.tagName.toLowerCase() : '';
-  const id = element.id ? `#${element.id}` : '';
-  const classes = element.className ? '.' + String(element.className).split(' ').join('.') : '';
-  const text = element.textContent ? element.textContent.trim().replace(/\s+/g, ' ').slice(0, 60) : '';
-  const parent = element.parentElement ? element.parentElement.tagName.toLowerCase() : '';
-  const parentClasses = element.parentElement && element.parentElement.className ? '.' + String(element.parentElement.className).split(' ').join('.') : '';
-  const parentPath = parent ? `${parent}${parentClasses}` : '';
-  const colors = extractColorsFromElement(element);
 
-  // Create card
-  card = document.createElement('div');
-  card.id = 'log-trace-hover-overlay';
-  card.className = 'log-trace-hover-overlay';
-  card.style.cssText = `
+// Show quick actions menu at specified position
+function showQuickActionsMenu(element, x, y) {
+  // Remove any existing quick actions menu
+  const existingMenu = document.querySelector('.quick-actions-menu');
+  if (existingMenu) {
+    existingMenu.remove();
+  }
+
+  // Pause hover overlay when opening quick actions
+  pauseHoverOverlay();
+
+  const menu = document.createElement('div');
+  menu.className = 'quick-actions-menu';
+  menu.style.cssText = `
     position: fixed;
-    z-index: 10002;
-    pointer-events: auto;
-    cursor: pointer;
-    transform: translate(-50%, -100%);
     left: ${x}px;
-    top: ${y - 10}px;
-    background: rgba(15, 23, 42, 0.95);
-    border: 1px solid rgba(6, 182, 212, 0.5);
+    top: ${y}px;
+    background: #1e293b;
+    border: 1px solid #475569;
     border-radius: 8px;
-    padding: 12px;
-    backdrop-filter: blur(16px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    padding: 8px;
+    z-index: 2147483647;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     min-width: 200px;
-    max-width: 320px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  `;
+
+  const actions = [
+    { label: '📋 Element Details', action: 'details' },
+    { label: '🤖 AI Debug', action: 'debug' },
+    { label: '📸 Screenshot', action: 'screenshot' },
+    { label: '🔍 Context Analysis', action: 'context' }
+  ];
+
+  actions.forEach(({ label, action }) => {
+    const button = document.createElement('button');
+    button.textContent = label;
+    button.style.cssText = `
+      display: block;
+      width: 100%;
+      padding: 8px 12px;
+      background: transparent;
+      border: none;
+      color: #e2e8f0;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+    `;
+    
+    button.addEventListener('mouseenter', () => {
+      button.style.background = '#334155';
+    });
+    
+    button.addEventListener('mouseleave', () => {
+      button.style.background = 'transparent';
+    });
+    
+    button.addEventListener('click', () => {
+      handleQuickAction(action, element);
+      menu.remove();
+      // Resume hover overlay when closing quick actions
+      resumeHoverOverlay();
+    });
+    
+    menu.appendChild(button);
+  });
+
+  // Add close button
+  const closeButton = document.createElement('button');
+  closeButton.textContent = '✕ Close';
+  closeButton.style.cssText = `
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
     font-size: 12px;
-    color: #e2e8f0;
-    position: fixed;
+    margin-top: 4px;
+    border-top: 1px solid #475569;
   `;
-  // Card content
-  card.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-      <span style="background: rgba(6, 182, 212, 0.2); color: #06b6d4; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 500;">${tag}</span>
-      ${id ? `<span style=\"border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 11px;\">${id}</span>` : ''}
-      ${classes ? `<span style=\"color: #22c55e; font-size: 11px;\">${classes.slice(0, 40)}${classes.length > 40 ? '…' : ''}</span>` : ''}
+  
+  closeButton.addEventListener('click', () => {
+    menu.remove();
+    // Resume hover overlay when closing quick actions
+    resumeHoverOverlay();
+  });
+  
+  menu.appendChild(closeButton);
+
+  // Close menu when clicking outside
+  const closeOnOutsideClick = (e) => {
+    if (!menu.contains(e.target)) {
+      menu.remove();
+      document.removeEventListener('click', closeOnOutsideClick);
+      // Resume hover overlay when closing quick actions
+      resumeHoverOverlay();
+    }
+  };
+  
+  // Delay adding the listener to avoid immediate closure
+  setTimeout(() => {
+    document.addEventListener('click', closeOnOutsideClick);
+  }, 100);
+
+  // Close on Escape key
+  const closeOnEscape = (e) => {
+    if (e.key === 'Escape' && !isInInputField(document.activeElement)) {
+      menu.remove();
+      document.removeEventListener('keydown', closeOnEscape);
+      // Resume hover overlay when closing quick actions
+      resumeHoverOverlay();
+    }
+  };
+  document.addEventListener('keydown', closeOnEscape);
+
+  document.body.appendChild(menu);
+}
+
+// Handle quick action selection
+function handleQuickAction(action, element) {
+  switch (action) {
+    case 'details':
+      // Show detailed element information
+      showElementDetails(element);
+      break;
+    case 'debug':
+      // Open AI debug modal
+      openDebugModal(element);
+      break;
+    case 'screenshot':
+      // Take screenshot of element
+      takeElementScreenshot(element);
+      break;
+    case 'context':
+      // Show context analysis
+      showContextAnalysis(element);
+      break;
+  }
+}
+
+// Show detailed element information
+function showElementDetails(element) {
+  const details = gatherElementContext(element);
+  const modal = createModal('Element Details', `
+    <div style="max-height: 400px; overflow-y: auto;">
+      <h3 style="color: #10b981; margin-bottom: 12px;">Element Information</h3>
+      <div style="margin-bottom: 16px;">
+        <strong>Tag:</strong> ${element.tagName}<br>
+        <strong>ID:</strong> ${element.id || 'None'}<br>
+        <strong>Classes:</strong> ${element.className || 'None'}<br>
+        <strong>Text:</strong> ${element.textContent?.substring(0, 100) || 'None'}${element.textContent?.length > 100 ? '...' : ''}
+      </div>
+      
+      <h4 style="color: #3b82f6; margin-bottom: 8px;">Attributes</h4>
+      <div style="margin-bottom: 16px; font-family: monospace; font-size: 12px;">
+        ${Object.entries(details.attributes || {}).map(([key, value]) => 
+          `<div>${key}: "${value}"</div>`
+        ).join('')}
+      </div>
+      
+      <h4 style="color: #3b82f6; margin-bottom: 8px;">Computed Styles</h4>
+      <div style="font-family: monospace; font-size: 12px;">
+        ${Object.entries(details.computedStyles || {}).slice(0, 10).map(([key, value]) => 
+          `<div>${key}: ${value}</div>`
+        ).join('')}
+      </div>
     </div>
-    ${colors.length > 0 ? `<div style=\"display: flex; gap: 4px; margin-bottom: 8px;\">${colors.map(color => `<div style=\\"width: 16px; height: 16px; border-radius: 2px; border: 1px solid #475569; background-color: ${color.value};\\" title=\\"${color.property}: ${color.value}\\"></div>`).join('')}</div>` : ''}
-    ${text ? `<div style=\"color: #d1d5db; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px;\">\"${text}${element.textContent.length > 60 ? '…' : ''}\"</div>` : ''}
-    ${parentPath ? `<div style=\"color: #a3e635; font-size: 10px; margin-bottom: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\">Parent: ${parentPath.slice(0, 60)}${parentPath.length > 60 ? '…' : ''}</div>` : ''}
-    <div style=\"color: #a855f7; font-size: 11px; margin-bottom: 4px;\">Press D to pause details</div>
-    <div style=\"color: #06b6d4; font-size: 11px;\">Click for details</div>
+  `);
+}
+
+// Take screenshot of element
+function takeElementScreenshot(element) {
+  // This would require additional implementation for screenshot functionality
+  showNotification('Screenshot feature coming soon!', 'info');
+}
+
+// Show context analysis
+function showContextAnalysis(element) {
+  const context = gatherElementContext(element);
+  const modal = createModal('Context Analysis', `
+    <div style="max-height: 400px; overflow-y: auto;">
+      <h3 style="color: #10b981; margin-bottom: 12px;">Element Context</h3>
+      <div style="margin-bottom: 16px;">
+        <strong>Parent Path:</strong><br>
+        <div style="font-family: monospace; font-size: 12px; color: #94a3b8;">
+          ${context.parentPath || 'None'}
+        </div>
+      </div>
+      
+      <h4 style="color: #3b82f6; margin-bottom: 8px;">Event Listeners</h4>
+      <div style="font-family: monospace; font-size: 12px;">
+        ${context.eventListeners?.length > 0 ? 
+          context.eventListeners.map(listener => 
+            `<div>${listener.type}: ${listener.handler}</div>`
+          ).join('') : 
+          'No event listeners found'
+        }
+      </div>
+    </div>
+  `);
+}
+
+// Create a modal dialog
+function createModal(title, content) {
+  // Remove any existing modal
+  const existingModal = document.querySelector('.debug-modal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  const modal = document.createElement('div');
+  modal.className = 'debug-modal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2147483648;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   `;
-  document.body.appendChild(card);
+
+  const modalContent = document.createElement('div');
+  modalContent.style.cssText = `
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    color: #e2e8f0;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  `;
+
+  const header = document.createElement('div');
+  header.style.cssText = `
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #475569;
+  `;
+
+  const titleElement = document.createElement('h2');
+  titleElement.textContent = title;
+  titleElement.style.cssText = `
+    margin: 0;
+    color: #10b981;
+    font-size: 18px;
+    font-weight: 600;
+  `;
+
+  const closeButton = document.createElement('button');
+  closeButton.textContent = '✕';
+  closeButton.style.cssText = `
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+
+  closeButton.addEventListener('click', () => {
+    modal.remove();
+  });
+
+  closeButton.addEventListener('mouseenter', () => {
+    closeButton.style.background = '#334155';
+    closeButton.style.color = '#e2e8f0';
+  });
+
+  closeButton.addEventListener('mouseleave', () => {
+    closeButton.style.background = 'transparent';
+    closeButton.style.color = '#94a3b8';
+  });
+
+  header.appendChild(titleElement);
+  header.appendChild(closeButton);
+
+  const contentElement = document.createElement('div');
+  contentElement.innerHTML = content;
+
+  modalContent.appendChild(header);
+  modalContent.appendChild(contentElement);
+  modal.appendChild(modalContent);
+
+  // Close on backdrop click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+
+  // Close on Escape key
+  const closeOnEscape = (e) => {
+    if (e.key === 'Escape' && !isInInputField(document.activeElement)) {
+      modal.remove();
+      document.removeEventListener('keydown', closeOnEscape);
+    }
+  };
+  document.addEventListener('keydown', closeOnEscape);
+
+  document.body.appendChild(modal);
+  return modal;
 }

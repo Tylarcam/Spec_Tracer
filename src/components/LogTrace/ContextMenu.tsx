@@ -204,6 +204,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   return (
     <div
       ref={menuRef}
+      data-context-menu
       style={menuStyle}
       className="bg-slate-900/95 border border-cyan-500/30 rounded-xl shadow-2xl backdrop-blur-sm w-72 animate-fade-in"
     >

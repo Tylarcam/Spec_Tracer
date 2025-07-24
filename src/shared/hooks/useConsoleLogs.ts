@@ -1,3 +1,4 @@
+
 // This hook is now a no-op. Console log capturing has been removed due to recursion and error issues.
 
 export const useConsoleLogs = () => {
@@ -6,5 +7,6 @@ export const useConsoleLogs = () => {
     clearLogs: () => {},
     associateWithElement: false,
     setAssociateWithElement: () => {},
+    getFilteredLogs: () => [], // Add missing function that returns empty array
   };
-}; 
+};

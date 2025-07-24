@@ -1,13 +1,19 @@
-
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { sanitizeText } from '@/utils/sanitization';
 import { ElementInfo } from '@/shared/types';
-import { Camera, Sparkles, Bug, Eye } from 'lucide-react';
+import { Camera, Sparkles, Bug, Eye, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatElementDataForCopy } from '@/utils/elementDataFormatter';
+import { useToast } from '@/hooks/use-toast';
 
-// Utility to extract up to 3 unique colors from computed styles
+/**
+ * Extracts up to three unique, non-transparent color-related CSS property values from the computed styles of a given HTML element.
+ *
+ * @param element - The target HTML element from which to extract color properties.
+ * @returns An array of objects, each containing a CSS property name and its corresponding color value.
+ */
 function extractColorsFromElement(element: HTMLElement): { property: string; value: string }[] {
   if (!element) return [];
   const styles = window.getComputedStyle(element);
@@ -45,7 +51,7 @@ interface ExtensionMouseOverlayProps {
   showElementInspector: boolean;
   overlayRef: React.RefObject<HTMLDivElement>;
   onPin?: () => void;
-  onQuickAction?: (action: 'details' | 'screenshot' | 'context' | 'debug', element: ElementInfo | null) => void;
+  onQuickAction?: (action: 'details' | 'screenshot' | 'context' | 'debug' | 'copy', element: ElementInfo | null) => void;
   onElementClick?: () => void;
 }
 
@@ -60,6 +66,9 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
   onElementClick,
 }) => {
   if (!isActive) return null;
+
+  // Add the toast hook
+  const { toast } = useToast();
 
   // Extract up to 3 unique colors from the hovered element
   const colors = currentElement?.element ? extractColorsFromElement(currentElement.element) : [];
@@ -101,9 +110,35 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
     setQuickActionPos({ left: mousePosition.x, top: mousePosition.y - 64 });
   }, [mousePosition.x, mousePosition.y, currentElement]);
 
-  const handleQuickAction = (action: 'details' | 'screenshot' | 'context' | 'debug') => {
+  const handleQuickAction = (action: 'details' | 'screenshot' | 'context' | 'debug' | 'copy') => {
     setShowQuickActions(false);
-    if (onQuickAction) onQuickAction(action, currentElement);
+    
+    if (action === 'copy' && currentElement) {
+      handleElementCopy(currentElement);
+    } else if (onQuickAction) {
+      onQuickAction(action, currentElement);
+    }
+  };
+
+  // New handler function for copying element data
+  const handleElementCopy = async (element: ElementInfo) => {
+    try {
+      const formattedData = formatElementDataForCopy(element, mousePosition);
+      await navigator.clipboard.writeText(formattedData);
+      
+      // Show success toast
+      toast({
+        title: 'Element Data Copied',
+        description: 'Element identifying data copied to clipboard',
+      });
+    } catch (error) {
+      console.error('Failed to copy element data:', error);
+      toast({
+        title: 'Copy Failed',
+        description: 'Failed to copy element data to clipboard',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Show quick actions when hovering overlay card
@@ -152,6 +187,15 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
           className="flex items-center bg-slate-900/95 border border-cyan-700 rounded-full shadow-lg px-2 py-1 gap-1"
         >
           <button
+            onClick={() => handleQuickAction('copy')}
+            className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-cyan-900 border border-transparent hover:border-cyan-400 text-cyan-100 font-semibold text-sm transition-colors focus:outline-none"
+            style={{ minWidth: 56 }}
+            type="button"
+          >
+            <Copy className="h-4 w-4 text-cyan-300" />
+            Copy
+          </button>
+          <button
             onClick={() => handleQuickAction('details')}
             className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-cyan-900 border border-transparent hover:border-cyan-400 text-cyan-100 font-semibold text-sm transition-colors focus:outline-none"
             style={{ minWidth: 56 }}
@@ -159,15 +203,6 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
           >
             <Eye className="h-4 w-4 text-cyan-300" />
             View
-          </button>
-          <button
-            onClick={() => handleQuickAction('screenshot')}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-cyan-900 border border-transparent hover:border-cyan-400 text-cyan-100 font-semibold text-sm transition-colors focus:outline-none"
-            style={{ minWidth: 56 }}
-            type="button"
-          >
-            <Camera className="h-4 w-4 text-cyan-300" />
-            Shot
           </button>
           <button
             onClick={() => handleQuickAction('context')}
@@ -186,6 +221,15 @@ const ExtensionMouseOverlay: React.FC<ExtensionMouseOverlayProps> = ({
           >
             <Bug className="h-4 w-4 text-cyan-300" />
             Fix
+          </button>
+          <button
+            onClick={() => handleQuickAction('screenshot')}
+            className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-cyan-900 border border-transparent hover:border-cyan-400 text-cyan-100 font-semibold text-sm transition-colors focus:outline-none"
+            style={{ minWidth: 56 }}
+            type="button"
+          >
+            <Camera className="h-4 w-4 text-cyan-300" />
+            Shot
           </button>
         </div>
       )}

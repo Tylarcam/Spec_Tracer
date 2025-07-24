@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import IframeDemoBar from '@/components/IframeDemoBar';
 import LogTrace from '@/components/LogTrace';
@@ -15,6 +14,7 @@ const InteractiveDemo: React.FC = () => {
   const [isEditingUrl, setIsEditingUrl] = useState(false);
   const [iframeError, setIframeError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [tracingActive, setTracingActive] = useState(false);
 
   // Check if URL was passed from the demo bar
   useEffect(() => {
@@ -198,7 +198,10 @@ const InteractiveDemo: React.FC = () => {
       {/* LogTrace Overlay */}
       <div className="absolute inset-0 pointer-events-none z-30">
         <div className="pointer-events-auto">
-          <LogTrace />
+          <LogTrace 
+            captureActive={tracingActive}
+            onCaptureToggle={setTracingActive}
+          />
         </div>
       </div>
     </div>

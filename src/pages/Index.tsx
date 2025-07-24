@@ -2,31 +2,52 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import LogTrace from '@/components/LogTrace';
-import { useCaptureContext } from '@/App';
+import NavBar from '@/components/NavBar';
 
-const Index: React.FC = () => {
+const Index = () => {
   const [searchParams] = useSearchParams();
   const showOnboarding = searchParams.get('onboarding') === 'true';
-  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
-  const { captureActive, setCaptureActive } = useCaptureContext();
+  const [showTerminal, setShowTerminal] = useState(false);
+  const [isTracing, setIsTracing] = useState(false);
+  const [isHoverEnabled, setIsHoverEnabled] = useState(true);
+  const [eventCount, setEventCount] = useState(0);
 
-  const handleOnboardingComplete = () => {
-    setOnboardingCompleted(true);
-    // Remove onboarding param from URL
-    const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.delete('onboarding');
-    const newUrl = `${window.location.pathname}${newSearchParams.toString() ? '?' + newSearchParams.toString() : ''}`;
-    window.history.replaceState(null, '', newUrl);
+  const handleToggleTracing = () => {
+    setIsTracing(!isTracing);
+  };
+
+  const handleToggleHover = () => {
+    setIsHoverEnabled(!isHoverEnabled);
+  };
+
+  const handleToggleTerminal = () => {
+    setShowTerminal(!showTerminal);
+  };
+
+  const handleEventCountChange = (count: number) => {
+    setEventCount(count);
   };
 
   return (
-    <div className="min-h-screen pt-14 md:pt-16">
-      <LogTrace 
-        showOnboarding={showOnboarding && !onboardingCompleted}
-        onOnboardingComplete={handleOnboardingComplete}
-        captureActive={captureActive}
-        onCaptureToggle={setCaptureActive}
+    <div className="min-h-screen bg-slate-900">
+      <NavBar
+        isTracing={isTracing}
+        isHoverEnabled={isHoverEnabled}
+        onToggleTracing={handleToggleTracing}
+        onToggleHover={handleToggleHover}
+        onOpenSettings={() => {}}
+        onToggleTerminal={handleToggleTerminal}
+        eventCount={eventCount}
+        showTerminal={showTerminal}
       />
+      
+      <div className="pt-16">
+        <LogTrace
+          captureActive={isTracing}
+          onCaptureToggle={setIsTracing}
+          onEventCountChange={handleEventCountChange}
+        />
+      </div>
     </div>
   );
 };
