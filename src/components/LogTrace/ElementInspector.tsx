@@ -55,7 +55,6 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const zIndexClass = `z-[${zIndex}]`;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -102,6 +101,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   const cardStyle = {
     left: isStatic ? `${staticPosition?.x || mousePosition?.x || 0}px` : `${mousePosition?.x || 0}px`,
     top: isStatic ? `${staticPosition?.y || mousePosition?.y || 0}px` : `${mousePosition?.y || 0}px`,
+    zIndex: zIndex,
   };
 
   const handleCopyFormatted = () => {
@@ -142,7 +142,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   return (
     <Card 
       ref={panelRef}
-      className={`bg-slate-900/95 border-2 ${zIndexClass} ${
+      className={`bg-slate-900/95 border-2 ${
         isStatic ? 'absolute' : 'fixed'
       } transition-all duration-200 ease-in-out shadow-xl backdrop-blur-sm`}
       style={cardStyle}
