@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
@@ -197,12 +196,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
           }}
           onClose={() => removeInspector(inspector.id)}
           onShowMoreDetails={() => {}}
-          // Static positioning props
-          isStatic={true}
-          staticPosition={inspector.position}
-          zIndex={inspector.zIndex}
-          inspectorId={inspector.id}
-          onBringToFront={() => bringToFront(inspector.id)}
+          onPin={() => bringToFront(inspector.id)}
         />
       ))}
 
