@@ -1,9 +1,11 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
+import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MouseOverlay from './LogTrace/MouseOverlay';
 import ElementInspector from './LogTrace/ElementInspector';
+import InteractivePanel from './LogTrace/InteractivePanel';
 import DebugModal from './LogTrace/DebugModal';
 import TabbedTerminal from './LogTrace/TabbedTerminal';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
@@ -19,6 +21,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const [showTerminal, setShowTerminal] = useState(false);
+  const [showInteractivePanel, setShowInteractivePanel] = useState(false);
+  const [isHoverPaused, setIsHoverPaused] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(400);
   
   const orchestrator = useLogTraceOrchestrator();
@@ -45,6 +49,46 @@ const LogTrace: React.FC<LogTraceProps> = ({
     modalRef,
   } = orchestrator;
 
+  // Handle escape key functionality
+  const handleEscapeKey = () => {
+    if (showAIDebugModal) {
+      setShowAIDebugModal(false);
+    } else if (showInteractivePanel) {
+      setShowInteractivePanel(false);
+    } else if (detectedElement) {
+      setDetectedElement(null);
+    }
+  };
+
+  // Handle element click for inspection
+  const handleElementClick = () => {
+    if (detectedElement) {
+      setShowInteractivePanel(true);
+    }
+  };
+
+  // Set up interaction handlers
+  const {
+    handleCursorMovement,
+    handleElementClick: handleElementClickEvent,
+    handleTouchStart,
+    handleTouchEnd,
+  } = useInteractionHandlers({
+    isTraceActive,
+    isHoverPaused,
+    detectedElement,
+    cursorPosition,
+    showInteractivePanel,
+    setCursorPosition,
+    setDetectedElement,
+    setShowInteractivePanel,
+    setShowAIDebugModal,
+    extractElementDetails,
+    recordEvent,
+    handleEscapeKey,
+    onElementClick: handleElementClick,
+  });
+
   // Sync capture state with parent
   useEffect(() => {
     setIsTraceActive(captureActive);
@@ -53,6 +97,51 @@ const LogTrace: React.FC<LogTraceProps> = ({
   useEffect(() => {
     onCaptureToggle(isTraceActive);
   }, [isTraceActive, onCaptureToggle]);
+
+  // Set up DOM event listeners
+  useEffect(() => {
+    if (!isTraceActive) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      handleCursorMovement(e as any);
+    };
+
+    const handleClick = (e: MouseEvent) => {
+      handleElementClickEvent(e as any);
+    };
+
+    const handleTouchStartEvent = (e: TouchEvent) => {
+      if (handleTouchStart) {
+        handleTouchStart(e as any);
+      }
+    };
+
+    const handleTouchEndEvent = (e: TouchEvent) => {
+      if (handleTouchEnd) {
+        handleTouchEnd(e as any);
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('click', handleClick);
+    
+    if (isMobile) {
+      document.addEventListener('touchstart', handleTouchStartEvent);
+      document.addEventListener('touchend', handleTouchEndEvent);
+    }
+
+    // Cleanup function
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('click', handleClick);
+      
+      if (isMobile) {
+        document.removeEventListener('touchstart', handleTouchStartEvent);
+        document.removeEventListener('touchend', handleTouchEndEvent);
+      }
+    };
+  }, [isTraceActive, handleCursorMovement, handleElementClickEvent, handleTouchStart, handleTouchEnd, isMobile]);
 
   console.log('LogTrace rendering with capturedEvents:', capturedEvents?.length || 0);
 
@@ -69,12 +158,22 @@ const LogTrace: React.FC<LogTraceProps> = ({
 
       {/* Element Inspector */}
       <ElementInspector 
-        isVisible={!!detectedElement && isTraceActive}
+        isVisible={!!detectedElement && isTraceActive && !showInteractivePanel}
         currentElement={detectedElement}
         mousePosition={cursorPosition}
         onDebug={() => setShowAIDebugModal(true)}
         onClose={() => setDetectedElement(null)}
-        onShowMoreDetails={() => {}}
+        onShowMoreDetails={() => setShowInteractivePanel(true)}
+      />
+
+      {/* Interactive Panel */}
+      <InteractivePanel
+        isVisible={showInteractivePanel}
+        currentElement={detectedElement}
+        mousePosition={cursorPosition}
+        onDebug={() => setShowAIDebugModal(true)}
+        onClose={() => setShowInteractivePanel(false)}
+        panelRef={useRef<HTMLDivElement>(null)}
       />
 
       {/* AI Debug Modal */}
