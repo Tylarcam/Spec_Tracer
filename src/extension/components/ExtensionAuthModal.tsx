@@ -9,34 +9,33 @@ import { Github, Mail } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 
 interface ExtensionAuthModalProps {
-  showAuthModal: boolean;
+  isOpen: boolean;
   onClose: () => void;
-  user: User | null;
-  isLoading: boolean;
-  email: string;
-  password: string;
-  onEmailChange: (email: string) => void;
-  onPasswordChange: (password: string) => void;
   onSignIn: (email: string, password: string) => Promise<void>;
   onSignUp: (email: string, password: string) => Promise<void>;
-  onSignInWithGitHub: () => Promise<void>;
+  onGitHubSignIn: () => Promise<void>;
+  email: string;
+  setEmail: (email: string) => void;
+  password: string;
+  setPassword: (password: string) => void;
+  isLoading: boolean;
   toast: { title: string; description?: string; variant?: 'destructive' | undefined } | null;
 }
 
 const ExtensionAuthModal: React.FC<ExtensionAuthModalProps> = ({
-  showAuthModal,
+  isOpen,
   onClose,
   isLoading,
   email,
   password,
-  onEmailChange,
-  onPasswordChange,
+  setEmail,
+  setPassword,
   onSignIn,
   onSignUp,
-  onSignInWithGitHub,
+  onGitHubSignIn,
   toast,
 }) => {
-  if (!showAuthModal) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/70 z-[2147483650] flex items-center justify-center">
@@ -69,7 +68,7 @@ const ExtensionAuthModal: React.FC<ExtensionAuthModalProps> = ({
                     type="email"
                     placeholder="your@email.com"
                     value={email}
-                    onChange={e => onEmailChange(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                     className="bg-slate-700 border-slate-600"
                     required
                   />
@@ -81,7 +80,7 @@ const ExtensionAuthModal: React.FC<ExtensionAuthModalProps> = ({
                     type="password"
                     placeholder="••••••••"
                     value={password}
-                    onChange={e => onPasswordChange(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     className="bg-slate-700 border-slate-600"
                     required
                   />
@@ -112,7 +111,7 @@ const ExtensionAuthModal: React.FC<ExtensionAuthModalProps> = ({
                     type="email"
                     placeholder="your@email.com"
                     value={email}
-                    onChange={e => onEmailChange(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                     className="bg-slate-700 border-slate-600"
                     required
                   />
@@ -124,7 +123,7 @@ const ExtensionAuthModal: React.FC<ExtensionAuthModalProps> = ({
                     type="password"
                     placeholder="••••••••"
                     value={password}
-                    onChange={e => onPasswordChange(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     className="bg-slate-700 border-slate-600"
                     required
                   />
@@ -152,7 +151,7 @@ const ExtensionAuthModal: React.FC<ExtensionAuthModalProps> = ({
             </div>
             <Button
               variant="outline"
-              onClick={onSignInWithGitHub}
+              onClick={onGitHubSignIn}
               className="w-full mt-4 bg-slate-700 border-slate-600 hover:bg-slate-600"
               disabled={isLoading}
             >
