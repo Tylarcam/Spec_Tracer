@@ -5,32 +5,26 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Send, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { callAIDebugFunction } from '@/shared/api';
 import { ElementInfo } from '@/shared/types';
 
 interface DebugModalProps {
-  showDebugModal: boolean;
-  setShowDebugModal: (show: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
   currentElement: ElementInfo | null;
   mousePosition: { x: number; y: number };
-  isAnalyzing: boolean;
-  analyzeWithAI: (prompt: string) => Promise<string | null>;
-  generateAdvancedPrompt: () => string;
-  modalRef: React.RefObject<HTMLDivElement>;
-  terminalHeight: number;
+  onDebugResponse: (response: string) => void;
 }
 
 const DebugModal: React.FC<DebugModalProps> = ({
-  showDebugModal,
-  setShowDebugModal,
+  isOpen,
+  onClose,
   currentElement,
   mousePosition,
-  isAnalyzing,
-  analyzeWithAI,
-  generateAdvancedPrompt,
-  modalRef,
-  terminalHeight,
+  onDebugResponse,
 }) => {
   const [prompt, setPrompt] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async () => {
@@ -43,24 +37,25 @@ const DebugModal: React.FC<DebugModalProps> = ({
       return;
     }
 
+    setIsAnalyzing(true);
     try {
       console.log('Sending debug request:', { prompt, currentElement, mousePosition });
       
-      const response = await analyzeWithAI(prompt);
+      const response = await callAIDebugFunction(prompt, currentElement, mousePosition);
       
-      if (response) {
-        console.log('Debug response received:', response);
-        
-        toast({
-          title: 'Success',
-          description: 'Debug analysis completed',
-        });
-        
-        setShowDebugModal(false);
-        setPrompt('');
-      }
+      console.log('Debug response received:', response);
+      
+      onDebugResponse(response);
+      
+      toast({
+        title: 'Success',
+        description: 'Debug analysis completed',
+      });
+      
+      onClose();
+      setPrompt('');
     } catch (error) {
-      console.error('Debug modal error:', error);
+      console.error('Debug API error:', error);
       
       let errorMessage = 'Failed to analyze element';
       
@@ -81,6 +76,8 @@ const DebugModal: React.FC<DebugModalProps> = ({
         description: errorMessage,
         variant: 'destructive',
       });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -91,20 +88,9 @@ const DebugModal: React.FC<DebugModalProps> = ({
     }
   };
 
-  const handleUseAdvancedPrompt = () => {
-    const advancedPrompt = generateAdvancedPrompt();
-    setPrompt(advancedPrompt);
-  };
-
   return (
-    <Dialog open={showDebugModal} onOpenChange={setShowDebugModal}>
-      <DialogContent 
-        ref={modalRef}
-        className="sm:max-w-[500px] bg-slate-900 border-green-500/50"
-        style={{ 
-          marginBottom: terminalHeight ? `${terminalHeight + 20}px` : '0px' 
-        }}
-      >
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] bg-slate-900 border-green-500/50">
         <DialogHeader>
           <DialogTitle className="text-green-400">Debug Assistant</DialogTitle>
         </DialogHeader>
@@ -127,20 +113,9 @@ const DebugModal: React.FC<DebugModalProps> = ({
           )}
           
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-green-400">
-                What would you like to debug?
-              </label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleUseAdvancedPrompt}
-                className="border-green-500/50 text-green-400 hover:bg-green-500/10 text-xs"
-              >
-                Use Advanced Prompt
-              </Button>
-            </div>
+            <label className="text-sm font-medium text-green-400">
+              What would you like to debug?
+            </label>
             <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -154,7 +129,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
           <div className="flex justify-end space-x-2">
             <Button
               variant="outline"
-              onClick={() => setShowDebugModal(false)}
+              onClick={onClose}
               disabled={isAnalyzing}
               className="border-green-500/50 text-green-400 hover:bg-green-500/10"
             >
