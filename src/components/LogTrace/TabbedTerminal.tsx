@@ -2,9 +2,11 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { X, Download, Play, History, GripHorizontal } from 'lucide-react';
+import { X, Download, Play, History, GripHorizontal, Copy } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { parseAIResponse, formatAIResponseForDisplay } from '@/utils/sanitization';
+import { formatElementDataForCopy } from '@/utils/elementDataFormatter';
+import { useToast } from '@/hooks/use-toast';
 
 interface TabbedTerminalProps {
   showTerminal: boolean;
@@ -37,6 +39,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   const [currentHeight, setCurrentHeight] = useState(terminalHeight);
   const resizeRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -61,6 +64,23 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   }, [currentHeight, onTerminalHeightChange]);
+
+  const handleCopyEvent = (event: any) => {
+    const formattedData = formatElementDataForCopy(event.element, event.position);
+    navigator.clipboard.writeText(formattedData);
+    toast({
+      title: "Event copied to clipboard",
+      description: "Element details have been copied successfully",
+    });
+  };
+
+  const handleCopyDebugResponse = (response: string) => {
+    navigator.clipboard.writeText(response);
+    toast({
+      title: "Response copied to clipboard",
+      description: "AI debug response has been copied successfully",
+    });
+  };
 
   if (!showTerminal) {
     return (
@@ -208,11 +228,11 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                           <div className="text-gray-400 text-xs min-w-0 max-w-full" title={size}>{size}</div>
                           <div className="flex justify-end items-center col-span-9">
                             <button
-                              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground rounded-md h-6 w-6 p-0 ml-2"
+                              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground rounded-md h-6 w-6 p-0 ml-2"
                               title="Copy event details"
-                              onClick={() => navigator.clipboard.writeText(copyString)}
+                              onClick={() => handleCopyEvent(event)}
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy w-3 h-3 text-gray-400"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                              <Copy className="w-3 h-3 text-gray-400" />
                             </button>
                           </div>
                         </div>
@@ -250,11 +270,11 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                             <span className="text-xs text-green-400 font-semibold">AI Debug</span>
                           </div>
                           <button
-                            onClick={() => navigator.clipboard.writeText(formattedResponse)}
+                            onClick={() => handleCopyDebugResponse(formattedResponse)}
                             className="text-gray-400 hover:text-white transition-colors"
                             title="Copy response"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy w-3 h-3 text-gray-400"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                            <Copy className="w-3 h-3" />
                           </button>
                         </div>
                         {/* Prompt */}
