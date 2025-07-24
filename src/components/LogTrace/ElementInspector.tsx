@@ -1,11 +1,10 @@
-
 import React, { useState, useMemo, useRef } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { Eye, Settings, Code, Zap, X, Hash, Type, Lock, Unlock, Copy, ChevronDown, ChevronUp } from 'lucide-react';
+import { Eye, Settings, Code, Zap, X, Hash, Type, Lock, Unlock, Copy, ChevronDown, ChevronUp, Pin } from 'lucide-react';
 import { ElementInfo } from '@/shared/types';
 import { sanitizeText } from '@/utils/sanitization';
 import { useToast } from '@/hooks/use-toast';
@@ -245,6 +244,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                   {currentDebugCount}/{maxDebugCount}
                 </Badge>
               )}
+              {/* Pin button */}
               {onPin && (
                 <Button
                   onClick={onPin}
