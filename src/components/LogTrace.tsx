@@ -213,15 +213,13 @@ const LogTrace: React.FC<LogTraceProps> = ({
       />
 
       {/* Floating Terminal Toggle Button */}
-      {!showTerminal && (
-        <Button
-          onClick={() => setShowTerminal(true)}
-          className="fixed bottom-4 left-4 z-50 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
-          size="sm"
-        >
-          <Terminal className="h-5 w-5" />
-        </Button>
-      )}
+      <Button
+        onClick={() => setShowTerminal(true)}
+        className="fixed bottom-4 left-4 z-50 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
+        size="sm"
+      >
+        <Terminal className="h-5 w-5" />
+      </Button>
 
       {/* Terminal Panel */}
       <div className={`fixed bottom-0 left-0 right-0 ${showTerminal ? `h-[${terminalHeight}px]` : 'h-auto'} z-40 transition-all duration-300 ease-in-out`}>
