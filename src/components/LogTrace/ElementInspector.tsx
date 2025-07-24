@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -14,11 +15,20 @@ interface ElementInspectorProps {
   onClose: () => void;
   onDebug: () => void;
   onShowMoreDetails: () => void;
+  panelRef?: React.RefObject<HTMLDivElement>;
+  isExtensionMode?: boolean;
+  isDraggable?: boolean;
+  isPinned?: boolean;
+  onPin?: () => void;
+  currentDebugCount?: number;
+  maxDebugCount?: number;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   isStatic?: boolean;
   staticPosition?: { x: number; y: number } | null;
   zIndex?: number;
-  inspectorId: string;
-  onBringToFront: () => void;
+  inspectorId?: string;
+  onBringToFront?: () => void;
 }
 
 const ElementInspector: React.FC<ElementInspectorProps> = ({
@@ -28,6 +38,15 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   onClose,
   onDebug,
   onShowMoreDetails,
+  panelRef,
+  isExtensionMode = false,
+  isDraggable = false,
+  isPinned = false,
+  onPin,
+  currentDebugCount = 0,
+  maxDebugCount = 5,
+  onMouseEnter,
+  onMouseLeave,
   isStatic = false,
   staticPosition = null,
   zIndex = 10,
@@ -55,11 +74,13 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   const { toast } = useToast();
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragOffset({
-      x: e.clientX - (staticPosition?.x || mousePosition?.x || 0),
-      y: e.clientY - (staticPosition?.y || mousePosition?.y || 0),
-    });
+    if (isDraggable) {
+      setIsDragging(true);
+      setDragOffset({
+        x: e.clientX - (staticPosition?.x || mousePosition?.x || 0),
+        y: e.clientY - (staticPosition?.y || mousePosition?.y || 0),
+      });
+    }
   };
 
   const handleMouseUp = () => {
@@ -73,7 +94,9 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   };
 
   const handleBringToFront = () => {
-    onBringToFront();
+    if (onBringToFront) {
+      onBringToFront();
+    }
   };
 
   const cardStyle = {
@@ -114,13 +137,20 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
     }
   };
 
+  if (!isVisible) return null;
+
   return (
     <Card 
+      ref={panelRef}
       className={`bg-slate-900/95 border-2 ${zIndexClass} ${
         isStatic ? 'absolute' : 'fixed'
       } transition-all duration-200 ease-in-out shadow-xl backdrop-blur-sm`}
       style={cardStyle}
       onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       onClick={handleBringToFront}
     >
       <CardContent className="relative p-4 border-b border-slate-700/50">
@@ -141,9 +171,11 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-              <Pin className="h-4 w-4" />
-            </Button>
+            {onPin && (
+              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white" onClick={onPin}>
+                <Pin className="h-4 w-4" />
+              </Button>
+            )}
             <Button onClick={onClose} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
               <X className="h-4 w-4" />
             </Button>
@@ -208,14 +240,11 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
             <Bug className="h-3 w-3 mr-1" />
             Debug with AI
           </Button>
-          {/* <Button
-            onClick={onShowMoreDetails}
-            variant="ghost"
-            size="sm"
-            className="flex-1 text-gray-400 hover:text-white"
-          >
-            More Details
-          </Button> */}
+          {currentDebugCount !== undefined && maxDebugCount !== undefined && (
+            <div className="text-xs text-gray-400 self-center">
+              {currentDebugCount}/{maxDebugCount}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
