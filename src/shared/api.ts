@@ -1,18 +1,16 @@
 
-import { enhancedValidation } from '@/utils/enhancedSanitization';
-import { debugRateLimiter } from '@/utils/sanitization';
+import { sanitizeText, validatePrompt, debugRateLimiter } from '@/utils/sanitization';
 import { ElementInfo } from './types';
 import { supabase } from '@/integrations/supabase/client';
 
 export const callAIDebugFunction = async (
   prompt: string,
   currentElement: ElementInfo | null,
-  mousePosition: { x: number; y: number }
+  mousePosition: { x: number; y: number },
+  useCredit?: () => Promise<boolean>
 ) => {
-  // Enhanced validation
-  const promptValidation = enhancedValidation.validatePrompt(prompt);
-  if (!promptValidation.isValid) {
-    throw new Error(promptValidation.error || 'Invalid prompt format');
+  if (!validatePrompt(prompt)) {
+    throw new Error('Invalid prompt format');
   }
 
   if (!debugRateLimiter.isAllowed('debug-session')) {
@@ -25,15 +23,30 @@ export const callAIDebugFunction = async (
     throw new Error('Authentication required for AI debugging features. Please sign in to continue.');
   }
 
+  // Check if user has premium subscription using the new credits system
+  const { data: creditsData } = await supabase.rpc('get_user_credits_status', {
+    user_uuid: user.id
+  });
+
+  const isPremium = creditsData?.[0]?.is_premium || false;
+
+  // If not premium, check and use credits
+  if (!isPremium && useCredit) {
+    const creditUsed = await useCredit();
+    if (!creditUsed) {
+      throw new Error('Insufficient credits. Please upgrade to continue or wait for daily reset.');
+    }
+  }
+
   try {
     const { data, error } = await supabase.functions.invoke('ai-debug', {
       body: {
-        prompt: enhancedValidation.sanitizeUserInput(prompt, 2000),
+        prompt: sanitizeText(prompt, 2000),
         element: currentElement ? {
-          tag: enhancedValidation.sanitizeUserInput(currentElement.tag, 50),
-          id: enhancedValidation.sanitizeUserInput(currentElement.id, 100),
-          classes: currentElement.classes.map(c => enhancedValidation.sanitizeUserInput(c, 50)),
-          text: enhancedValidation.sanitizeUserInput(currentElement.text, 500),
+          tag: sanitizeText(currentElement.tag),
+          id: sanitizeText(currentElement.id),
+          classes: currentElement.classes.map(c => sanitizeText(c)),
+          text: sanitizeText(currentElement.text),
         } : null,
         position: mousePosition,
       },
@@ -56,10 +69,12 @@ export const callAIDebugFunction = async (
 };
 
 export const transformContextRequest = async (rawRequest: string) => {
-  // Enhanced validation
-  const requestValidation = enhancedValidation.validateContextRequest(rawRequest);
-  if (!requestValidation.isValid) {
-    throw new Error(requestValidation.error || 'Invalid request format');
+  if (!rawRequest || rawRequest.trim().length === 0) {
+    throw new Error('Request cannot be empty');
+  }
+
+  if (rawRequest.length > 1000) {
+    throw new Error('Request too long (max 1000 characters)');
   }
 
   // Check if user is authenticated
@@ -71,7 +86,7 @@ export const transformContextRequest = async (rawRequest: string) => {
   try {
     const { data, error } = await supabase.functions.invoke('context-transform', {
       body: {
-        rawRequest: enhancedValidation.sanitizeUserInput(rawRequest, 1000),
+        rawRequest: sanitizeText(rawRequest, 1000),
       },
     });
 

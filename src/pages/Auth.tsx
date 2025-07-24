@@ -159,14 +159,14 @@ const Auth: React.FC = () => {
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {!isExtensionAuth && (
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/')}
-            className="mb-6 text-green-400 hover:text-green-300 bg-slate-800/50 border border-green-500/30 hover:bg-slate-700/50"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to LogTrace
-          </Button>
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/')}
+          className="mb-6 text-green-400 hover:text-green-300"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to LogTrace
+        </Button>
         )}
 
         <Card className="bg-slate-800 border-slate-700">
@@ -186,50 +186,40 @@ const Auth: React.FC = () => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-700 border-slate-600">
-                <TabsTrigger 
-                  value="signin"
-                  className="text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white"
-                >
-                  Sign In
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="signup"
-                  className="text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white"
-                >
-                  Sign Up
-                </TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="signin">Sign In</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
 
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email" className="text-slate-300">Email</Label>
+                    <Label htmlFor="signin-email">Email</Label>
                     <Input
                       id="signin-email"
                       type="email"
                       placeholder="your@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 focus:border-green-500 focus:ring-green-500"
+                      className="bg-slate-700 border-slate-600"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password" className="text-slate-300">Password</Label>
+                    <Label htmlFor="signin-password">Password</Label>
                     <Input
                       id="signin-password"
                       type="password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 focus:border-green-500 focus:ring-green-500"
+                      className="bg-slate-700 border-slate-600"
                       required
                     />
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-green-600 hover:bg-green-700 text-white border-green-600"
+                    className="w-full bg-green-600 hover:bg-green-700"
                     disabled={isLoading}
                   >
                     <Mail className="mr-2 h-4 w-4" />
@@ -241,32 +231,32 @@ const Auth: React.FC = () => {
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-slate-300">Email</Label>
+                    <Label htmlFor="signup-email">Email</Label>
                     <Input
                       id="signup-email"
                       type="email"
                       placeholder="your@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 focus:border-green-500 focus:ring-green-500"
+                      className="bg-slate-700 border-slate-600"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-slate-300">Password</Label>
+                    <Label htmlFor="signup-password">Password</Label>
                     <Input
                       id="signup-password"
                       type="password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 focus:border-green-500 focus:ring-green-500"
+                      className="bg-slate-700 border-slate-600"
                       required
                     />
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-green-600 hover:bg-green-700 text-white border-green-600"
+                    className="w-full bg-green-600 hover:bg-green-700"
                     disabled={isLoading}
                   >
                     <Mail className="mr-2 h-4 w-4" />
@@ -288,7 +278,7 @@ const Auth: React.FC = () => {
               <Button
                 variant="outline"
                 onClick={handleGitHubSignIn}
-                className="w-full mt-4 bg-slate-700 border-slate-600 hover:bg-slate-600 text-white hover:text-white"
+                className="w-full mt-4 bg-slate-700 border-slate-600 hover:bg-slate-600"
                 disabled={isLoading}
               >
                 <Github className="mr-2 h-4 w-4" />

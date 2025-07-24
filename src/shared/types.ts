@@ -5,7 +5,7 @@
 
 export interface LogEvent {
   id: string;
-  type: 'move' | 'click' | 'tap' | 'debug' | 'inspect' | 'llm_response';
+  type: 'move' | 'click' | 'debug' | 'inspect' | 'llm_response';
   timestamp: string;
   position?: { x: number; y: number };
   element?: {
@@ -33,13 +33,9 @@ export interface ElementInfo {
 }
 
 export interface LogTraceSettings {
-  maxEvents: number;
-  autoSave: boolean;
-  highlightColor: string;
-  showElementPath: boolean;
-  enableKeyboardShortcuts: boolean;
-  theme: 'dark' | 'light';
   apiKey?: string;
+  autoSave: boolean;
+  maxEvents: number;
   debugMode: boolean;
 }
 
@@ -56,36 +52,3 @@ export interface PinnedDetail {
   position: { x: number; y: number };
   pinnedAt: { x: number; y: number };
 }
-
-// Enhanced ConsoleLog interface for better type safety
-export interface ConsoleLog {
-  id: string;
-  type: 'log' | 'warn' | 'error' | 'info';
-  message: string;
-  timestamp: string;
-  stack?: string;
-  associatedElement?: string;
-  level?: 'log' | 'warn' | 'error' | 'info';
-  element?: ElementInfo;
-}
-
-// Type for filtered console logs (only errors and warnings)
-export interface FilteredConsoleLog {
-  type: 'error' | 'warn';
-  message: string;
-  timestamp: string;
-  stack?: string;
-  associatedElement?: string;
-}
-
-// Quick action types
-export type QuickActionType = "debug" | "screenshot" | "copy" | "context" | "details";
-
-// Context action types for extension compatibility
-export type ContextAction = {
-  type: "context";
-  mode: string;
-  input: string;
-};
-
-export type ExtendedActionType = QuickActionType | ContextAction;

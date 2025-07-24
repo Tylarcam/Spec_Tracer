@@ -1,48 +1,46 @@
 
 import React from 'react';
 
-interface ErrorBoundaryProps {
-  children: React.ReactNode;
-}
-
 interface ErrorBoundaryState {
   hasError: boolean;
-  error: Error | null;
+  error?: Error;
+}
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    console.error('ErrorBoundary caught an error:', error);
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary error details:', error, errorInfo);
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
       return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
-            <p className="text-slate-400 mb-4">An error occurred while rendering this component.</p>
-            <details className="text-left bg-slate-800 p-4 rounded">
-              <summary className="cursor-pointer">Error details</summary>
-              <pre className="mt-2 text-sm text-red-400">
-                {this.state.error?.message}
-                {'\n'}
-                {this.state.error?.stack}
-              </pre>
-            </details>
-            <button 
+        <div className="min-h-screen bg-slate-900 text-red-400 font-mono flex items-center justify-center">
+          <div className="text-center p-8">
+            <h1 className="text-2xl mb-4">Something went wrong</h1>
+            <p className="mb-4 text-gray-300">
+              The application encountered an unexpected error.
+            </p>
+            <button
               onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
             >
               Reload Page
             </button>

@@ -1,166 +1,26 @@
-// MouseOverlay.tsx
-// Overlay UI for displaying real-time element info on hover in the LogTrace debugger
 
-import React, { useRef, useLayoutEffect, useState, useMemo } from 'react';
+import React from 'react';
 import { ElementInfo } from '@/shared/types';
 import { Badge } from '../ui/badge';
 import { Card } from '../ui/card';
 import { sanitizeText } from '@/utils/sanitization';
 
-/**
- * Color extraction utilities for UI elements
- * Returns up to 3 unique colors from computed styles
- */
-export interface ColorInfo {
-  property: string;
-  value: string;
-  hex?: string;
-  rgba?: string;
-}
-
-export function extractColorsFromElement(element: HTMLElement): ColorInfo[] {
-  if (!element) return [];
-  const styles = window.getComputedStyle(element);
-  const colorProperties = [
-    'color',
-    'background-color',
-    'border-color',
-    'border-top-color',
-    'border-right-color',
-    'border-bottom-color',
-    'border-left-color',
-    'outline-color',
-    'text-decoration-color',
-    'fill',
-    'stroke'
-  ];
-  const colors: ColorInfo[] = [];
-  colorProperties.forEach(property => {
-    const value = styles.getPropertyValue(property);
-    if (value && value !== 'transparent' && value !== 'rgba(0, 0, 0, 0)' && value !== 'initial') {
-      colors.push({
-        property,
-        value: value.trim(),
-        hex: value, // Optionally convert to hex if needed
-        rgba: value
-      });
-    }
-  });
-  // Remove duplicates and limit to 3
-  const uniqueColors = colors.filter((color, idx, arr) =>
-    arr.findIndex(c => c.value === color.value) === idx
-  );
-  return uniqueColors.slice(0, 3);
-}
-
-// Props for the MouseOverlay component
 interface MouseOverlayProps {
-  isActive: boolean; // Whether the overlay is active (user is in inspect mode)
-  currentElement: ElementInfo | null; // The element currently hovered/inspected
-  mousePosition: { x: number; y: number }; // Current mouse position
-  overlayRef: React.RefObject<HTMLDivElement>; // Ref for the overlay div
-  inspectorCount?: number; // Number of open inspectors
+  isActive: boolean;
+  currentElement: ElementInfo | null;
+  mousePosition: { x: number; y: number };
+  overlayRef: React.RefObject<HTMLDivElement>;
+  onElementClick: () => void;
 }
 
-/**
- * MouseOverlay
- * Shows a cursor halo, element highlight, and a floating info card with key element details.
- * Used for real-time UI inspection in the LogTrace debugger.
- */
-const MouseOverlay: React.FC<MouseOverlayProps> = React.memo(({
+const MouseOverlay: React.FC<MouseOverlayProps> = ({
   isActive,
   currentElement,
   mousePosition,
   overlayRef,
-  inspectorCount = 0,
+  onElementClick,
 }) => {
-  // Don't render overlay if not active
   if (!isActive) return null;
-
-  // Memoized color extraction to prevent recalculation on every render
-  const colors = useMemo(() => {
-    return currentElement?.element ? extractColorsFromElement(currentElement.element) : [];
-  }, [currentElement?.element]);
-
-  // Memoized element bounds calculation
-  const elementBounds = useMemo(() => {
-    if (!currentElement?.element) return null;
-    const rect = currentElement.element.getBoundingClientRect();
-    return {
-      left: rect.left,
-      top: rect.top,
-      width: rect.width,
-      height: rect.height,
-    };
-  }, [currentElement?.element]);
-
-  // Memoized event listener count calculation
-  const eventListenerCount = useMemo(() => {
-    if (!currentElement?.element) return 0;
-    const el = currentElement.element as any;
-    const listeners = [
-      'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmouseout',
-      'onmouseenter', 'onmouseleave', 'onkeydown', 'onkeyup', 'oninput',
-      'onchange', 'onfocus', 'onblur', 'onsubmit', 'onload', 'onerror'
-    ];
-    return listeners.filter(l => typeof el?.[l] === 'function').length;
-  }, [currentElement?.element]);
-
-  // Keep info card in viewport with throttled updates
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [cardPos, setCardPos] = useState<{ left: number; top: number; below?: boolean }>({ 
-    left: mousePosition.x, 
-    top: mousePosition.y - 10, 
-    below: false 
-  });
-
-  // Throttled position update to prevent excessive layout calculations
-  useLayoutEffect(() => {
-    const updatePosition = () => {
-      if (!cardRef.current) return;
-      
-      const card = cardRef.current;
-      const cardRect = card.getBoundingClientRect();
-      const padding = 8;
-      let left = mousePosition.x;
-      let top = mousePosition.y - 10;
-      let below = false;
-
-      // Horizontal bounds checking
-      if (left + cardRect.width / 2 > window.innerWidth - padding) {
-        left = window.innerWidth - cardRect.width / 2 - padding;
-      }
-      if (left - cardRect.width / 2 < padding) {
-        left = cardRect.width / 2 + padding;
-      }
-      
-      // Vertical bounds checking
-      if (top - cardRect.height < padding) {
-        top = mousePosition.y + 20;
-        below = true;
-      }
-      if (top + cardRect.height > window.innerHeight - padding) {
-        top = window.innerHeight - cardRect.height - padding;
-      }
-
-      setCardPos({ left, top, below });
-    };
-
-    // Use requestAnimationFrame to throttle position updates
-    const rafId = requestAnimationFrame(updatePosition);
-    return () => cancelAnimationFrame(rafId);
-  }, [mousePosition.x, mousePosition.y, currentElement]);
-
-  // Memoized attribute values
-  const lovIdValue = useMemo(() => 
-    currentElement?.attributes?.find(attr => attr.name === 'data-lov-id')?.value,
-    [currentElement?.attributes]
-  );
-
-  const componentLineValue = useMemo(() => 
-    currentElement?.attributes?.find(attr => attr.name === 'data-component-line')?.value,
-    [currentElement?.attributes]
-  );
 
   return (
     <>
@@ -178,107 +38,75 @@ const MouseOverlay: React.FC<MouseOverlayProps> = React.memo(({
         }}
       />
       
-      {/* Blue element highlighter - simple border only */}
-      {elementBounds && (
+      {/* Blue element highlighter - show when hovering over an element */}
+      {currentElement?.element && (
         <div
           className="fixed pointer-events-none z-40"
           style={{
-            left: elementBounds.left,
-            top: elementBounds.top,
-            width: elementBounds.width,
-            height: elementBounds.height,
+            left: currentElement.element.getBoundingClientRect().left,
+            top: currentElement.element.getBoundingClientRect().top,
+            width: currentElement.element.getBoundingClientRect().width,
+            height: currentElement.element.getBoundingClientRect().height,
             border: '2px solid #06b6d4',
+            background: 'rgba(6, 182, 212, 0.1)',
+            boxShadow: '0 0 10px rgba(6, 182, 212, 0.5)',
           }}
         />
       )}
 
-      {/* Info overlay card - shows element details near the cursor (read-only) */}
+      {/* Info overlay card - show when hovering over an element */}
       {currentElement && (
         <div
           id="logtrace-overlay"
-          ref={node => {
-            if (cardRef) cardRef.current = node;
-            if (overlayRef && 'current' in overlayRef) (overlayRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-          }}
-          className={`fixed pointer-events-none z-40 transform -translate-x-1/2 ${cardPos.below ? '' : '-translate-y-full'}`}
+          ref={overlayRef}
+          className="fixed pointer-events-auto z-40 cursor-pointer transform -translate-y-full -translate-x-1/2"
           style={{
-            left: cardPos.left,
-            top: cardPos.top,
+            left: mousePosition.x,
+            top: mousePosition.y - 10,
           }}
+          onClick={onElementClick}
         >
-          <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl hover:border-cyan-400/70 transition-colors">
-            <div className="p-3 text-xs">
-              {/* Header: tag, event listeners, errors */}
-              <div className="flex items-center gap-2 mb-2">
-                {/* Tag name badge */}
+          {/* Halo effect */}
+          <div
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0"
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              boxShadow: '0 0 32px 12px rgba(34,211,238,0.35), 0 0 0 4px rgba(34,211,238,0.15)',
+              background: 'radial-gradient(circle, rgba(34,211,238,0.18) 0%, rgba(34,211,238,0.08) 80%, transparent 100%)',
+              pointerEvents: 'none',
+            }}
+            aria-hidden="true"
+          />
+          <Card className="relative z-10 bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20 hover:border-cyan-400/70 transition-colors">
+            <div className="p-2 text-xs">
+              <div className="flex items-center gap-2 mb-1">
                 <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400 text-xs">
                   {currentElement.tag}
                 </Badge>
-                {/* Event Listeners badge: shows count or 'No events' */}
-                <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">
-                  {eventListenerCount > 0 ? `${eventListenerCount} events` : 'No events'}
-                </Badge>
-                {/* Console Errors badge: placeholder for error count */}
-                <Badge variant="outline" className="border-red-500/30 text-red-400 text-xs">
-                  Errors: None {/* Replace with error count if you have error data */}
-                </Badge>
-              </div>
-              
-              {/* Color palette: up to 3 squares for main colors */}
-              {colors.length > 0 && (
-                <div className="flex gap-1 mb-2">
-                  {colors.map((color, i) => (
-                    <div
-                      key={i}
-                      className="w-4 h-4 rounded border"
-                      style={{ backgroundColor: color.value }}
-                      title={`${color.property}: ${color.value}`}
-                    />
-                  ))}
-                </div>
-              )}
-              
-              {/* Basic Info Section */}
-              <div className="mb-1">
-                {/* data-lov-id value */}
-                {lovIdValue && (
-                  <span className="text-purple-300 block mb-1">
-                    data-lov-id: {lovIdValue}
-                  </span>
-                )}
-                {/* data-component-line value */}
-                {componentLineValue && (
-                  <span className="text-cyan-300 block mb-1">
-                    data-component-line: {componentLineValue}
-                  </span>
-                )}
                 {currentElement.id && (
-                  <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs mr-1">
+                  <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">
                     #{sanitizeText(currentElement.id)}
                   </Badge>
                 )}
-                {currentElement.classes.length > 0 && (
-                  <span className="text-green-300 max-w-48 truncate block mb-1">
-                    class: .{currentElement.classes.map(c => sanitizeText(c)).join(' .')}
-                  </span>
-                )}
-                {/* Position (x, y) */}
-                <span className="text-orange-300 block mb-1">
-                  Position: ({mousePosition.x}, {mousePosition.y})
-                </span>
-                {/* Click hint */}
-                <span className="text-yellow-300 block text-xs font-medium">
-                  💡 Click to open inspector ({inspectorCount}/3)
-                </span>
               </div>
+              {currentElement.classes.length > 0 && (
+                <div className="text-green-300 mb-1 max-w-48 truncate">
+                  .{currentElement.classes.map(c => sanitizeText(c)).join(' .')}
+                </div>
+              )}
+              {currentElement.text && (
+                <div className="text-gray-300 max-w-48 truncate mb-1">
+                  "{sanitizeText(currentElement.text)}"
+                </div>
+              )}
             </div>
           </Card>
         </div>
       )}
     </>
   );
-});
-
-MouseOverlay.displayName = 'MouseOverlay';
+};
 
 export default MouseOverlay;

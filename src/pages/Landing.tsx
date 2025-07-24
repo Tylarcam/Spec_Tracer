@@ -1,14 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Code, Zap, Target, Sparkles, Play, Eye, Mail, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Code, Zap, Target, Sparkles, Play, Eye, Mail, Users, Download, Chrome, Shield, MousePointer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import PricingSection from '@/components/PricingSection';
 
 const Landing = () => {
-  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [email, setEmail] = useState('');
   const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
@@ -23,33 +21,11 @@ const Landing = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleTryDemo = () => {
-    navigate('/debug?onboarding=true');
-  };
-
-  const handleUpgrade = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout');
-      
-      if (error) throw error;
-      
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
-    } catch (error) {
-      console.error('Upgrade error:', error);
-      toast({
-        title: "Error",
-        description: "Unable to start upgrade process. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleJoinWaitlist = async () => {
     if (!email.trim()) return;
     setIsJoiningWaitlist(true);
     try {
+      // Check for duplicate
       const { data: existing, error: fetchError } = await supabase
         .from('waitlist')
         .select('id')
@@ -65,6 +41,7 @@ const Landing = () => {
         setIsJoiningWaitlist(false);
         return;
       }
+      // Insert new
       const { error } = await supabase
         .from('waitlist')
         .insert([{ email: email.trim().toLowerCase() }]);
@@ -72,7 +49,7 @@ const Landing = () => {
       toast({
         title: 'Success!',
         description: 'You have joined the waitlist. Check your email for confirmation.',
-        variant: 'success',
+        variant: 'default',
       });
       setEmail('');
     } catch (err: any) {
@@ -100,165 +77,184 @@ const Landing = () => {
             <span className="text-xl font-bold">LogTrace</span>
           </div>
           
-          <Button
-            onClick={handleTryDemo}
-            className="bg-green-500 hover:bg-green-600 text-black font-semibold px-4 py-2"
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Try Demo
-          </Button>
+          <div className="flex items-center gap-3">
+            <Link to="/debug">
+              <Button
+                variant="outline"
+                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-4 py-2"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Try Web Demo
+              </Button>
+            </Link>
+            <Button
+              className="bg-green-500 hover:bg-green-600 text-black font-semibold px-4 py-2"
+              disabled
+            >
+              <Chrome className="h-4 w-4 mr-2" />
+              Coming Soon
+            </Button>
+          </div>
         </div>
       </header>
 
-      {/* Hero Section - Above the fold */}
+      {/* Hero Section - Chrome Extension Focus */}
       <section className="pt-24 pb-12 px-4">
         <div className="container mx-auto text-center max-w-5xl">
-          {/* 5-second value prop */}
+          {/* Extension Coming Soon Badge */}
           <div className="mb-8">
-            <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 rounded-full px-4 py-2 mb-6">
-              <Sparkles className="h-4 w-4 text-cyan-400" />
-              <span className="text-cyan-400 text-sm font-medium">Early Access Demo</span>
+            <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2 mb-6">
+              <Chrome className="h-4 w-4 text-green-400" />
+              <span className="text-green-400 text-sm font-medium">Chrome Extension Coming Soon</span>
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
-              Stop Writing Essays to ChatGPT
+              Debug Any Website with AI
             </h1>
             
             <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              LogTrace captures pixel-perfect UI context so AI tools give you pixel-perfect fixes. 
+              The Chrome extension that captures pixel-perfect UI context for AI debugging. 
               <span className="text-green-400 font-semibold"> Hover, click, get instant AI insights.</span>
             </p>
           </div>
 
-          {/* Two CTAs: Primary + Secondary */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-            <Button
-              onClick={handleTryDemo}
-              size="lg"
-              className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto w-full sm:w-auto"
-            >
-              <Play className="h-5 w-5 mr-2" />
-              Try Interactive Demo
-              <ArrowRight className="h-5 w-5 ml-2" />
-            </Button>
+          {/* Primary CTA: Extension Waitlist + Demo */}
+          <div className="flex flex-col items-center gap-6 mb-8">
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <div className="flex gap-2 w-full sm:w-auto">
+                <input
+                  type="email"
+                  placeholder="Enter your email for early access"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-green-400 flex-1 min-w-[280px]"
+                />
+                <Button
+                  onClick={handleJoinWaitlist}
+                  disabled={!email.trim() || isJoiningWaitlist}
+                  className="bg-green-500 hover:bg-green-600 text-black font-bold px-6 py-4 text-lg h-auto whitespace-nowrap"
+                >
+                  <Download className="h-5 w-5 mr-2" />
+                  {isJoiningWaitlist ? 'Joining...' : 'Get Early Access'}
+                </Button>
+              </div>
+            </div>
             
-            <div className="flex gap-2 w-full sm:w-auto">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 flex-1 min-w-0"
-              />
-              <Button
-                onClick={handleJoinWaitlist}
-                disabled={!email.trim() || isJoiningWaitlist}
-                variant="outline"
-                size="lg"
-                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-6 py-4 text-lg h-auto whitespace-nowrap"
-              >
-                <Users className="h-5 w-5 mr-2" />
-                {isJoiningWaitlist ? 'Joining...' : 'Join Waitlist'}
-              </Button>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link to="/debug">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4 text-lg h-auto w-full sm:w-auto"
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  Try Web Preview
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </Button>
+              </Link>
             </div>
           </div>
-          {/* Privacy Assurance & Benefits */}
+          
+          {/* Benefits Row */}
           <div className="text-sm text-slate-400 mb-6 text-center">
-            <span className="text-cyan-400 font-medium">🎯 Early access to Chrome extension</span>
+            <span className="text-green-400 font-medium">🎯 Early access to Chrome extension</span>
             <span className="mx-2">•</span>
             <span>No spam, unsubscribe anytime</span>
-          </div>
-          <div className="text-sm text-slate-400 flex items-center justify-center gap-4">
-            <span>✓ Free demo available now</span>
-            <span>✓ Chrome extension coming soon</span>
-            <span>✓ 5 AI debugs included</span>
+            <span className="mx-2">•</span>
+            <span>Works on any website</span>
           </div>
         </div>
       </section>
 
-      {/* Interactive Demo Preview */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <div className="bg-slate-800/50 border border-green-500/20 rounded-2xl p-8 text-center">
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <Eye className="h-5 w-5 text-green-400" />
-              <span className="text-green-400 font-medium">See It In Action</span>
-            </div>
-            
-            <h2 className="text-3xl font-bold mb-4">
-              From Bug Description to AI Solution in Seconds
-            </h2>
-            
-            <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
-              Instead of writing long descriptions of what's broken, LogTrace captures the exact context 
-              your AI assistant needs to provide perfect solutions.
-            </p>
-            
-            <Button
-              onClick={handleTryDemo}
-              size="lg"
-              variant="outline"
-              className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4"
-            >
-              Try Interactive Demo
-              <ArrowRight className="h-5 w-5 ml-2" />
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16 px-4">
+      {/* Why Chrome Extension Section */}
+      <section className="py-16 px-4 bg-slate-800/20">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Why Developers Love LogTrace</h2>
+            <h2 className="text-4xl font-bold mb-4">Why a Chrome Extension?</h2>
             <p className="text-xl text-slate-300">
-              The missing link between you and AI-powered debugging
+              Direct access to any website without iframe limitations
             </p>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
             <div className="bg-slate-800/50 p-8 rounded-xl border border-slate-700 text-center">
               <div className="bg-green-500/20 p-4 rounded-lg w-fit mx-auto mb-6">
-                <Zap className="h-8 w-8 text-green-400" />
+                <Shield className="h-8 w-8 text-green-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-4">Context Engineering</h3>
+              <h3 className="text-xl font-semibold mb-4">No Website Restrictions</h3>
               <p className="text-slate-300">
-                Stop describing bugs. Start showing them. One-click context capture 
-                that AI understands perfectly.
+                Work with any website including those that block embedding. 
+                Full access to protected sites and web apps.
               </p>
             </div>
             
             <div className="bg-slate-800/50 p-8 rounded-xl border border-slate-700 text-center">
               <div className="bg-cyan-500/20 p-4 rounded-lg w-fit mx-auto mb-6">
-                <Code className="h-8 w-8 text-cyan-400" />
+                <MousePointer className="h-8 w-8 text-cyan-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-4">Works Everywhere</h3>
+              <h3 className="text-xl font-semibold mb-4">Native Performance</h3>
               <p className="text-slate-300">
-                Try the demo now, Chrome extension launching soon. Works on any website, 
-                integrates with your existing AI workflow.
+                Direct DOM access means perfect element highlighting, 
+                accurate positioning, and zero cross-origin issues.
               </p>
             </div>
             
             <div className="bg-slate-800/50 p-8 rounded-xl border border-slate-700 text-center">
               <div className="bg-purple-500/20 p-4 rounded-lg w-fit mx-auto mb-6">
-                <Target className="h-8 w-8 text-purple-400" />
+                <Zap className="h-8 w-8 text-purple-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-4">Instant Insights</h3>
+              <h3 className="text-xl font-semibold mb-4">Always Available</h3>
               <p className="text-slate-300">
-                Get immediate AI-powered debugging suggestions. 
-                No more guessing what's wrong.
+                One-click activation on any tab. Debug production sites, 
+                private dashboards, and local development environments.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* Web Demo Preview */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="bg-slate-800/50 border border-cyan-500/20 rounded-2xl p-8 text-center">
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Eye className="h-5 w-5 text-cyan-400" />
+              <span className="text-cyan-400 font-medium">Preview the Experience</span>
+            </div>
+            
+            <h2 className="text-3xl font-bold mb-4">
+              Try LogTrace in Your Browser
+            </h2>
+            
+            <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
+              While you wait for the Chrome extension, experience LogTrace's core functionality 
+              with our web demo. Limited to iframe-compatible sites, but showcases the full AI debugging power.
+            </p>
+            
+            <Link to="/debug">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4"
+              >
+                Launch Web Demo
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
+            </Link>
+            
+            <p className="text-xs text-slate-500 mt-4">
+              Web demo works best with embedding-friendly sites. 
+              Full functionality coming with the Chrome extension.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works - Extension Focus */}
       <section className="py-16 px-4 bg-slate-800/20">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Three Steps to Smarter Debugging</h2>
+            <h2 className="text-4xl font-bold mb-4">How LogTrace Extension Works</h2>
           </div>
           
           <div className="space-y-12">
@@ -267,10 +263,10 @@ const Landing = () => {
                 1
               </div>
               <div>
-                <h3 className="text-2xl font-semibold mb-3">Try the Demo</h3>
+                <h3 className="text-2xl font-semibold mb-3">Install & Activate</h3>
                 <p className="text-slate-300 text-lg">
-                  Experience LogTrace in our interactive demo. Press 'S' to start debugging 
-                  any element on the demo page.
+                  One-click install from Chrome Web Store. Activate LogTrace on any website 
+                  with a simple keyboard shortcut or toolbar click.
                 </p>
               </div>
             </div>
@@ -283,7 +279,7 @@ const Landing = () => {
                 <h3 className="text-2xl font-semibold mb-3">Hover & Click</h3>
                 <p className="text-slate-300 text-lg">
                   Hover over any element to inspect it in real-time, then click for 
-                  detailed AI analysis and debugging suggestions.
+                  detailed AI analysis. Works on any website without restrictions.
                 </p>
               </div>
             </div>
@@ -293,10 +289,10 @@ const Landing = () => {
                 3
               </div>
               <div>
-                <h3 className="text-2xl font-semibold mb-3">Get Perfect Context</h3>
+                <h3 className="text-2xl font-semibold mb-3">Get AI Solutions</h3>
                 <p className="text-slate-300 text-lg">
                   Copy the generated context to ChatGPT, Claude, or any AI assistant 
-                  for pixel-perfect debugging solutions.
+                  for pixel-perfect debugging solutions. Or use built-in AI features.
                 </p>
               </div>
             </div>
@@ -304,64 +300,62 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <PricingSection onUpgrade={handleUpgrade} />
-
-      {/* Final CTA */}
+      {/* Final CTA - Extension Focus */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-400/30 rounded-2xl p-12 text-center">
             <div className="flex justify-center mb-6">
-              <Sparkles className="h-16 w-16 text-green-400" />
+              <Chrome className="h-16 w-16 text-green-400" />
             </div>
             
             <h2 className="text-4xl font-bold mb-4">
-              Ready to Experience the Future of Debugging?
+              Ready for the Ultimate Debugging Experience?
             </h2>
             
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Try our interactive demo now and join the waitlist for early access 
-              to the Chrome extension.
+              Join the waitlist for early access to the LogTrace Chrome Extension. 
+              Debug any website without limitations.
             </p>
             
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Button
-                onClick={handleTryDemo}
-                size="lg"
-                className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto w-full sm:w-auto"
-              >
-                <Play className="h-5 w-5 mr-2" />
-                Try Interactive Demo
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
-              
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
               <div className="flex gap-2 w-full sm:w-auto">
                 <input
                   type="email"
                   placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 flex-1 min-w-0"
+                  className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-green-400 flex-1 min-w-0"
                 />
                 <Button
                   onClick={handleJoinWaitlist}
                   disabled={!email.trim() || isJoiningWaitlist}
-                  variant="outline"
-                  size="lg"
-                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-6 py-4 text-lg h-auto whitespace-nowrap"
+                  className="bg-green-500 hover:bg-green-600 text-black font-bold px-6 py-4 text-lg h-auto whitespace-nowrap"
                 >
                   <Mail className="h-5 w-5 mr-2" />
                   Join Waitlist
                 </Button>
               </div>
+              
+              <Link to="/debug">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4 text-lg h-auto w-full sm:w-auto"
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  Try Web Preview
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </Button>
+              </Link>
             </div>
-            {/* Privacy Assurance & Benefits */}
-            <div className="text-sm text-slate-400 mt-6 text-center">
-              <span className="text-cyan-400 font-medium">🎯 Early access to Chrome extension</span>
+            
+            <div className="text-sm text-slate-400 text-center">
+              <span className="text-green-400 font-medium">🎯 Early access to Chrome extension</span>
               <span className="mx-2">•</span>
               <span>No spam, unsubscribe anytime</span>
+              <span className="mx-2">•</span>
+              <span>Web preview available now</span>
             </div>
-            <div className="text-sm text-slate-400 mt-2">Demo available now • Chrome extension coming soon • Early access signup</div>
           </div>
         </div>
       </section>
