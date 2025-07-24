@@ -1,9 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { X, Download, Play, History } from 'lucide-react';
+import { X, Download, Play, History, GripHorizontal } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { parseAIResponse, formatAIResponseForDisplay } from '@/utils/sanitization';
 
@@ -17,6 +16,7 @@ interface TabbedTerminalProps {
   clearDebugResponses: () => void;
   currentElement?: any;
   terminalHeight?: number;
+  onTerminalHeightChange?: (height: number) => void;
 }
 
 const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
@@ -28,11 +28,39 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   debugResponses = [],
   clearDebugResponses,
   currentElement,
-  terminalHeight,
+  terminalHeight = 384,
+  onTerminalHeightChange,
 }) => {
   const [activeTab, setActiveTab] = useState<'events' | 'debug' | 'console'>('events');
   const [associateWithElement, setAssociateWithElement] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [currentHeight, setCurrentHeight] = useState(terminalHeight);
+  const resizeRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    
+    const startY = e.clientY;
+    const startHeight = currentHeight;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaY = startY - e.clientY;
+      const newHeight = Math.max(200, Math.min(800, startHeight + deltaY));
+      setCurrentHeight(newHeight);
+    };
+    
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      onTerminalHeightChange?.(currentHeight);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [currentHeight, onTerminalHeightChange]);
 
   if (!showTerminal) {
     return (
@@ -40,7 +68,6 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
         onClick={() => setShowTerminal(true)}
         className="fixed bottom-4 right-4 z-30 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
       >
-        {/* Keep the green circle terminal icon */}
         <span style={{ fontSize: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{'>'}</span>
       </Button>
     );
@@ -48,10 +75,22 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
 
   return (
     <div
-      className={`w-full h-full ${isMobile ? 'z-100' : 'z-50'}`}
+      className={`w-full ${isMobile ? 'z-100' : 'z-50'}`}
+      style={{ height: `${currentHeight}px` }}
     >
       <Card className={`bg-slate-900/95 border-green-500/50 ${isMobile ? 'rounded-none border-x-0 border-b-0' : 'rounded-t-lg border-b-0'} h-full`}>
-        <div className={`${isMobile ? 'p-2' : 'p-4'} h-full flex flex-col min-h-0`}>
+        {/* Resize Handle */}
+        {!isMobile && (
+          <div
+            ref={resizeRef}
+            className={`h-2 w-full cursor-row-resize bg-green-500/20 hover:bg-green-500/30 transition-colors flex items-center justify-center group ${isResizing ? 'bg-green-500/40' : ''}`}
+            onMouseDown={handleMouseDown}
+          >
+            <GripHorizontal className="h-3 w-3 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        )}
+        
+        <div className={`${isMobile ? 'p-2' : 'p-4'} h-full flex flex-col min-h-0`} style={{ height: isMobile ? '100%' : 'calc(100% - 8px)' }}>
           {!isMobile && (
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
@@ -97,6 +136,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                 Console (0)
               </TabsTrigger>
             </TabsList>
+            
             <TabsContent value="events" className="mt-4 relative flex-1 min-h-0">
               <div className="flex justify-between items-center shrink-0 h-6">
                 <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400`}>Interaction Events</span>
