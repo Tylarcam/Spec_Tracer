@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
+import { useMultipleInspectors } from '@/shared/hooks/useMultipleInspectors';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MouseOverlay from './LogTrace/MouseOverlay';
 import ElementInspector from './LogTrace/ElementInspector';
@@ -20,12 +21,12 @@ const LogTrace: React.FC<LogTraceProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const [showTerminal, setShowTerminal] = useState(false);
-  const [showElementInspector, setShowElementInspector] = useState(false);
   const [isHoverPaused, setIsHoverPaused] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(400);
   
   const orchestrator = useLogTraceOrchestrator();
   const { debugResponses, clearDebugResponses } = useDebugResponses();
+  const { inspectors, addInspector, removeInspector, bringToFront, clearAllInspectors } = useMultipleInspectors();
 
   const {
     isTraceActive,
@@ -52,8 +53,12 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const handleEscapeKey = () => {
     if (showAIDebugModal) {
       setShowAIDebugModal(false);
-    } else if (showElementInspector) {
-      setShowElementInspector(false);
+    } else if (inspectors.length > 0) {
+      // Close most recent inspector
+      const mostRecent = inspectors.reduce((latest, current) => 
+        current.createdAt > latest.createdAt ? current : latest
+      );
+      removeInspector(mostRecent.id);
     } else if (detectedElement) {
       setDetectedElement(null);
     }
@@ -62,7 +67,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   // Handle element click for inspection
   const handleElementClick = () => {
     if (detectedElement) {
-      setShowElementInspector(true);
+      addInspector(detectedElement, cursorPosition);
     }
   };
 
@@ -77,10 +82,10 @@ const LogTrace: React.FC<LogTraceProps> = ({
     isHoverPaused,
     detectedElement,
     cursorPosition,
-    showInteractivePanel: showElementInspector,
+    showInteractivePanel: false, // No longer used
     setCursorPosition,
     setDetectedElement,
-    setShowInteractivePanel: setShowElementInspector,
+    setShowInteractivePanel: () => {}, // No longer used
     setShowAIDebugModal,
     extractElementDetails,
     recordEvent,
@@ -142,6 +147,13 @@ const LogTrace: React.FC<LogTraceProps> = ({
     };
   }, [isTraceActive, handleCursorMovement, handleElementClickEvent, handleTouchStart, handleTouchEnd, isMobile]);
 
+  // Clear all inspectors when trace is deactivated
+  useEffect(() => {
+    if (!isTraceActive) {
+      clearAllInspectors();
+    }
+  }, [isTraceActive, clearAllInspectors]);
+
   console.log('LogTrace rendering with capturedEvents:', capturedEvents?.length || 0);
 
   return (
@@ -152,21 +164,30 @@ const LogTrace: React.FC<LogTraceProps> = ({
         currentElement={detectedElement}
         mousePosition={cursorPosition}
         overlayRef={overlayRef}
-        inspectorCount={0}
+        inspectorCount={inspectors.length}
       />
 
-      {/* Element Inspector - shows on click */}
-      <ElementInspector 
-        isVisible={showElementInspector}
-        currentElement={detectedElement}
-        mousePosition={cursorPosition}
-        onDebug={() => setShowAIDebugModal(true)}
-        onClose={() => {
-          setShowElementInspector(false);
-          setDetectedElement(null);
-        }}
-        onShowMoreDetails={() => {}}
-      />
+      {/* Multiple Element Inspectors */}
+      {inspectors.map((inspector) => (
+        <ElementInspector
+          key={inspector.id}
+          isVisible={true}
+          currentElement={inspector.element}
+          mousePosition={inspector.position}
+          onDebug={() => {
+            setDetectedElement(inspector.element);
+            setShowAIDebugModal(true);
+          }}
+          onClose={() => removeInspector(inspector.id)}
+          onShowMoreDetails={() => {}}
+          // Static positioning props
+          isStatic={true}
+          staticPosition={inspector.position}
+          zIndex={inspector.zIndex}
+          inspectorId={inspector.id}
+          onBringToFront={() => bringToFront(inspector.id)}
+        />
+      ))}
 
       {/* AI Debug Modal */}
       <DebugModal 

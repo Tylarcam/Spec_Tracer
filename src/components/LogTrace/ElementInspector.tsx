@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -30,6 +29,12 @@ interface ElementInspectorProps {
   // For extension: pause hover when mouse is over inspector
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  // NEW: Multiple inspector support
+  isStatic?: boolean;
+  staticPosition?: { x: number; y: number };
+  zIndex?: number;
+  inspectorId?: string;
+  onBringToFront?: () => void;
 }
 
 const ElementInspector: React.FC<ElementInspectorProps> = ({
@@ -48,6 +53,11 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   maxDebugCount,
   onMouseEnter,
   onMouseLeave,
+  isStatic = false,
+  staticPosition,
+  zIndex = 50,
+  inspectorId,
+  onBringToFront,
 }) => {
   const [expandedSections, setExpandedSections] = useState<string[]>(['basic']);
   const [expandedAttrIndexes, setExpandedAttrIndexes] = useState<number[]>([]);
@@ -58,7 +68,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
 
   // Drag handlers
   const handleDragStart = (e: React.MouseEvent) => {
-    if (isPinned) return;
+    if (isPinned || isStatic) return;
     dragging.current = true;
     const rect = panelRef?.current?.getBoundingClientRect();
     dragOffset.current = rect
@@ -66,14 +76,17 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
       : { x: 0, y: 0 };
     document.body.style.userSelect = 'none';
   };
+
   const handleDrag = (e: MouseEvent) => {
-    if (!dragging.current || isPinned) return;
+    if (!dragging.current || isPinned || isStatic) return;
     setModalPosition({ x: e.clientX - (dragOffset.current?.x || 0), y: e.clientY - (dragOffset.current?.y || 0) });
   };
+
   const handleDragEnd = () => {
     dragging.current = false;
     document.body.style.userSelect = '';
   };
+
   React.useEffect(() => {
     if (!dragging.current) return;
     window.addEventListener('mousemove', handleDrag);
@@ -83,6 +96,13 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
       window.removeEventListener('mouseup', handleDragEnd);
     };
   });
+
+  // Handle click to bring to front
+  const handleClick = () => {
+    if (onBringToFront) {
+      onBringToFront();
+    }
+  };
 
   // Get computed styles
   const computedStyles = useMemo(() => {
@@ -180,43 +200,58 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
 
   if (!isVisible || !currentElement) return null;
 
-  // Mobile-optimized position logic
+  // Position calculation
   const isMobile = window.innerWidth <= 768;
   
-  const defaultPosition = isMobile
-    ? {
-        // Mobile: Center horizontally and position near top with padding
-        left: Math.max(8, Math.min(window.innerWidth - 8, 8)),
-        top: Math.max(8, Math.min(window.innerHeight - 600, 60)),
-      }
-    : isExtensionMode
-    ? {
-        left: Math.min(mousePosition.x + 20, window.innerWidth - 350),
-        top: Math.min(mousePosition.y + 20, window.innerHeight - 450),
-      }
-    : {
-        left: Math.min(mousePosition.x + 20, window.innerWidth - 320),
-        top: Math.min(mousePosition.y + 20, window.innerHeight - 400),
-      };
-
-  const positionStyle = modalPosition
-    ? { left: Math.max(0, Math.min(modalPosition.x, window.innerWidth - 350)), top: Math.max(0, Math.min(modalPosition.y, window.innerHeight - 100)) }
-    : defaultPosition;
+  let positionStyle;
+  if (isStatic && staticPosition) {
+    // Use static position for stacked inspectors
+    positionStyle = {
+      left: staticPosition.x,
+      top: staticPosition.y,
+    };
+  } else if (modalPosition) {
+    // Use dragged position
+    positionStyle = {
+      left: Math.max(0, Math.min(modalPosition.x, window.innerWidth - 350)),
+      top: Math.max(0, Math.min(modalPosition.y, window.innerHeight - 100))
+    };
+  } else {
+    // Default positioning logic
+    const defaultPosition = isMobile
+      ? {
+          left: Math.max(8, Math.min(window.innerWidth - 8, 8)),
+          top: Math.max(8, Math.min(window.innerHeight - 600, 60)),
+        }
+      : isExtensionMode
+      ? {
+          left: Math.min(mousePosition.x + 20, window.innerWidth - 350),
+          top: Math.min(mousePosition.y + 20, window.innerHeight - 450),
+        }
+      : {
+          left: Math.min(mousePosition.x + 20, window.innerWidth - 320),
+          top: Math.min(mousePosition.y + 20, window.innerHeight - 400),
+        };
+    positionStyle = defaultPosition;
+  }
 
   return (
     <div
       ref={panelRef}
       data-inspector-panel="true"
-      className={`fixed pointer-events-auto z-50 ${isMobile ? 'inset-x-2 max-h-[calc(100vh-16px)]' : 'w-full max-w-md max-h-[80vh]'} overflow-y-auto ${isExtensionMode ? 'z-[10001]' : 'z-50'}`}
-      style={isMobile ? { 
-        left: positionStyle.left, 
-        top: positionStyle.top,
-        right: 8,
-        maxWidth: 'calc(100vw - 16px)',
-        width: 'calc(100vw - 16px)'
-      } : positionStyle}
+      className={`fixed pointer-events-auto ${isMobile ? 'inset-x-2 max-h-[calc(100vh-16px)]' : 'w-full max-w-md max-h-[80vh]'} overflow-y-auto`}
+      style={{ 
+        ...positionStyle,
+        zIndex: zIndex,
+        ...(isMobile ? { 
+          right: 8,
+          maxWidth: 'calc(100vw - 16px)',
+          width: 'calc(100vw - 16px)'
+        } : {})
+      }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      onClick={handleClick}
     >
       <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20">
         <div className={`${isMobile ? 'p-3' : 'p-4'}`}>
@@ -224,7 +259,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
           <div
             className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'} cursor-move select-none`}
             onMouseDown={handleDragStart}
-            style={{ cursor: isPinned ? 'default' : 'move' }}
+            style={{ cursor: (isPinned || isStatic) ? 'default' : 'move' }}
           >
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className={`bg-cyan-500/20 text-cyan-400 ${isMobile ? 'text-xs' : ''}`}>
@@ -234,6 +269,11 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                 <Badge variant="outline" className={`border-green-500/30 text-green-400 ${isMobile ? 'text-xs' : 'text-xs'}`}>
                   <Zap className={`${isMobile ? 'w-2 h-2 mr-0.5' : 'w-3 h-3 mr-1'}`} />
                   Interactive
+                </Badge>
+              )}
+              {inspectorId && (
+                <Badge variant="outline" className={`border-purple-500/30 text-purple-400 ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                  #{inspectorId.slice(-4)}
                 </Badge>
               )}
             </div>
@@ -341,7 +381,6 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                     </div>
                   )}
 
-                  {/* Events Section */}
                   {eventListeners.length > 0 && (
                     <div className={`mt-2 pt-2 border-t border-gray-700`}>
                       <div className={`font-semibold text-purple-300 mb-1 flex items-center gap-2`}>
