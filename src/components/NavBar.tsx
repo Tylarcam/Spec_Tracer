@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
-import { Play, Pause, MousePointer, Settings, Terminal, Crown } from 'lucide-react';
+import { Play, Pause, MousePointer, Settings, Terminal, Crown, Zap, Activity, Infinity, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Badge } from '@/components/ui/badge';
 import { useEnhancedCredits } from '@/hooks/useEnhancedCredits';
+import { useAuth } from '@/contexts/AuthContext';
 import SettingsDrawer from '@/components/LogTrace/SettingsDrawer';
 
 interface NavBarProps {
@@ -30,6 +31,7 @@ const NavBar: React.FC<NavBarProps> = ({
 }) => {
   const [showSettings, setShowSettings] = useState(false);
   const { creditStatus } = useEnhancedCredits();
+  const { user, signOut } = useAuth();
 
   const handleSettingsClick = () => {
     setShowSettings(true);
@@ -37,6 +39,14 @@ const NavBar: React.FC<NavBarProps> = ({
 
   const handleCloseSettings = () => {
     setShowSettings(false);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  const handleSignIn = () => {
+    window.location.href = '/auth';
   };
 
   return (
@@ -51,6 +61,16 @@ const NavBar: React.FC<NavBarProps> = ({
 
             {/* Center Controls */}
             <div className="flex items-center space-x-4">
+              {/* Active Indicator */}
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2 px-3 py-1 bg-slate-800/50 rounded-full border border-green-500/30">
+                  <div className={`w-2 h-2 rounded-full ${isTracing ? 'bg-green-400 animate-pulse' : 'bg-slate-400'}`}></div>
+                  <span className={`text-sm font-medium ${isTracing ? 'text-green-400' : 'text-slate-400'}`}>
+                    {isTracing ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+              </div>
+
               {/* Trace Toggle */}
               <div className="flex items-center space-x-2">
                 <Toggle
@@ -95,32 +115,39 @@ const NavBar: React.FC<NavBarProps> = ({
                 </Toggle>
               </div>
 
-              {/* Event Count */}
+              {/* Event Status Icons */}
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-slate-400">Events:</span>
-                <Badge variant="outline" className="text-green-400 border-green-500/50">
-                  {eventCount}
-                </Badge>
+                <div className="flex items-center gap-1 px-3 py-1 bg-slate-800/50 rounded-full border border-green-500/30">
+                  <Activity className="h-4 w-4 text-green-400" />
+                  <span className="text-sm text-slate-400">Events:</span>
+                  <Badge variant="outline" className="text-green-400 border-green-500/50">
+                    {eventCount}
+                  </Badge>
+                </div>
               </div>
             </div>
 
             {/* Right Controls */}
             <div className="flex items-center space-x-2">
-              {/* Pro Badge with Credits */}
-              <div className="flex items-center space-x-2">
-                {creditStatus.isPremium ? (
-                  <div className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-3 py-1">
-                    <Crown className="h-3 w-3 text-yellow-400" />
-                    <span className="text-xs text-yellow-400 font-medium">Pro</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 bg-green-500/10 border border-green-500/30 rounded-full px-3 py-1">
-                    <span className="text-xs text-green-400 font-medium">
-                      {creditStatus.totalCredits} credits
-                    </span>
-                  </div>
-                )}
+              {/* Lightning Icon with Rate Count */}
+              <div className="flex items-center gap-1 bg-slate-800/50 border border-green-500/30 rounded-full px-3 py-1">
+                <Zap className="h-4 w-4 text-green-400" />
+                <span className="text-sm text-green-400 font-medium">
+                  {creditStatus.isPremium ? (
+                    <Infinity className="h-4 w-4 inline" />
+                  ) : (
+                    `${creditStatus.totalCredits}/40`
+                  )}
+                </span>
               </div>
+
+              {/* Pro Badge */}
+              {creditStatus.isPremium && (
+                <div className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-3 py-1">
+                  <Crown className="h-3 w-3 text-yellow-400" />
+                  <span className="text-xs text-yellow-400 font-medium">Pro</span>
+                </div>
+              )}
 
               {/* Terminal Toggle */}
               <Button
@@ -147,6 +174,29 @@ const NavBar: React.FC<NavBarProps> = ({
               >
                 <Settings className="h-4 w-4" />
               </Button>
+
+              {/* Sign In/Out */}
+              {user ? (
+                <Button
+                  onClick={handleSignOut}
+                  variant="ghost"
+                  size="sm"
+                  className="text-slate-400 hover:text-white hover:bg-slate-700"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="ml-1 hidden sm:inline">Sign Out</span>
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSignIn}
+                  variant="ghost"
+                  size="sm"
+                  className="text-green-400 hover:text-white hover:bg-green-700"
+                >
+                  <LogIn className="h-4 w-4" />
+                  <span className="ml-1 hidden sm:inline">Sign In</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>
