@@ -49,6 +49,7 @@ const TracingContext = React.createContext<{
 export const useTracingContext = () => React.useContext(TracingContext);
 
 const AppRoutes = () => {
+  console.log('AppRoutes component rendering...');
   const location = useLocation();
   const navigate = useNavigate();
   const isLanding = location.pathname === "/";
@@ -57,6 +58,8 @@ const AppRoutes = () => {
   const [isHoverEnabled, setIsHoverEnabled] = useState(true);
   const [eventCount, setEventCount] = useState(0);
   const [showTerminal, setShowTerminal] = useState(false);
+
+  console.log('AppRoutes - Current path:', location.pathname, 'isDebugPage:', isDebugPage, 'isLanding:', isLanding);
 
   return (
     <TracingContext.Provider value={{ 
@@ -70,44 +73,51 @@ const AppRoutes = () => {
       setShowTerminal
     }}>
       {!isLanding && (
-        <NavBar 
-          isTracing={isDebugPage ? tracingActive : false}
-          onToggleTracing={isDebugPage ? () => setTracingActive(!tracingActive) : () => {}}
-          isHoverEnabled={isDebugPage ? isHoverEnabled : true}
-          onToggleHover={isDebugPage ? () => setIsHoverEnabled(!isHoverEnabled) : () => {}}
-          eventCount={isDebugPage ? eventCount : 0}
-          onOpenSettings={() => {}} // Settings now handled by drawer in NavBar
-          onToggleTerminal={isDebugPage ? () => setShowTerminal(!showTerminal) : () => {}}
-          showTerminal={isDebugPage ? showTerminal : false}
-        />
+        <ErrorBoundary>
+          <NavBar 
+            isTracing={isDebugPage ? tracingActive : false}
+            onToggleTracing={isDebugPage ? () => setTracingActive(!tracingActive) : () => {}}
+            isHoverEnabled={isDebugPage ? isHoverEnabled : true}
+            onToggleHover={isDebugPage ? () => setIsHoverEnabled(!isHoverEnabled) : () => {}}
+            eventCount={isDebugPage ? eventCount : 0}
+            onOpenSettings={() => {}} // Settings now handled by drawer in NavBar
+            onToggleTerminal={isDebugPage ? () => setShowTerminal(!showTerminal) : () => {}}
+            showTerminal={isDebugPage ? showTerminal : false}
+          />
+        </ErrorBoundary>
       )}
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/interactive-demo" element={<InteractiveDemo />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/debug" element={<Index />} />
-        <Route path="/context-transform" element={<ContextTransform />} />
-        <Route path="/upgrade" element={<Upgrade />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/interactive-demo" element={<InteractiveDemo />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/debug" element={<Index />} />
+          <Route path="/context-transform" element={<ContextTransform />} />
+          <Route path="/upgrade" element={<Upgrade />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </ErrorBoundary>
     </TracingContext.Provider>
   );
 };
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
+const App = () => {
+  console.log('App component rendering...');
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
 
 export default App;
