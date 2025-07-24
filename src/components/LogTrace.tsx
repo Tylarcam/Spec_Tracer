@@ -82,9 +82,11 @@ const LogTrace: React.FC<LogTraceProps> = ({
         showDebugModal={showAIDebugModal}
         setShowDebugModal={setShowAIDebugModal}
         currentElement={detectedElement}
+        mousePosition={cursorPosition}
         isAnalyzing={isAIAnalyzing}
-        onAnalyze={analyzeElementWithAI}
-        debugModalRef={modalRef}
+        analyzeWithAI={analyzeElementWithAI}
+        generateAdvancedPrompt={generateElementPrompt}
+        modalRef={modalRef}
       />
 
       {/* Terminal Panel */}
