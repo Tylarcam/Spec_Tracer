@@ -4,6 +4,8 @@ import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator'
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
 import { useMultipleInspectors } from '@/shared/hooks/useMultipleInspectors';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
+import { Terminal } from 'lucide-react';
 import MouseOverlay from './LogTrace/MouseOverlay';
 import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
@@ -200,6 +202,17 @@ const LogTrace: React.FC<LogTraceProps> = ({
         generateAdvancedPrompt={generateElementPrompt}
         modalRef={modalRef}
       />
+
+      {/* Floating Terminal Toggle Button */}
+      {!showTerminal && (
+        <Button
+          onClick={() => setShowTerminal(true)}
+          className="fixed bottom-4 left-4 z-50 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
+          size="sm"
+        >
+          <Terminal className="h-5 w-5" />
+        </Button>
+      )}
 
       {/* Terminal Panel */}
       <div className={`fixed bottom-0 left-0 right-0 ${showTerminal ? `h-[${terminalHeight}px]` : 'h-auto'} z-40 transition-all duration-300 ease-in-out`}>
