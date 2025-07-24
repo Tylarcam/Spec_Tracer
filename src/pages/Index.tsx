@@ -2,52 +2,31 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import LogTrace from '@/components/LogTrace';
-import NavBar from '@/components/NavBar';
+import { useCaptureContext } from '@/App';
 
-const Index = () => {
+const Index: React.FC = () => {
   const [searchParams] = useSearchParams();
   const showOnboarding = searchParams.get('onboarding') === 'true';
-  const [showTerminal, setShowTerminal] = useState(false);
-  const [isTracing, setIsTracing] = useState(false);
-  const [isHoverEnabled, setIsHoverEnabled] = useState(true);
-  const [eventCount, setEventCount] = useState(0);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+  const { captureActive, setCaptureActive } = useCaptureContext();
 
-  const handleToggleTracing = () => {
-    setIsTracing(!isTracing);
-  };
-
-  const handleToggleHover = () => {
-    setIsHoverEnabled(!isHoverEnabled);
-  };
-
-  const handleToggleTerminal = () => {
-    setShowTerminal(!showTerminal);
-  };
-
-  const handleEventCountChange = (count: number) => {
-    setEventCount(count);
+  const handleOnboardingComplete = () => {
+    setOnboardingCompleted(true);
+    // Remove onboarding param from URL
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.delete('onboarding');
+    const newUrl = `${window.location.pathname}${newSearchParams.toString() ? '?' + newSearchParams.toString() : ''}`;
+    window.history.replaceState(null, '', newUrl);
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <NavBar
-        isTracing={isTracing}
-        isHoverEnabled={isHoverEnabled}
-        onToggleTracing={handleToggleTracing}
-        onToggleHover={handleToggleHover}
-        onOpenSettings={() => {}}
-        onToggleTerminal={handleToggleTerminal}
-        eventCount={eventCount}
-        showTerminal={showTerminal}
+    <div className="min-h-screen pt-14 md:pt-16">
+      <LogTrace 
+        showOnboarding={showOnboarding && !onboardingCompleted}
+        onOnboardingComplete={handleOnboardingComplete}
+        captureActive={captureActive}
+        onCaptureToggle={setCaptureActive}
       />
-      
-      <div className="pt-16">
-        <LogTrace
-          captureActive={isTracing}
-          onCaptureToggle={setIsTracing}
-          onEventCountChange={handleEventCountChange}
-        />
-      </div>
     </div>
   );
 };

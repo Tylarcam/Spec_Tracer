@@ -1,9 +1,14 @@
+/**
+ * Hook for handling mouse and keyboard interactions during LogTrace sessions
+ * Manages cursor tracking, element detection, and user input events
+ */
 
-import { useCallback, useEffect, useRef } from 'react';
-import { ElementInfo, LogEvent, QuickActionType } from '../types';
+import { useCallback, useEffect } from 'react';
+import { ElementInfo, LogEvent } from '../types';
 import { useMobileTouchInteractions } from './useMobileTouchInteractions';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-interface InteractionHandlersProps {
+interface UseInteractionHandlersProps {
   isTraceActive: boolean;
   isHoverPaused: boolean;
   detectedElement: ElementInfo | null;
@@ -13,10 +18,11 @@ interface InteractionHandlersProps {
   setDetectedElement: (element: ElementInfo | null) => void;
   setShowInteractivePanel: (show: boolean) => void;
   setShowAIDebugModal: (show: boolean) => void;
-  extractElementDetails: (element: HTMLElement) => ElementInfo;
-  recordEvent: (event: LogEvent) => void;
+  extractElementDetails: (target: HTMLElement) => ElementInfo;
+  recordEvent: (event: Omit<LogEvent, 'id' | 'timestamp'>) => void;
   handleEscapeKey: () => void;
-  onElementClick: () => void;
+  onElementClick?: () => void;
+  onQuickAction?: (action: string, element: ElementInfo | null) => void;
 }
 
 export const useInteractionHandlers = ({
@@ -33,119 +39,148 @@ export const useInteractionHandlers = ({
   recordEvent,
   handleEscapeKey,
   onElementClick,
-}: InteractionHandlersProps) => {
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-  const lastClickedElement = useRef<HTMLElement | null>(null);
-  const clickTimeout = useRef<NodeJS.Timeout | null>(null);
+  onQuickAction,
+}: UseInteractionHandlersProps) => {
+  const isMobile = useIsMobile();
 
-  // Mobile touch interactions
-  const { handleTouchStart, handleTouchEnd } = useMobileTouchInteractions({
-    isTraceActive,
+  // Mobile touch interaction handlers - simplified to single tap only
+  const handleMobileSingleTap = useCallback((element: ElementInfo | null, position: { x: number; y: number }) => {
+    if (element) {
+      setCursorPosition(position);
+      setDetectedElement(element);
+      
+      recordEvent({
+        type: 'tap',
+        position,
+        element: {
+          tag: element.tag,
+          id: element.id,
+          classes: element.classes,
+          text: element.text,
+          parentPath: element.parentPath,
+          attributes: element.attributes,
+          size: element.size,
+        },
+      });
+    }
+  }, [setCursorPosition, setDetectedElement, recordEvent]);
+
+  const {
+    handleTouchStart,
+    handleTouchEnd,
+  } = useMobileTouchInteractions({
+    isActive: isTraceActive && isMobile,
+    onSingleTap: handleMobileSingleTap,
     extractElementDetails,
-    recordEvent,
-    setDetectedElement,
-    setCursorPosition,
-    onElementClick,
   });
 
-  // Keyboard event handlers
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleEscapeKey();
-      }
-    };
-
-    if (isTraceActive) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isTraceActive, handleEscapeKey]);
-
   const handleCursorMovement = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isTraceActive || isHoverPaused) return;
+    if (!isTraceActive || isHoverPaused || isMobile) return;
 
     const target = e.target as HTMLElement;
-    
-    // Skip if cursor is over LogTrace UI elements or inspector panels
     if (target && 
         !target.closest('#logtrace-overlay') && 
         !target.closest('#logtrace-modal') &&
-        !target.closest('[data-interactive-panel]') &&
-        !target.closest('[data-inspector-panel]')) {
+        !target.closest('[data-interactive-panel]')) {
       
-      setCursorPosition({ x: e.clientX, y: e.clientY });
-      const elementInfo = extractElementDetails(target);
-      setDetectedElement(elementInfo);
+      // Check if cursor is over any inspector panel
+      const inspectorPanels = document.querySelectorAll('[data-inspector-panel]');
+      let isOverInspector = false;
+      
+      inspectorPanels.forEach(panel => {
+        const rect = panel.getBoundingClientRect();
+        if (e.clientX >= rect.left && 
+            e.clientX <= rect.right && 
+            e.clientY >= rect.top && 
+            e.clientY <= rect.bottom) {
+          isOverInspector = true;
+        }
+      });
+      
+      // Only update element highlighting if cursor is not over an inspector panel
+      if (!isOverInspector) {
+        setCursorPosition({ x: e.clientX, y: e.clientY });
+        const elementInfo = extractElementDetails(target);
+        setDetectedElement(elementInfo);
+        
+        if (showInteractivePanel) {
+          setShowInteractivePanel(false);
+        }
+      }
     }
-  }, [extractElementDetails, setCursorPosition, setDetectedElement, isTraceActive, isHoverPaused]);
+  }, [isTraceActive, isHoverPaused, isMobile, extractElementDetails, setCursorPosition, setDetectedElement, showInteractivePanel, setShowInteractivePanel]);
 
   const handleElementClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isTraceActive || isMobile) return;
-
+    
     const target = e.target as HTMLElement;
     
-    // Skip if clicking on LogTrace UI elements or inspector panels
+    // Skip if clicking on LogTrace UI elements
     if (target && (
-        target.closest('#logtrace-overlay') ||
+        target.closest('#logtrace-overlay') || 
         target.closest('#logtrace-modal') ||
         target.closest('[data-interactive-panel]') ||
-        target.closest('[data-inspector-panel]') ||
-        target.closest('[data-close-button]')
+        target.closest('[data-quick-actions]') ||
+        target.closest('[data-inspector-panel]')
     )) {
       return;
     }
 
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (detectedElement) {
-      // Clear any existing timeout
-      if (clickTimeout.current) {
-        clearTimeout(clickTimeout.current);
-      }
-
-      // Set a small timeout to prevent double-clicks
-      clickTimeout.current = setTimeout(() => {
-        // Check if this is a different element than the last clicked one
-        if (lastClickedElement.current !== detectedElement.element) {
-          lastClickedElement.current = detectedElement.element;
-          
-          // Record the click event
-          recordEvent({
-            id: crypto.randomUUID(),
-            type: 'click',
-            timestamp: new Date().toISOString(),
-            position: { x: e.clientX, y: e.clientY },
-            element: {
-              tag: detectedElement.tag,
-              id: detectedElement.id,
-              classes: detectedElement.classes,
-              text: detectedElement.text,
-              parentPath: detectedElement.parentPath,
-              attributes: detectedElement.attributes,
-              size: detectedElement.size,
-            },
-          });
-
-          // Trigger the element click handler (opens inspector)
+    // Only proceed if we have a detected element and the click is on a highlighted element
+    if (detectedElement && detectedElement.element) {
+      const elementRect = detectedElement.element.getBoundingClientRect();
+      const clickX = e.clientX;
+      const clickY = e.clientY;
+      
+      // Check if click is within the highlighted element's bounds
+      if (clickX >= elementRect.left && 
+          clickX <= elementRect.right && 
+          clickY >= elementRect.top && 
+          clickY <= elementRect.bottom) {
+        
+        // Prevent default behavior for element inspection
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Record the click event
+        recordEvent({
+          type: 'click',
+          position: { x: e.clientX, y: e.clientY },
+          element: {
+            tag: detectedElement.tag,
+            id: detectedElement.id,
+            classes: detectedElement.classes,
+            text: detectedElement.text,
+            parentPath: detectedElement.parentPath,
+            attributes: detectedElement.attributes,
+            size: detectedElement.size,
+          },
+        });
+        
+        // Trigger the element inspection
+        if (onElementClick) {
           onElementClick();
         }
-      }, 100);
+      }
     }
   }, [isTraceActive, isMobile, detectedElement, recordEvent, onElementClick]);
 
-  // Cleanup timeout on unmount
+  const handleKeyboardInput = useCallback((e: KeyboardEvent) => {
+    const activeElement = document.activeElement;
+    if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+      return;
+    }
+    
+    // Only keep Escape key for closing modals/overlays
+    if (e.key === 'Escape') {
+      handleEscapeKey();
+    }
+  }, [handleEscapeKey]);
+
   useEffect(() => {
-    return () => {
-      if (clickTimeout.current) {
-        clearTimeout(clickTimeout.current);
-      }
-    };
-  }, []);
+    document.addEventListener('keydown', handleKeyboardInput);
+    return () => document.removeEventListener('keydown', handleKeyboardInput);
+  }, [handleKeyboardInput]);
 
   return {
     handleCursorMovement,

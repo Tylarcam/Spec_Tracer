@@ -21,11 +21,9 @@ export const useEnhancedCredits = () => {
     resetTime: '',
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const fetchCreditStatus = async () => {
     try {
-      setError(null);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         // Handle guest user credits
@@ -46,20 +44,7 @@ export const useEnhancedCredits = () => {
         user_uuid: user.id
       });
 
-      if (error) {
-        console.error('Error fetching credit status:', error);
-        setError(error.message);
-        // Set fallback values
-        setCreditStatus({
-          dailyCredits: 5,
-          maxCredits: 40,
-          totalCredits: 5,
-          isPremium: false,
-          waitlistBonus: 0,
-          resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        });
-        return;
-      }
+      if (error) throw error;
 
       if (data && data.length > 0) {
         const status = data[0];
@@ -74,16 +59,6 @@ export const useEnhancedCredits = () => {
       }
     } catch (error) {
       console.error('Error fetching credit status:', error);
-      setError('Failed to load credit status');
-      // Set fallback values
-      setCreditStatus({
-        dailyCredits: 5,
-        maxCredits: 40,
-        totalCredits: 5,
-        isPremium: false,
-        waitlistBonus: 0,
-        resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      });
     } finally {
       setIsLoading(false);
     }
@@ -106,10 +81,7 @@ export const useEnhancedCredits = () => {
         user_uuid: user.id
       });
 
-      if (error) {
-        console.error('Error using credit:', error);
-        return false;
-      }
+      if (error) throw error;
       
       if (data) {
         await fetchCreditStatus();
@@ -146,10 +118,7 @@ export const useEnhancedCredits = () => {
           session_start_time: new Date().toISOString(),
         }, { onConflict: 'user_id,reset_date' });
 
-      if (error) {
-        console.error('Error awarding share credits:', error);
-        return false;
-      }
+      if (error) throw error;
 
       localStorage.setItem(shareKey, 'true');
       await fetchCreditStatus();
@@ -167,7 +136,6 @@ export const useEnhancedCredits = () => {
   return {
     creditStatus,
     isLoading,
-    error,
     useCredit,
     awardShareCredits,
     refreshCredits: fetchCreditStatus,

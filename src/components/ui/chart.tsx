@@ -6,15 +6,6 @@ import { cn } from "@/lib/utils"
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
 
-// Only allow valid CSS color formats to avoid CSS injection attacks.
-const ALLOWED_COLOR_REGEX = /^(#(?:[0-9a-fA-F]{3,8})|(?:rgb|hsl)a?\([^)]*\)|[a-zA-Z]+)$/;
-
-function sanitizeColor(input?: string) {
-  if (!input) return undefined;
-  const trimmed = input.trim();
-  return ALLOWED_COLOR_REGEX.test(trimmed) ? trimmed : undefined;
-}
-
 export type ChartConfig = {
   [k in string]: {
     label?: React.ReactNode
@@ -95,8 +86,7 @@ ${colorConfig
     const color =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
       itemConfig.color
-    const safeColor = sanitizeColor(color);
-    return safeColor ? `  --color-${key}: ${safeColor};` : null
+    return color ? `  --color-${key}: ${color};` : null
   })
   .join("\n")}
 }

@@ -8,21 +8,15 @@ interface TouchInteractionState {
 }
 
 interface UseMobileTouchInteractionsProps {
-  isTraceActive: boolean;
+  isActive: boolean;
+  onSingleTap: (element: ElementInfo | null, position: { x: number; y: number }) => void;
   extractElementDetails: (target: HTMLElement) => ElementInfo;
-  recordEvent: (event: any) => void;
-  setDetectedElement: (element: ElementInfo | null) => void;
-  setCursorPosition: (pos: { x: number; y: number }) => void;
-  onElementClick: () => void;
 }
 
 export const useMobileTouchInteractions = ({
-  isTraceActive,
+  isActive,
+  onSingleTap,
   extractElementDetails,
-  recordEvent,
-  setDetectedElement,
-  setCursorPosition,
-  onElementClick,
 }: UseMobileTouchInteractionsProps) => {
   const [touchState, setTouchState] = useState<TouchInteractionState>({
     touchStartTime: 0,
@@ -30,7 +24,7 @@ export const useMobileTouchInteractions = ({
   });
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!isTraceActive) return;
+    if (!isActive) return;
 
     const touch = e.touches[0];
     const target = e.target as HTMLElement;
@@ -51,15 +45,10 @@ export const useMobileTouchInteractions = ({
       ...prev,
       touchStartTime: now,
     }));
-
-    // Set cursor position and detect element on touch start
-    setCursorPosition(position);
-    const element = extractElementDetails(target);
-    setDetectedElement(element);
-  }, [isTraceActive, setCursorPosition, extractElementDetails, setDetectedElement]);
+  }, [isActive]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!isTraceActive) return;
+    if (!isActive) return;
 
     const touch = e.changedTouches[0];
     const target = e.target as HTMLElement;
@@ -75,27 +64,8 @@ export const useMobileTouchInteractions = ({
     }
 
     const element = extractElementDetails(target);
-    
-    // Record the touch event
-    recordEvent({
-      id: crypto.randomUUID(),
-      type: 'tap',
-      timestamp: new Date().toISOString(),
-      position,
-      element: {
-        tag: element.tag,
-        id: element.id,
-        classes: element.classes,
-        text: element.text,
-        parentPath: element.parentPath,
-        attributes: element.attributes,
-        size: element.size,
-      },
-    });
-
-    // Trigger element click handler
-    onElementClick();
-  }, [isTraceActive, extractElementDetails, recordEvent, onElementClick]);
+    onSingleTap(element, position);
+  }, [isActive, extractElementDetails, onSingleTap]);
 
   return {
     handleTouchStart,

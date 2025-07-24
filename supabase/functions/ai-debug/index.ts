@@ -1,55 +1,11 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-interface DebugRequest {
-  prompt: string;
-  element?: {
-    tag: string;
-    id: string;
-    classes: string[];
-    text: string;
-  };
-  position: { x: number; y: number };
-}
-
-// Enhanced input validation
-const validateInput = (body: any): { isValid: boolean; error?: string } => {
-  if (!body || typeof body !== 'object') {
-    return { isValid: false, error: 'Invalid request body' };
-  }
-
-  if (!body.prompt || typeof body.prompt !== 'string') {
-    return { isValid: false, error: 'Prompt is required and must be a string' };
-  }
-
-  if (body.prompt.length > 2000) {
-    return { isValid: false, error: 'Prompt too long (max 2000 characters)' };
-  }
-
-  if (body.prompt.length < 3) {
-    return { isValid: false, error: 'Prompt too short (min 3 characters)' };
-  }
-
-  // Check for XSS patterns
-  const xssPatterns = [
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-    /javascript:/gi,
-    /on\w+\s*=/gi,
-  ];
-
-  for (const pattern of xssPatterns) {
-    if (pattern.test(body.prompt)) {
-      return { isValid: false, error: 'Invalid characters detected' };
-    }
-  }
-
-  return { isValid: true };
 };
 
 serve(async (req) => {
@@ -59,141 +15,93 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
-
-    // Get the authorization header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing authorization header' }),
-        { status: 401, headers: corsHeaders }
-      );
-    }
-
-    // Verify the JWT token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid authentication' }),
-        { status: 401, headers: corsHeaders }
-      );
-    }
-
-    const body: DebugRequest = await req.json();
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     
-    // Enhanced input validation
-    const validation = validateInput(body);
-    if (!validation.isValid) {
-      return new Response(
-        JSON.stringify({ success: false, error: validation.error }),
-        { status: 400, headers: corsHeaders }
-      );
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
     }
 
-    // Check if user has credits
-    const { data: creditData, error: creditError } = await supabase.rpc('use_credit', {
-      user_uuid: user.id
-    });
+    const { prompt, element, position } = await req.json();
 
-    if (creditError) {
-      console.error('Credit check error:', creditError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Credit system error' }),
-        { status: 500, headers: corsHeaders }
-      );
+    // Input validation and sanitization
+    if (!prompt || typeof prompt !== 'string' || prompt.length > 2000) {
+      throw new Error('Invalid prompt provided');
     }
 
-    if (!creditData) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'No credits available' }),
-        { status: 403, headers: corsHeaders }
-      );
-    }
+    // Sanitize the element data to prevent XSS
+    const sanitizedElement = element ? {
+      tag: String(element.tag || '').slice(0, 50),
+      id: String(element.id || '').slice(0, 100),
+      classes: Array.isArray(element.classes) ? element.classes.slice(0, 10).map(c => String(c).slice(0, 50)) : [],
+      text: String(element.text || '').slice(0, 200)
+    } : null;
 
-    // Call OpenAI API with enhanced security
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      console.error('OpenAI API key not configured');
-      return new Response(
-        JSON.stringify({ success: false, error: 'Service temporarily unavailable' }),
-        { status: 503, headers: corsHeaders }
-      );
-    }
+    const systemPrompt = `You are an expert web developer and debugger. Provide clear, actionable debugging advice. 
+Focus on common web development issues like CSS problems, JavaScript errors, accessibility issues, layout problems, and functionality bugs.
+Keep responses concise and practical.`;
 
-    const sanitizedPrompt = body.prompt
-      .replace(/[<>]/g, '') // Remove angle brackets
-      .replace(/javascript:/gi, '') // Remove javascript: protocol
-      .trim();
+    const userPrompt = `${prompt}${sanitizedElement ? `\n\nElement Context:
+- Tag: ${sanitizedElement.tag}
+- ID: ${sanitizedElement.id}
+- Classes: ${sanitizedElement.classes.join(', ')}
+- Text: "${sanitizedElement.text}"
+- Position: x:${position?.x || 0}, y:${position?.y || 0}` : ''}`;
 
-    const contextualPrompt = `
-      You are a web debugging assistant. Help analyze this web element issue:
-      
-      User Query: ${sanitizedPrompt}
-      
-      ${body.element ? `
-      Element Context:
-      - Tag: ${body.element.tag}
-      - ID: ${body.element.id}
-      - Classes: ${body.element.classes.join(', ')}
-      - Text: ${body.element.text.substring(0, 200)}
-      ` : ''}
-      
-      Mouse Position: (${body.position.x}, ${body.position.y})
-      
-      Provide a helpful debugging response focusing on web development best practices.
-    `;
+    console.log('Making OpenAI API request for debugging assistance');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful web debugging assistant. Provide clear, actionable advice for web development issues. Keep responses concise but informative.'
-          },
-          {
-            role: 'user',
-            content: contextualPrompt
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
-        max_tokens: 500,
+        max_tokens: 1000,
         temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error('OpenAI API error:', errorData);
-      return new Response(
-        JSON.stringify({ success: false, error: 'AI service temporarily unavailable' }),
-        { status: 503, headers: corsHeaders }
-      );
+      const errorText = await response.text();
+      console.error('OpenAI API error:', response.status, errorText);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0]?.message?.content || 'No response generated';
+    const aiResponse = data.choices?.[0]?.message?.content;
 
-    return new Response(
-      JSON.stringify({ success: true, response: aiResponse }),
-      { headers: corsHeaders }
-    );
+    if (!aiResponse) {
+      throw new Error('No response from AI');
+    }
+
+    console.log('Successfully generated AI debugging response');
+
+    return new Response(JSON.stringify({ 
+      response: aiResponse,
+      success: true 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
-    console.error('Edge function error:', error);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error' }),
-      { status: 500, headers: corsHeaders }
-    );
+    console.error('Error in ai-debug function:', error);
+    
+    // Don't expose internal error details to client
+    const errorMessage = error.message.includes('OpenAI API') 
+      ? 'AI service temporarily unavailable' 
+      : 'An error occurred processing your request';
+
+    return new Response(JSON.stringify({ 
+      error: errorMessage,
+      success: false 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
