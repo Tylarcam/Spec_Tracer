@@ -9,22 +9,41 @@ import { callAIDebugFunction } from '@/shared/api';
 import { ElementInfo } from '@/shared/types';
 
 interface DebugModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  showDebugModal: boolean;
+  setShowDebugModal: React.Dispatch<React.SetStateAction<boolean>>;
   currentElement: ElementInfo | null;
   mousePosition: { x: number; y: number };
-  onDebugResponse?: (response: string) => void;
+  isAnalyzing: boolean;
+  analyzeWithAI: (prompt: string) => Promise<string | null>;
+  generateAdvancedPrompt: (element: ElementInfo | null) => string;
+  modalRef: React.RefObject<HTMLDivElement>;
+  isExtensionMode: boolean;
+  showAuthModal: boolean;
+  setShowAuthModal: React.Dispatch<React.SetStateAction<boolean>>;
+  user: any;
+  guestDebugCount: number;
+  maxGuestDebugs: number;
+  terminalHeight: number;
 }
 
 const DebugModal: React.FC<DebugModalProps> = ({
-  isOpen,
-  onClose,
+  showDebugModal,
+  setShowDebugModal,
   currentElement,
   mousePosition,
-  onDebugResponse,
+  isAnalyzing,
+  analyzeWithAI,
+  generateAdvancedPrompt,
+  modalRef,
+  isExtensionMode,
+  showAuthModal,
+  setShowAuthModal,
+  user,
+  guestDebugCount,
+  maxGuestDebugs,
+  terminalHeight,
 }) => {
   const [prompt, setPrompt] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async () => {
@@ -37,24 +56,19 @@ const DebugModal: React.FC<DebugModalProps> = ({
       return;
     }
 
-    setIsAnalyzing(true);
     try {
       console.log('Sending debug request:', { prompt, currentElement, mousePosition });
       
-      const response = await callAIDebugFunction(prompt, currentElement, mousePosition);
+      const response = await analyzeWithAI(prompt);
       
       console.log('Debug response received:', response);
-      
-      if (onDebugResponse) {
-        onDebugResponse(response);
-      }
       
       toast({
         title: 'Success',
         description: 'Debug analysis completed',
       });
       
-      onClose();
+      setShowDebugModal(false);
       setPrompt('');
     } catch (error) {
       console.error('Debug API error:', error);
@@ -78,8 +92,6 @@ const DebugModal: React.FC<DebugModalProps> = ({
         description: errorMessage,
         variant: 'destructive',
       });
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
@@ -90,7 +102,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
     }
   };
 
-  const generateAdvancedPrompt = () => {
+  const generateAdvancedPromptHandler = () => {
     if (!currentElement) return '';
     
     const element = currentElement.element;
@@ -121,7 +133,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={showDebugModal} onOpenChange={setShowDebugModal}>
       <DialogContent className="sm:max-w-[500px] bg-slate-900 border-green-500/50">
         <DialogHeader>
           <DialogTitle className="text-green-400">AI Debug Assistant</DialogTitle>
@@ -150,7 +162,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
                 What would you like to debug?
               </label>
               <Button
-                onClick={() => setPrompt(generateAdvancedPrompt())}
+                onClick={() => setPrompt(generateAdvancedPromptHandler())}
                 size="sm"
                 variant="outline"
                 className="border-green-500/50 text-green-400 hover:bg-green-500/10"
@@ -171,7 +183,7 @@ Provide specific, actionable debugging steps and potential solutions.`;
           <div className="flex justify-end space-x-2">
             <Button
               variant="outline"
-              onClick={onClose}
+              onClick={() => setShowDebugModal(false)}
               disabled={isAnalyzing}
               className="border-green-500/50 text-green-400 hover:bg-green-500/10"
             >
