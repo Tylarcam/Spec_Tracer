@@ -111,10 +111,11 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
         )}
         
         <div className={`${isMobile ? 'p-2' : 'p-4'} h-full flex flex-col min-h-0`} style={{ height: isMobile ? '100%' : 'calc(100% - 8px)' }}>
-          {!isMobile && (
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
-              <div className="flex gap-2">
+          {/* Header with Close Button */}
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-green-400 font-semibold">LogTrace Terminal</h3>
+            <div className="flex gap-2">
+              {!isMobile && (
                 <Button
                   onClick={exportEvents}
                   variant="outline"
@@ -123,17 +124,17 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
                 >
                   Export
                 </Button>
-                <Button
-                  onClick={() => setShowTerminal(false)}
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-400 hover:text-white"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              )}
+              <Button
+                onClick={() => setShowTerminal(false)}
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-          )}
+          </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab as any} className="w-full flex-1 flex flex-col min-h-0">
             <TabsList className={`${isMobile ? 'h-12' : 'h-10'} items-center justify-center rounded-md p-1 text-muted-foreground grid w-full grid-cols-3 bg-slate-800/50`}>
