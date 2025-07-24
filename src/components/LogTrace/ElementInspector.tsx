@@ -65,14 +65,17 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
       : { x: 0, y: 0 };
     document.body.style.userSelect = 'none';
   };
+
   const handleDrag = (e: MouseEvent) => {
     if (!dragging.current || isPinned) return;
     setModalPosition({ x: e.clientX - (dragOffset.current?.x || 0), y: e.clientY - (dragOffset.current?.y || 0) });
   };
+
   const handleDragEnd = () => {
     dragging.current = false;
     document.body.style.userSelect = '';
   };
+
   React.useEffect(() => {
     if (!dragging.current) return;
     window.addEventListener('mousemove', handleDrag);
@@ -82,6 +85,32 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
       window.removeEventListener('mouseup', handleDragEnd);
     };
   });
+
+  // Button click handlers that prevent drag
+  const handleButtonMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  const handlePinClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onPin?.();
+  };
+
+  const handleDebugClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDebug();
+  };
+
+  const handleCloseClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClose();
+  };
+
+  const handleCopyClick = (value: string) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(value);
+    toast({ title: 'Copied!', description: 'Value copied to clipboard', variant: 'success' });
+  };
 
   // Get computed styles
   const computedStyles = useMemo(() => {
@@ -220,12 +249,12 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
       <Card className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20">
         <div className={`${isMobile ? 'p-3' : 'p-4'}`}>
           {/* Header */}
-          <div
-            className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'} cursor-move select-none`}
-            onMouseDown={handleDragStart}
-            style={{ cursor: isPinned ? 'default' : 'move' }}
-          >
-            <div className="flex items-center gap-2">
+          <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
+            {/* Left side: Title and badges - draggable area */}
+            <div 
+              className={`flex items-center gap-2 flex-1 select-none ${isPinned ? 'cursor-default' : 'cursor-move'}`}
+              onMouseDown={handleDragStart}
+            >
               <Badge variant="secondary" className={`bg-cyan-500/20 text-cyan-400 ${isMobile ? 'text-xs' : ''}`}>
                 {currentElement.tag.toUpperCase()}
               </Badge>
@@ -236,6 +265,8 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                 </Badge>
               )}
             </div>
+            
+            {/* Right side: Action buttons - non-draggable area */}
             <div className="flex gap-1 items-center">
               {/* AI debug usage badge */}
               {(typeof currentDebugCount === 'number' && typeof maxDebugCount === 'number') && (
@@ -244,13 +275,15 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                   {currentDebugCount}/{maxDebugCount}
                 </Badge>
               )}
+              
               {/* Pin button */}
               {onPin && (
                 <Button
-                  onClick={onPin}
+                  onClick={handlePinClick}
+                  onMouseDown={handleButtonMouseDown}
                   size="sm"
                   variant="ghost"
-                  className={`${isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'} ${isPinned ? 'text-green-400' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10`}
+                  className={`${isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'} ${isPinned ? 'text-green-400' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10 cursor-pointer`}
                   title={isPinned ? 'Unpin panel' : 'Pin panel'}
                   tabIndex={-1}
                   type="button"
@@ -258,22 +291,28 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                   {isPinned ? <Lock className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} /> : <Unlock className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />}
                 </Button>
               )}
+              
+              {/* Debug button */}
               <Button
-                onClick={onDebug}
+                onClick={handleDebugClick}
+                onMouseDown={handleButtonMouseDown}
                 size="sm"
                 variant="ghost"
-                className={`${isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'} text-purple-400 hover:text-purple-300 hover:bg-purple-500/10`}
+                className={`${isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'} text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 cursor-pointer`}
                 title="Debug with AI"
                 tabIndex={-1}
                 type="button"
               >
                 <Code className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
               </Button>
+              
+              {/* Close button */}
               <Button
-                onClick={onClose}
+                onClick={handleCloseClick}
+                onMouseDown={handleButtonMouseDown}
                 size="sm"
                 variant="ghost"
-                className={`${isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'} text-gray-400 hover:text-red-400 hover:bg-red-500/10`}
+                className={`${isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'} text-gray-400 hover:text-red-400 hover:bg-red-500/10 cursor-pointer`}
                 title="Close"
                 tabIndex={-1}
                 type="button"
@@ -421,7 +460,8 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                                     {isLongValue && (
                                       <button
                                         onClick={handleToggle}
-                                        className="text-gray-400 hover:text-purple-300 transition-colors flex-shrink-0 mt-0.5"
+                                        onMouseDown={handleButtonMouseDown}
+                                        className="text-gray-400 hover:text-purple-300 transition-colors flex-shrink-0 mt-0.5 cursor-pointer"
                                         title={isExpanded ? 'Collapse' : 'Expand'}
                                       >
                                         {isExpanded ? <ChevronUp className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} /> : <ChevronDown className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />}
@@ -431,11 +471,9 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                                 </td>
                                 <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} align-top`}>
                                   <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(attr.value);
-                                      toast({ title: 'Copied!', description: 'Attribute value copied to clipboard', variant: 'success' });
-                                    }}
-                                    className="text-gray-400 hover:text-purple-300 transition-colors"
+                                    onClick={handleCopyClick(attr.value)}
+                                    onMouseDown={handleButtonMouseDown}
+                                    className="text-gray-400 hover:text-purple-300 transition-colors cursor-pointer"
                                     title="Copy value"
                                   >
                                     <Copy className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
@@ -489,11 +527,9 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                           </td>
                           <td className={`py-1 ${isMobile ? 'px-1' : 'px-2'} align-top`}>
                             <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(String(value));
-                                toast({ title: 'Copied!', description: 'Style value copied to clipboard', variant: 'success' });
-                              }}
-                              className="text-gray-400 hover:text-orange-300 transition-colors"
+                              onClick={handleCopyClick(String(value))}
+                              onMouseDown={handleButtonMouseDown}
+                              className="text-gray-400 hover:text-orange-300 transition-colors cursor-pointer"
                               title="Copy value"
                             >
                               <Copy className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
