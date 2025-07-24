@@ -131,8 +131,8 @@ const NavBar: React.FC<NavBarProps> = ({
                 <div className="flex items-center gap-1 px-3 py-1 bg-slate-800/50 rounded-full border border-green-500/30">
                   <Activity className="h-4 w-4 text-green-400" />
                   <span className="text-sm text-slate-400">Events:</span>
-                  <Badge variant="outline" className="text-green-400 border-green-500/50">
-                    {eventCount}
+                  <Badge variant="outline" className="text-green-400 border-green-500/50 min-w-[2rem] text-center">
+                    {eventCount || 0}
                   </Badge>
                 </div>
               </div>
