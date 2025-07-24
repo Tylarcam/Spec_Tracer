@@ -5,7 +5,6 @@ import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MouseOverlay from './LogTrace/MouseOverlay';
 import ElementInspector from './LogTrace/ElementInspector';
-import InteractivePanel from './LogTrace/InteractivePanel';
 import DebugModal from './LogTrace/DebugModal';
 import TabbedTerminal from './LogTrace/TabbedTerminal';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
@@ -21,7 +20,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const [showTerminal, setShowTerminal] = useState(false);
-  const [showInteractivePanel, setShowInteractivePanel] = useState(false);
+  const [showElementInspector, setShowElementInspector] = useState(false);
   const [isHoverPaused, setIsHoverPaused] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(400);
   
@@ -53,8 +52,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const handleEscapeKey = () => {
     if (showAIDebugModal) {
       setShowAIDebugModal(false);
-    } else if (showInteractivePanel) {
-      setShowInteractivePanel(false);
+    } else if (showElementInspector) {
+      setShowElementInspector(false);
     } else if (detectedElement) {
       setDetectedElement(null);
     }
@@ -63,7 +62,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   // Handle element click for inspection
   const handleElementClick = () => {
     if (detectedElement) {
-      setShowInteractivePanel(true);
+      setShowElementInspector(true);
     }
   };
 
@@ -78,10 +77,10 @@ const LogTrace: React.FC<LogTraceProps> = ({
     isHoverPaused,
     detectedElement,
     cursorPosition,
-    showInteractivePanel,
+    showInteractivePanel: showElementInspector,
     setCursorPosition,
     setDetectedElement,
-    setShowInteractivePanel,
+    setShowInteractivePanel: setShowElementInspector,
     setShowAIDebugModal,
     extractElementDetails,
     recordEvent,
@@ -156,24 +155,17 @@ const LogTrace: React.FC<LogTraceProps> = ({
         inspectorCount={0}
       />
 
-      {/* Element Inspector */}
+      {/* Element Inspector - shows on click */}
       <ElementInspector 
-        isVisible={!!detectedElement && isTraceActive && !showInteractivePanel}
+        isVisible={showElementInspector}
         currentElement={detectedElement}
         mousePosition={cursorPosition}
         onDebug={() => setShowAIDebugModal(true)}
-        onClose={() => setDetectedElement(null)}
-        onShowMoreDetails={() => setShowInteractivePanel(true)}
-      />
-
-      {/* Interactive Panel */}
-      <InteractivePanel
-        isVisible={showInteractivePanel}
-        currentElement={detectedElement}
-        mousePosition={cursorPosition}
-        onDebug={() => setShowAIDebugModal(true)}
-        onClose={() => setShowInteractivePanel(false)}
-        panelRef={useRef<HTMLDivElement>(null)}
+        onClose={() => {
+          setShowElementInspector(false);
+          setDetectedElement(null);
+        }}
+        onShowMoreDetails={() => {}}
       />
 
       {/* AI Debug Modal */}

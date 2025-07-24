@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useRef } from 'react';
 import { ElementInfo, LogEvent, QuickActionType } from '../types';
 import { useMobileTouchInteractions } from './useMobileTouchInteractions';
@@ -101,34 +100,15 @@ export const useInteractionHandlers = ({
     if (target && 
         !target.closest('#logtrace-overlay') && 
         !target.closest('#logtrace-modal') &&
-        !target.closest('[data-interactive-panel]')) {
-      
-      // Check if cursor is over any inspector panel
-      const inspectorPanels = document.querySelectorAll('[data-inspector-panel]');
-      let isOverInspector = false;
-      
-      inspectorPanels.forEach(panel => {
-        const rect = panel.getBoundingClientRect();
-        if (e.clientX >= rect.left && 
-            e.clientX <= rect.right && 
-            e.clientY >= rect.top && 
-            e.clientY <= rect.bottom) {
-          isOverInspector = true;
-        }
-      });
+        !target.closest('[data-interactive-panel]') &&
+        !target.closest('[data-inspector-panel]')) {
       
       // Only update element highlighting if cursor is not over an inspector panel
-      if (!isOverInspector) {
-        setCursorPosition({ x: e.clientX, y: e.clientY });
-        const elementInfo = extractElementDetails(target);
-        setDetectedElement(elementInfo);
-        
-        if (showInteractivePanel) {
-          setShowInteractivePanel(false);
-        }
-      }
+      setCursorPosition({ x: e.clientX, y: e.clientY });
+      const elementInfo = extractElementDetails(target);
+      setDetectedElement(elementInfo);
     }
-  }, [extractElementDetails, setCursorPosition, setDetectedElement, showInteractivePanel, setShowInteractivePanel]);
+  }, [extractElementDetails, setCursorPosition, setDetectedElement]);
 
   const handleElementClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isTraceActive || isMobile) return;
