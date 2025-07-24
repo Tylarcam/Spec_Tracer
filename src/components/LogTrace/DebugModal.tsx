@@ -1,7 +1,8 @@
+
 import React, { useState, useMemo, useRef } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
-import { X, Sparkles, Copy } from 'lucide-react';
+import { X, Sparkles, Copy, Zap } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
@@ -371,7 +372,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                                   className="text-cyan-400 hover:text-cyan-200 px-1"
                                   onClick={() => {
                                     navigator.clipboard.writeText(attr.value);
-                                    toast({ title: 'Copied', description: `Copied value for ${attr.name}`, variant: 'success' });
+                                    toast({ title: 'Copied', description: `Copied value for ${attr.name}`, variant: 'default' });
                                   }}
                                   title="Copy value"
                                 >
@@ -392,7 +393,12 @@ const DebugModal: React.FC<DebugModalProps> = ({
           <div className="flex-1 min-h-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
               <TabsList className={`grid w-full grid-cols-3 bg-slate-800/50 ${isMobile ? 'h-8' : ''}`}>
-                <TabsTrigger value="quick" className={`data-[state=active]:bg-cyan-600 ${isMobile ? 'text-xs px-2' : ''}`}>Quick Debug</TabsTrigger>
+                <TabsTrigger value="quick" className={`data-[state=active]:bg-cyan-600 ${isMobile ? 'text-xs px-2' : ''}`}>
+                  <div className="flex items-center gap-1">
+                    <Zap className={`text-cyan-400 ${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                    <span>Quick Debug</span>
+                  </div>
+                </TabsTrigger>
                 <TabsTrigger value="advanced" className={`data-[state=active]:bg-cyan-600 ${isMobile ? 'text-xs px-2' : ''}`}>Advanced</TabsTrigger>
                 <TabsTrigger value="prompt" className={`data-[state=active]:bg-cyan-600 ${isMobile ? 'text-xs px-1' : ''}`}>
                   <div className="flex items-center gap-1">
@@ -404,6 +410,17 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
               <div className="flex-1 min-h-0 overflow-hidden">
                 <TabsContent value="quick" className={`${isMobile ? 'space-y-2 mt-2' : 'space-y-4 mt-4'} h-full overflow-y-auto`}>
+                  {/* Add helpful description */}
+                  <div className={`${isMobile ? 'p-2' : 'p-3'} bg-cyan-500/10 rounded-lg border border-cyan-500/20`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Zap className={`text-cyan-400 ${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                      <span className={`text-cyan-400 font-medium ${isMobile ? 'text-sm' : ''}`}>Direct AI Debug</span>
+                    </div>
+                    <p className={`text-cyan-300/80 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      Type your request and get an immediate AI response. No complex setup needed.
+                    </p>
+                  </div>
+
                   {/* Quick Objective Pills Row */}
                   <div className="flex flex-wrap gap-2 mb-2" role="listbox" aria-label="Quick Debug Objectives" aria-orientation="horizontal">
                     {quickObjectives.map((obj, idx) => (
@@ -454,7 +471,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                           setSelectedQuickObjective(null);
                         }}
                         className={`bg-slate-800 border-green-500/30 text-green-400 ${isMobile ? 'text-sm' : ''}`}
-                        placeholder="Describe what you want to change or fix..."
+                        placeholder="e.g., Make responsive, Fix alignment, Add hover effect..."
                         maxLength={500}
                       />
                       <Button 
@@ -463,7 +480,8 @@ const DebugModal: React.FC<DebugModalProps> = ({
                         className={`bg-green-600 hover:bg-green-700 text-white ${isMobile ? 'text-sm h-8' : ''}`}
                         size={isMobile ? "sm" : "default"}
                       >
-                        {isAnalyzing ? 'Analyzing...' : 'Debug'}
+                        <Zap className={`${isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'}`} />
+                        {isAnalyzing ? 'Analyzing...' : 'Debug Now'}
                       </Button>
                     </div>
                   </div>
@@ -471,11 +489,12 @@ const DebugModal: React.FC<DebugModalProps> = ({
                     <Button 
                       onClick={handleGeneratePrompt}
                       disabled={isGeneratingPrompt || !userIntent.trim()}
-                      className={`bg-yellow-600 hover:bg-yellow-700 text-white ${isMobile ? 'text-xs h-8' : ''}`}
+                      variant="outline"
+                      className={`border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/10 ${isMobile ? 'text-xs h-8' : ''}`}
                       size={isMobile ? "sm" : "default"}
                     >
-                      <Sparkles className={`text-yellow-200 ${isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'}`} />
-                      {isGeneratingPrompt ? 'Generating...' : (isMobile ? 'Generate' : 'Generate Context Prompt')}
+                      <Sparkles className={`text-yellow-400 ${isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'}`} />
+                      {isGeneratingPrompt ? 'Generating...' : (isMobile ? 'Advanced' : 'Advanced Context')}
                     </Button>
                   </div>
                 </TabsContent>

@@ -11,7 +11,7 @@ interface TransformRequest {
   rawRequest: string;
 }
 
-// Enhanced input validation
+// Enhanced input validation for generated context
 const validateInput = (body: any): { isValid: boolean; error?: string } => {
   if (!body || typeof body !== 'object') {
     return { isValid: false, error: 'Invalid request body' };
@@ -21,24 +21,28 @@ const validateInput = (body: any): { isValid: boolean; error?: string } => {
     return { isValid: false, error: 'Raw request is required and must be a string' };
   }
 
-  if (body.rawRequest.length > 1000) {
-    return { isValid: false, error: 'Request too long (max 1000 characters)' };
+  if (body.rawRequest.length > 5000) { // Increased limit for generated context
+    return { isValid: false, error: 'Request too long (max 5000 characters)' };
   }
 
   if (body.rawRequest.length < 3) {
     return { isValid: false, error: 'Request too short (min 3 characters)' };
   }
 
-  // Check for SQL injection patterns
-  const sqlPatterns = [
-    /(\bSELECT\b|\bINSERT\b|\bUPDATE\b|\bDELETE\b|\bDROP\b|\bCREATE\b|\bALTER\b)/gi,
-    /(\bUNION\b|\bJOIN\b)/gi,
-    /(--|\*\/|\*\*)/g,
+  // Only check for obvious security threats, not HTML element content
+  const dangerousPatterns = [
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    /javascript:/gi,
+    /on\w+\s*=/gi,
+    /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
+    /eval\s*\(/gi,
+    /document\.write/gi,
+    /window\.location/gi
   ];
 
-  for (const pattern of sqlPatterns) {
+  for (const pattern of dangerousPatterns) {
     if (pattern.test(body.rawRequest)) {
-      return { isValid: false, error: 'Invalid request format' };
+      return { isValid: false, error: 'Invalid content detected' };
     }
   }
 
@@ -89,10 +93,10 @@ serve(async (req) => {
       );
     }
 
-    // Sanitize the input
+    // Sanitize the input (preserve HTML element information)
     const sanitizedRequest = body.rawRequest
-      .replace(/[<>]/g, '') // Remove angle brackets
       .replace(/javascript:/gi, '') // Remove javascript: protocol
+      .replace(/on\w+\s*=/gi, '') // Remove event handlers
       .trim();
 
     // Simple transformation logic - you can enhance this

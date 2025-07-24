@@ -9,8 +9,8 @@ export const callAIDebugFunction = async (
   currentElement: ElementInfo | null,
   mousePosition: { x: number; y: number }
 ) => {
-  // Enhanced validation
-  const promptValidation = enhancedValidation.validatePrompt(prompt);
+  // Enhanced validation for user input
+  const promptValidation = enhancedValidation.validateUserInput(prompt);
   if (!promptValidation.isValid) {
     throw new Error(promptValidation.error || 'Invalid prompt format');
   }
@@ -56,7 +56,7 @@ export const callAIDebugFunction = async (
 };
 
 export const transformContextRequest = async (rawRequest: string) => {
-  // Enhanced validation
+  // Enhanced validation for generated context (more lenient)
   const requestValidation = enhancedValidation.validateContextRequest(rawRequest);
   if (!requestValidation.isValid) {
     throw new Error(requestValidation.error || 'Invalid request format');
@@ -71,7 +71,7 @@ export const transformContextRequest = async (rawRequest: string) => {
   try {
     const { data, error } = await supabase.functions.invoke('context-transform', {
       body: {
-        rawRequest: enhancedValidation.sanitizeUserInput(rawRequest, 1000),
+        rawRequest: rawRequest, // Don't over-sanitize generated context
       },
     });
 
