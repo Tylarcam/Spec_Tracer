@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Settings, Keyboard, Zap, Eye, Terminal, MousePointer, Bell, Palette, Share2, Crown, User, Mail, Shield, Download, Trash2, LogOut, EyeOff, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/hooks/useNotification';
 import { useEnhancedCredits } from '@/hooks/useEnhancedCredits';
 import { supabase } from '@/integrations/supabase/client';
-import { ShareModal } from '@/components/ShareModal';
+import ShareModal from '@/components/ShareModal';
 
 interface SettingsDrawerProps {
   isOpen: boolean;
@@ -24,7 +23,7 @@ interface SettingsDrawerProps {
 
 const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgrade, onUpgradeClick }) => {
   const { user, signOut } = useAuth();
-  const { showSuccess, showError } = useNotification();
+  const { success, error } = useNotification();
   const { creditStatus, awardShareCredits, refreshCredits } = useEnhancedCredits();
   
   // General settings state
@@ -77,9 +76,9 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
   };
 
   const handleShare = async (platform: string) => {
-    const success = await awardShareCredits(platform);
-    if (success) {
-      showSuccess({
+    const shareSuccess = await awardShareCredits(platform);
+    if (shareSuccess) {
+      success({
         title: 'Credits awarded!',
         description: 'You earned +5 bonus credits for sharing LogTrace!'
       });
@@ -93,15 +92,15 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ email: newEmail });
-      if (error) throw error;
+      const { error: updateError } = await supabase.auth.updateUser({ email: newEmail });
+      if (updateError) throw updateError;
       
-      showSuccess({
+      success({
         title: 'Email update requested',
         description: 'Please check both your old and new email for confirmation links.'
       });
     } catch (err: any) {
-      showError({ title: 'Update failed', description: err.message });
+      error({ title: 'Update failed', description: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -109,27 +108,27 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
   const handleUpdatePassword = async () => {
     if (passwords.new !== passwords.confirm) {
-      showError({ title: 'Error', description: 'New passwords do not match' });
+      error({ title: 'Error', description: 'New passwords do not match' });
       return;
     }
 
     if (passwords.new.length < 6) {
-      showError({ title: 'Error', description: 'Password must be at least 6 characters long' });
+      error({ title: 'Error', description: 'Password must be at least 6 characters long' });
       return;
     }
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: passwords.new });
-      if (error) throw error;
+      const { error: updateError } = await supabase.auth.updateUser({ password: passwords.new });
+      if (updateError) throw updateError;
       
-      showSuccess({
+      success({
         title: 'Password updated',
         description: 'Your password has been successfully changed.'
       });
       setPasswords({ current: '', new: '', confirm: '' });
     } catch (err: any) {
-      showError({ title: 'Update failed', description: err.message });
+      error({ title: 'Update failed', description: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -140,18 +139,18 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resend({
+      const { error: resendError } = await supabase.auth.resend({
         type: 'signup',
         email: user.email
       });
-      if (error) throw error;
+      if (resendError) throw resendError;
       
-      showSuccess({
+      success({
         title: 'Confirmation sent',
         description: 'Please check your email for the confirmation link.'
       });
     } catch (err: any) {
-      showError({ title: 'Failed to send', description: err.message });
+      error({ title: 'Failed to send', description: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -159,7 +158,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
   const handleExportData = async () => {
     if (!creditStatus.isPremium) {
-      showError({
+      error({
         title: 'Pro Feature',
         description: 'Data export is available for Pro users only.'
       });
@@ -188,12 +187,12 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      showSuccess({
+      success({
         title: 'Data exported',
         description: 'Your data has been downloaded successfully.'
       });
     } catch (err: any) {
-      showError({ title: 'Export failed', description: err.message });
+      error({ title: 'Export failed', description: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -201,7 +200,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmation !== 'DELETE') {
-      showError({
+      error({
         title: 'Invalid confirmation',
         description: 'Please type "DELETE" to confirm account deletion.'
       });
@@ -210,12 +209,12 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
     setIsLoading(true);
     try {
-      showError({
+      error({
         title: 'Contact Support',
         description: 'Please contact support to delete your account. This ensures all data is properly removed.'
       });
     } catch (err: any) {
-      showError({ title: 'Deletion failed', description: err.message });
+      error({ title: 'Deletion failed', description: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -223,7 +222,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
 
   const handleSignOut = async () => {
     await signOut();
-    showSuccess({ title: 'Signed out', description: 'You have been successfully signed out.' });
+    success({ title: 'Signed out', description: 'You have been successfully signed out.' });
     onClose();
   };
 
