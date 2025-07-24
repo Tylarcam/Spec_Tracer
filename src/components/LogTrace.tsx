@@ -61,32 +61,30 @@ const LogTrace: React.FC<LogTraceProps> = ({
       {/* Mouse Overlay for element detection */}
       <MouseOverlay 
         isActive={isTraceActive}
-        cursorPosition={cursorPosition}
-        setCursorPosition={setCursorPosition}
-        detectedElement={detectedElement}
-        setDetectedElement={setDetectedElement}
-        onRecord={recordEvent}
-        onExtractDetails={extractElementDetails}
-        ref={overlayRef}
+        currentElement={detectedElement}
+        mousePosition={cursorPosition}
+        overlayRef={overlayRef}
+        inspectorCount={0}
       />
 
       {/* Element Inspector */}
       <ElementInspector 
-        element={detectedElement}
-        isActive={isTraceActive}
-        onDebugClick={() => setShowAIDebugModal(true)}
-        onRecord={recordEvent}
-        generateElementPrompt={generateElementPrompt}
+        isVisible={!!detectedElement && isTraceActive}
+        currentElement={detectedElement}
+        mousePosition={cursorPosition}
+        onDebug={() => setShowAIDebugModal(true)}
+        onClose={() => setDetectedElement(null)}
+        onShowMoreDetails={() => {}}
       />
 
       {/* AI Debug Modal */}
       <DebugModal 
-        isOpen={showAIDebugModal}
-        onClose={() => setShowAIDebugModal(false)}
-        element={detectedElement}
+        showDebugModal={showAIDebugModal}
+        setShowDebugModal={setShowAIDebugModal}
+        currentElement={detectedElement}
         isAnalyzing={isAIAnalyzing}
         onAnalyze={analyzeElementWithAI}
-        ref={modalRef}
+        debugModalRef={modalRef}
       />
 
       {/* Terminal Panel */}
