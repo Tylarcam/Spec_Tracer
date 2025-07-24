@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Play, Pause, MousePointer, Settings, Terminal, Crown, Zap, Activity, Infinity, LogIn, LogOut } from 'lucide-react';
+import { Play, Pause, MousePointer, Settings, Crown, Zap, Activity, Infinity, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Badge } from '@/components/ui/badge';
@@ -155,22 +155,6 @@ const NavBar: React.FC<NavBarProps> = ({
                   <span className="text-xs text-yellow-400 font-medium">Pro</span>
                 </div>
               )}
-
-              {/* Terminal Toggle */}
-              <Button
-                onClick={onToggleTerminal}
-                variant="ghost"
-                size="sm"
-                className={`
-                  transition-colors duration-200
-                  ${showTerminal
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                  }
-                `}
-              >
-                <Terminal className="h-4 w-4" />
-              </Button>
 
               {/* Settings Button */}
               <Button
