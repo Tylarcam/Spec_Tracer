@@ -3,21 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import LogTrace from '@/components/LogTrace';
 import NavBar from '@/components/NavBar';
-import { useTracingContext } from '@/contexts/TracingContext';
 
 const Index = () => {
   const [searchParams] = useSearchParams();
   const showOnboarding = searchParams.get('onboarding') === 'true';
   const [showTerminal, setShowTerminal] = useState(false);
-  
-  const {
-    isTracing,
-    setIsTracing,
-    isHoverEnabled,
-    setIsHoverEnabled,
-    eventCount,
-    setEventCount,
-  } = useTracingContext();
+  const [isTracing, setIsTracing] = useState(false);
+  const [isHoverEnabled, setIsHoverEnabled] = useState(true);
+  const [eventCount, setEventCount] = useState(0);
 
   const handleToggleTracing = () => {
     setIsTracing(!isTracing);
