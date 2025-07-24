@@ -50,14 +50,20 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
 }) => {
   const [expandedSections, setExpandedSections] = useState<string[]>(['basic']);
   const [expandedAttrIndexes, setExpandedAttrIndexes] = useState<number[]>([]);
+  const [isLocallyPinned, setIsLocallyPinned] = useState(isPinned);
   const { toast } = useToast();
   const [modalPosition, setModalPosition] = useState<{ x: number; y: number } | null>(null);
   const dragOffset = useRef<{ x: number; y: number } | null>(null);
   const dragging = useRef(false);
 
+  // Update local pinned state when prop changes
+  React.useEffect(() => {
+    setIsLocallyPinned(isPinned);
+  }, [isPinned]);
+
   // Drag handlers
   const handleDragStart = (e: React.MouseEvent) => {
-    if (isPinned) return;
+    if (isLocallyPinned) return;
     dragging.current = true;
     const rect = panelRef?.current?.getBoundingClientRect();
     dragOffset.current = rect
@@ -67,7 +73,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   };
 
   const handleDrag = (e: MouseEvent) => {
-    if (!dragging.current || isPinned) return;
+    if (!dragging.current || isLocallyPinned) return;
     setModalPosition({ x: e.clientX - (dragOffset.current?.x || 0), y: e.clientY - (dragOffset.current?.y || 0) });
   };
 
@@ -93,6 +99,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
 
   const handlePinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setIsLocallyPinned(!isLocallyPinned);
     onPin?.();
   };
 
@@ -252,7 +259,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
           <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
             {/* Left side: Title and badges - draggable area */}
             <div 
-              className={`flex items-center gap-2 flex-1 select-none ${isPinned ? 'cursor-default' : 'cursor-move'}`}
+              className={`flex items-center gap-2 flex-1 select-none ${isLocallyPinned ? 'cursor-default' : 'cursor-move'}`}
               onMouseDown={handleDragStart}
             >
               <Badge variant="secondary" className={`bg-cyan-500/20 text-cyan-400 ${isMobile ? 'text-xs' : ''}`}>
@@ -283,12 +290,12 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
                   onMouseDown={handleButtonMouseDown}
                   size="sm"
                   variant="ghost"
-                  className={`${isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'} ${isPinned ? 'text-green-400' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10 cursor-pointer`}
-                  title={isPinned ? 'Unpin panel' : 'Pin panel'}
+                  className={`${isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'} ${isLocallyPinned ? 'text-green-400 bg-green-500/20' : 'text-gray-400'} hover:text-green-300 hover:bg-green-500/10 cursor-pointer`}
+                  title={isLocallyPinned ? 'Unpin panel' : 'Pin panel'}
                   tabIndex={-1}
                   type="button"
                 >
-                  {isPinned ? <Lock className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} /> : <Unlock className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />}
+                  {isLocallyPinned ? <Lock className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} /> : <Unlock className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />}
                 </Button>
               )}
               
