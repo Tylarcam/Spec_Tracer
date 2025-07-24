@@ -1,68 +1,165 @@
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, Zap, Terminal, Settings, MousePointer, Play, Pause } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import LogTrace from '@/components/LogTrace';
-import NavBar from '@/components/NavBar';
-import { useTracingContext } from '@/App';
-import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
+import OnboardingWalkthrough from '@/components/LogTrace/OnboardingWalkthrough';
+import InstructionsCard from '@/components/LogTrace/InstructionsCard';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Index: React.FC = () => {
-  console.log('Index component rendering...');
-  
-  const { tracingActive, setTracingActive } = useTracingContext();
-  const [isHoverEnabled, setIsHoverEnabled] = useState(true);
-  const [showTerminal, setShowTerminal] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  
-  // Get the orchestrator data to access events
-  const orchestrator = useLogTraceOrchestrator();
-  
-  const handleToggleTracing = () => {
-    console.log('Toggling tracing from:', tracingActive, 'to:', !tracingActive);
-    setTracingActive(!tracingActive);
-  };
+  const [searchParams] = useSearchParams();
+  const isMobile = useIsMobile();
+  const [captureActive, setCaptureActive] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [showInstructions, setShowInstructions] = useState(true);
 
-  const handleToggleHover = () => {
-    console.log('Toggling hover from:', isHoverEnabled, 'to:', !isHoverEnabled);
-    setIsHoverEnabled(!isHoverEnabled);
-  };
-
-  const handleToggleTerminal = () => {
-    console.log('Toggling terminal from:', showTerminal, 'to:', !showTerminal);
-    setShowTerminal(!showTerminal);
-  };
-
-  const handleOpenSettings = () => {
-    console.log('Opening settings');
-    setShowSettings(true);
-  };
-
+  // Check if onboarding should be shown
   useEffect(() => {
-    console.log('Index component mounted, tracingActive:', tracingActive);
-  }, [tracingActive]);
+    const onboardingParam = searchParams.get('onboarding');
+    if (onboardingParam === 'true') {
+      setShowOnboarding(true);
+      setShowInstructions(false);
+    }
+  }, [searchParams]);
 
-  console.log('Index component render complete, about to render LogTrace');
+  const handleOnboardingNext = () => {
+    setOnboardingStep(prev => prev + 1);
+  };
+
+  const handleOnboardingSkip = () => {
+    setShowOnboarding(false);
+    setShowInstructions(true);
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    setShowInstructions(true);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <NavBar
-        isTracing={tracingActive}
-        isHoverEnabled={isHoverEnabled}
-        onToggleTracing={handleToggleTracing}
-        onToggleHover={handleToggleHover}
-        onOpenSettings={handleOpenSettings}
-        onToggleTerminal={handleToggleTerminal}
-        eventCount={orchestrator.capturedEvents?.length || 0}
-        showTerminal={showTerminal}
-      />
-      
-      <LogTrace 
-        captureActive={tracingActive}
-        onCaptureToggle={setTracingActive}
-      />
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Demo Content Area */}
+      <div className="relative h-screen">
+        {/* Instructions Card */}
+        {showInstructions && !showOnboarding && (
+          <div className="absolute top-20 left-4 right-4 z-20 max-w-md mx-auto">
+            <InstructionsCard 
+              onStartOnboarding={() => {
+                setShowOnboarding(true);
+                setShowInstructions(false);
+              }}
+            />
+          </div>
+        )}
+
+        {/* Sample Demo Content */}
+        <div className="p-8 pt-24 space-y-6">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-4xl font-bold text-foreground mb-4">
+              Welcome to LogTrace Debug Mode
+            </h1>
+            <p className="text-lg text-muted-foreground mb-8">
+              This is a demo page to learn how to use LogTrace. Try hovering over elements, clicking them, and using the debug features.
+            </p>
+            
+            {/* Sample interactive elements for testing */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-card p-6 rounded-lg border shadow-sm">
+                <h2 className="text-xl font-semibold mb-3">Interactive Button</h2>
+                <button 
+                  className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+                  onClick={() => console.log('Button clicked!')}
+                >
+                  Click Me to Test
+                </button>
+              </div>
+              
+              <div className="bg-card p-6 rounded-lg border shadow-sm">
+                <h2 className="text-xl font-semibold mb-3">Form Elements</h2>
+                <div className="space-y-3">
+                  <input 
+                    type="text" 
+                    placeholder="Test input field" 
+                    className="w-full px-3 py-2 border rounded-md bg-background"
+                  />
+                  <select className="w-full px-3 py-2 border rounded-md bg-background">
+                    <option>Option 1</option>
+                    <option>Option 2</option>
+                    <option>Option 3</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="bg-card p-6 rounded-lg border shadow-sm">
+                <h2 className="text-xl font-semibold mb-3">Navigation Links</h2>
+                <div className="space-y-2">
+                  <a href="#" className="block text-primary hover:underline">
+                    Test Link 1
+                  </a>
+                  <a href="#" className="block text-primary hover:underline">
+                    Test Link 2
+                  </a>
+                  <a href="#" className="block text-primary hover:underline">
+                    Test Link 3
+                  </a>
+                </div>
+              </div>
+              
+              <div className="bg-card p-6 rounded-lg border shadow-sm">
+                <h2 className="text-xl font-semibold mb-3">Complex Element</h2>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <input type="checkbox" id="check1" />
+                    <label htmlFor="check1">Checkbox option</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input type="radio" id="radio1" name="radio" />
+                    <label htmlFor="radio1">Radio option</label>
+                  </div>
+                  <div className="bg-muted p-3 rounded">
+                    <p className="text-sm">
+                      This is a nested element with multiple children. Great for testing element detection!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-8 p-6 bg-accent rounded-lg">
+              <h2 className="text-xl font-semibold mb-3">How to Use LogTrace</h2>
+              <ol className="list-decimal list-inside space-y-2 text-sm">
+                <li>Toggle "Capture" in the navigation to activate tracing</li>
+                <li>{isMobile ? 'Touch' : 'Hover over'} any element to see inspection details</li>
+                <li>Click on elements to open the inspector panel</li>
+                <li>Use the debug button to analyze elements with AI</li>
+                <li>View your debug history in the terminal</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        {/* LogTrace Overlay */}
+        <div className="absolute inset-0 pointer-events-none z-30">
+          <div className="pointer-events-auto">
+            <LogTrace 
+              captureActive={captureActive}
+              onCaptureToggle={setCaptureActive}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Onboarding Walkthrough */}
+      {showOnboarding && (
+        <OnboardingWalkthrough
+          step={onboardingStep}
+          onNext={handleOnboardingNext}
+          onSkip={handleOnboardingSkip}
+          onComplete={handleOnboardingComplete}
+          isActive={captureActive}
+        />
+      )}
     </div>
   );
 };
