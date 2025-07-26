@@ -2,254 +2,205 @@
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import LogTrace from '@/components/LogTrace';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Code, Smartphone, Monitor } from 'lucide-react';
+import { PlayCircle, Smartphone, Monitor, Zap, Target, Code, Settings } from 'lucide-react';
 
 const InteractiveDemo: React.FC = () => {
   const isMobile = useIsMobile();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: ''
-  });
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [captureActive, setCaptureActive] = useState(false);
+  const [demoStep, setDemoStep] = useState(0);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+  const handleCaptureToggle = () => {
+    setCaptureActive(!captureActive);
   };
 
-  const sampleComponents = [
-    { id: 'form', label: 'Contact Form', icon: '📝' },
-    { id: 'buttons', label: 'Action Buttons', icon: '🔘' },
-    { id: 'cards', label: 'Content Cards', icon: '🃏' },
-    { id: 'navigation', label: 'Navigation', icon: '🧭' },
+  const demoSteps = [
+    {
+      title: "Welcome to LogTrace Interactive Demo",
+      description: "Learn how to debug your web applications with LogTrace",
+      action: "Start Demo",
+      icon: PlayCircle
+    },
+    {
+      title: "Inspect Elements",
+      description: "Click on any element to inspect its properties and behavior",
+      action: "Try Inspecting",
+      icon: Target
+    },
+    {
+      title: "Monitor Events",
+      description: "Track user interactions and system events in real-time",
+      action: "View Events",
+      icon: Zap
+    },
+    {
+      title: "Debug Console",
+      description: "Access console logs and error messages directly in the interface",
+      action: "Open Console",
+      icon: Code
+    }
   ];
+
+  const currentStep = demoSteps[demoStep] || demoSteps[0];
 
   return (
     <div className="min-h-screen bg-slate-900">
-      <LogTrace />
+      <LogTrace 
+        captureActive={captureActive}
+        onCaptureToggle={handleCaptureToggle}
+      />
       
-      {/* Mobile-optimized spacing */}
+      {/* Mobile-optimized content */}
       <div className={`${isMobile ? 'pt-20 px-4 pb-20' : 'pt-4 px-6 pb-6'}`}>
         {/* Header */}
         <div className={`mb-6 ${isMobile ? 'text-center' : ''}`}>
           <div className="flex items-center gap-2 mb-4 justify-center md:justify-start">
-            <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-cyan-500 rounded-lg flex items-center justify-center">
-              <Play className="h-4 w-4 text-white" />
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+              <PlayCircle className="h-4 w-4 text-white" />
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-white">Interactive Demo</h1>
           </div>
           
           <p className={`text-slate-400 max-w-2xl ${isMobile ? 'text-sm mx-auto' : ''}`}>
-            Try LogTrace on this interactive demo page. Use the debugging tools to inspect elements, 
-            capture interactions, and analyze the page structure.
+            Experience LogTrace's debugging capabilities through this interactive walkthrough.
           </p>
 
           {/* Mobile device indicator */}
           {isMobile && (
             <div className="flex items-center justify-center gap-2 mt-4 px-3 py-2 bg-blue-500/20 border border-blue-500/30 rounded-full text-blue-400 text-xs font-medium">
               <Smartphone className="h-3 w-3" />
-              Mobile Mode Active
+              Mobile Demo Mode
             </div>
           )}
         </div>
 
-        {/* Demo Components Grid */}
-        <div className={`grid gap-4 mb-8 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
-          {/* Contact Form Card */}
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className={`${isMobile ? 'pb-3' : 'pb-4'}`}>
-              <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'} text-green-400`}>
-                📝 Contact Form
-              </CardTitle>
-              <CardDescription className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400`}>
-                Try interacting with form elements
-              </CardDescription>
-            </CardHeader>
-            <CardContent className={`space-y-${isMobile ? '3' : '4'}`}>
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <div>
-                  <Input
-                    placeholder="Your name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className={`bg-slate-700 border-slate-600 text-white placeholder-slate-400 ${isMobile ? 'h-10 text-sm' : ''}`}
-                  />
-                </div>
-                <div>
-                  <Input
-                    type="email"
-                    placeholder="your@email.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    className={`bg-slate-700 border-slate-600 text-white placeholder-slate-400 ${isMobile ? 'h-10 text-sm' : ''}`}
-                  />
-                </div>
-                <div>
-                  <Textarea
-                    placeholder="Your message..."
-                    value={formData.message}
-                    onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
-                    className={`bg-slate-700 border-slate-600 text-white placeholder-slate-400 resize-none ${isMobile ? 'min-h-[80px] text-sm' : 'min-h-[100px]'}`}
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className={`w-full bg-green-600 hover:bg-green-700 ${isMobile ? 'h-10' : ''}`}
-                >
-                  Send Message
-                </Button>
-              </form>
-              
-              {showSuccess && (
-                <div className={`p-3 bg-green-500/20 border border-green-500/30 rounded-lg ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  <span className="text-green-400">✅ Message sent successfully!</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Interactive Buttons Card */}
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className={`${isMobile ? 'pb-3' : 'pb-4'}`}>
-              <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'} text-green-400`}>
-                🔘 Action Buttons
-              </CardTitle>
-              <CardDescription className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400`}>
-                Various button types to inspect
-              </CardDescription>
-            </CardHeader>
-            <CardContent className={`space-y-${isMobile ? '2' : '3'}`}>
-              <div className={`grid gap-2 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                <Button variant="default" className={`${isMobile ? 'h-10 text-sm' : ''}`}>
-                  Primary
-                </Button>
-                <Button variant="secondary" className={`${isMobile ? 'h-10 text-sm' : ''}`}>
-                  Secondary
-                </Button>
-                <Button variant="outline" className={`${isMobile ? 'h-10 text-sm' : ''}`}>
-                  Outline
-                </Button>
-                <Button variant="destructive" className={`${isMobile ? 'h-10 text-sm' : ''}`}>
-                  Destructive
-                </Button>
-              </div>
-              
-              <div className={`flex flex-wrap gap-2 pt-${isMobile ? '2' : '3'}`}>
-                <Badge variant="default" className={`${isMobile ? 'text-xs px-2 py-1' : ''}`}>Default</Badge>
-                <Badge variant="secondary" className={`${isMobile ? 'text-xs px-2 py-1' : ''}`}>Secondary</Badge>
-                <Badge variant="outline" className={`${isMobile ? 'text-xs px-2 py-1' : ''}`}>Outline</Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Content Cards */}
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className={`${isMobile ? 'pb-3' : 'pb-4'}`}>
-              <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'} text-green-400`}>
-                🃏 Sample Content
-              </CardTitle>
-              <CardDescription className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400`}>
-                Different content structures
-              </CardDescription>
-            </CardHeader>
-            <CardContent className={`space-y-${isMobile ? '3' : '4'}`}>
-              <div className={`space-y-${isMobile ? '2' : '3'}`}>
-                <div className={`p-${isMobile ? '3' : '4'} bg-slate-700/50 rounded-lg`}>
-                  <h3 className={`font-semibold text-white mb-2 ${isMobile ? 'text-sm' : ''}`}>
-                    Card Title
-                  </h3>
-                  <p className={`text-slate-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    This is a sample card with some content that you can inspect using LogTrace.
-                  </p>
-                </div>
-                
-                <div className={`p-${isMobile ? '3' : '4'} bg-cyan-500/10 border border-cyan-500/30 rounded-lg`}>
-                  <h3 className={`font-semibold text-cyan-400 mb-2 ${isMobile ? 'text-sm' : ''}`}>
-                    Highlighted Card
-                  </h3>
-                  <p className={`text-slate-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    A card with different styling to test element detection.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Demo Progress */}
+        <div className="mb-6">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            {demoSteps.map((_, index) => (
+              <div
+                key={index}
+                className={`w-3 h-3 rounded-full transition-colors ${
+                  index <= demoStep ? 'bg-blue-500' : 'bg-slate-600'
+                }`}
+              />
+            ))}
+          </div>
+          <div className="text-center text-slate-400 text-sm">
+            Step {demoStep + 1} of {demoSteps.length}
+          </div>
         </div>
 
-        {/* Instructions for Mobile */}
+        {/* Current Demo Step */}
+        <Card className="bg-slate-800 border-slate-700 mb-6">
+          <CardHeader className={`text-center ${isMobile ? 'pb-3' : 'pb-4'}`}>
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                <currentStep.icon className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <CardTitle className={`${isMobile ? 'text-xl' : 'text-2xl'} text-white mb-2`}>
+              {currentStep.title}
+            </CardTitle>
+            <CardDescription className={`${isMobile ? 'text-sm' : 'text-base'} text-slate-300`}>
+              {currentStep.description}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3'} mb-6`}>
+              <Button
+                onClick={() => setDemoStep((prev) => Math.min(prev + 1, demoSteps.length - 1))}
+                className={`bg-blue-600 hover:bg-blue-700 text-white ${isMobile ? 'h-12' : 'h-10'}`}
+                disabled={demoStep >= demoSteps.length - 1}
+              >
+                {currentStep.action}
+              </Button>
+              <Button
+                onClick={() => setDemoStep((prev) => Math.max(prev - 1, 0))}
+                variant="outline"
+                className={`border-slate-600 text-slate-300 hover:bg-slate-700 ${isMobile ? 'h-12' : 'h-10'}`}
+                disabled={demoStep <= 0}
+              >
+                Previous
+              </Button>
+              <Button
+                onClick={() => setDemoStep(0)}
+                variant="ghost"
+                className={`text-slate-400 hover:text-white hover:bg-slate-700 ${isMobile ? 'h-12' : 'h-10'}`}
+              >
+                Restart Demo
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Demo Features Grid */}
+        <div className={`grid gap-4 mb-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+          {demoSteps.map((step, index) => (
+            <Card 
+              key={index}
+              className={`bg-slate-800 border-slate-700 transition-all cursor-pointer ${
+                index === demoStep ? 'ring-2 ring-blue-500' : ''
+              }`}
+              onClick={() => setDemoStep(index)}
+            >
+              <CardContent className={`p-${isMobile ? '4' : '6'} text-center`}>
+                <step.icon className={`h-${isMobile ? '8' : '10'} w-${isMobile ? '8' : '10'} text-blue-400 mx-auto mb-3`} />
+                <h3 className={`font-semibold text-white mb-2 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                  {step.title}
+                </h3>
+                <p className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  {step.description}
+                </p>
+                {index === demoStep && (
+                  <Badge className="mt-3 bg-blue-600 hover:bg-blue-700">
+                    Current Step
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Mobile-specific demo tools */}
         {isMobile && (
-          <Card className="bg-slate-800/50 border-slate-700/50 mb-4">
-            <CardContent className="pt-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                  <Code className="h-4 w-4 text-green-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-green-400 mb-2 text-sm">
-                    Mobile Debug Tips
-                  </h3>
-                  <ul className="text-xs text-slate-300 space-y-1">
-                    <li>• Tap any element to inspect it</li>
-                    <li>• Use the floating action button for quick tools</li>
-                    <li>• Long press for context menu (if available)</li>
-                    <li>• Check the terminal for real-time logs</li>
-                  </ul>
-                </div>
+          <Card className="bg-slate-800/50 border-slate-700/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg text-blue-400">
+                <Settings className="h-5 w-5" />
+                Demo Controls
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-400">
+                Touch-friendly demo navigation
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={handleCaptureToggle}
+                  className={captureActive ? 'bg-green-600 border-green-600 text-white' : ''}
+                >
+                  {captureActive ? 'Stop Capture' : 'Start Capture'}
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => console.log('Demo interaction logged')}
+                >
+                  Log Interaction
+                </Button>
+              </div>
+              
+              <div className="text-xs text-slate-400 pt-2 border-t border-slate-700">
+                <strong>Tip:</strong> Use the floating debug panel to access all LogTrace features during the demo
               </div>
             </CardContent>
           </Card>
         )}
-
-        {/* Sample Navigation */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className={`${isMobile ? 'pb-3' : 'pb-4'}`}>
-            <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'} text-green-400`}>
-              🧭 Navigation Elements
-            </CardTitle>
-            <CardDescription className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400`}>
-              Test navigation and link interactions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className={`flex flex-wrap gap-${isMobile ? '2' : '4'} ${isMobile ? 'justify-center' : ''}`}>
-              <a 
-                href="#home" 
-                className={`px-${isMobile ? '3' : '4'} py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors ${isMobile ? 'text-sm' : ''}`}
-                onClick={(e) => e.preventDefault()}
-              >
-                Home
-              </a>
-              <a 
-                href="#about" 
-                className={`px-${isMobile ? '3' : '4'} py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors ${isMobile ? 'text-sm' : ''}`}
-                onClick={(e) => e.preventDefault()}
-              >
-                About
-              </a>
-              <a 
-                href="#services" 
-                className={`px-${isMobile ? '3' : '4'} py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors ${isMobile ? 'text-sm' : ''}`}
-                onClick={(e) => e.preventDefault()}
-              >
-                Services
-              </a>
-              <a 
-                href="#contact" 
-                className={`px-${isMobile ? '3' : '4'} py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors ${isMobile ? 'text-sm' : ''}`}
-                onClick={(e) => e.preventDefault()}
-              >
-                Contact
-              </a>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

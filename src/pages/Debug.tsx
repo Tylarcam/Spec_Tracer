@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import LogTrace from '@/components/LogTrace';
@@ -19,12 +18,17 @@ import {
 
 const Debug: React.FC = () => {
   const isMobile = useIsMobile();
+  const [captureActive, setCaptureActive] = useState(false);
   const [debugStats, setDebugStats] = useState({
     elementsInspected: 0,
     eventsTracked: 0,
     errorsFound: 0,
     sessionTime: 0
   });
+
+  const handleCaptureToggle = () => {
+    setCaptureActive(!captureActive);
+  };
 
   // Simulate debug statistics
   useEffect(() => {
@@ -110,7 +114,10 @@ const Debug: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-900">
-      <LogTrace />
+      <LogTrace 
+        captureActive={captureActive}
+        onCaptureToggle={handleCaptureToggle}
+      />
       
       {/* Mobile-optimized spacing */}
       <div className={`${isMobile ? 'pt-20 px-4 pb-20' : 'pt-4 px-6 pb-6'}`}>

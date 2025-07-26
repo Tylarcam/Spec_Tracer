@@ -6,10 +6,15 @@ import LogTrace from '@/components/LogTrace';
 const Index: React.FC = () => {
   const isMobile = useIsMobile();
   const [mounted, setMounted] = useState(false);
+  const [captureActive, setCaptureActive] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleCaptureToggle = () => {
+    setCaptureActive(!captureActive);
+  };
 
   if (!mounted) {
     return (
@@ -37,7 +42,10 @@ const Index: React.FC = () => {
           </div>
         )}
         
-        <LogTrace />
+        <LogTrace 
+          captureActive={captureActive}
+          onCaptureToggle={handleCaptureToggle}
+        />
       </div>
     </div>
   );
