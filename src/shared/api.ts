@@ -9,6 +9,8 @@ export const callAIDebugFunction = async (
   currentElement: ElementInfo | null,
   mousePosition: { x: number; y: number }
 ) => {
+  console.log('callAIDebugFunction called with:', { prompt, currentElement, mousePosition });
+  
   // Enhanced validation for user input
   const promptValidation = enhancedValidation.validateUserInput(prompt);
   if (!promptValidation.isValid) {
@@ -25,7 +27,10 @@ export const callAIDebugFunction = async (
     throw new Error('Authentication required for AI debugging features. Please sign in to continue.');
   }
 
+  console.log('User authenticated:', user.email);
+
   try {
+    console.log('Calling ai-debug edge function...');
     const { data, error } = await supabase.functions.invoke('ai-debug', {
       body: {
         prompt: enhancedValidation.sanitizeUserInput(prompt, 2000),
@@ -39,6 +44,8 @@ export const callAIDebugFunction = async (
       },
     });
 
+    console.log('Edge function response:', { data, error });
+
     if (error) {
       console.error('Edge function error:', error);
       throw new Error('Failed to get AI response');
@@ -48,6 +55,7 @@ export const callAIDebugFunction = async (
       throw new Error(data?.error || 'AI service error');
     }
 
+    console.log('AI response received successfully:', data.response);
     return data.response;
   } catch (error) {
     console.error('AI Debug API Error:', error);
@@ -69,11 +77,14 @@ export const transformContextRequest = async (rawRequest: string) => {
   }
 
   try {
+    console.log('Calling context-transform edge function...');
     const { data, error } = await supabase.functions.invoke('context-transform', {
       body: {
         rawRequest: rawRequest, // Don't over-sanitize generated context
       },
     });
+
+    console.log('Context transform response:', { data, error });
 
     if (error) {
       console.error('Context transform error:', error);

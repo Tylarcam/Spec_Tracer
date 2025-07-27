@@ -53,6 +53,8 @@ const validateInput = (body: any): { isValid: boolean; error?: string } => {
 };
 
 serve(async (req) => {
+  console.log('AI Debug function called:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -67,6 +69,7 @@ serve(async (req) => {
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
+      console.error('Missing authorization header');
       return new Response(
         JSON.stringify({ success: false, error: 'Missing authorization header' }),
         { status: 401, headers: corsHeaders }
@@ -79,17 +82,22 @@ serve(async (req) => {
     );
 
     if (authError || !user) {
+      console.error('Authentication error:', authError);
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid authentication' }),
         { status: 401, headers: corsHeaders }
       );
     }
 
+    console.log('User authenticated:', user.email);
+
     const body: DebugRequest = await req.json();
+    console.log('Request body:', body);
     
     // Enhanced input validation
     const validation = validateInput(body);
     if (!validation.isValid) {
+      console.error('Input validation failed:', validation.error);
       return new Response(
         JSON.stringify({ success: false, error: validation.error }),
         { status: 400, headers: corsHeaders }
@@ -110,6 +118,7 @@ serve(async (req) => {
     }
 
     if (!creditData) {
+      console.log('No credits available for user:', user.email);
       return new Response(
         JSON.stringify({ success: false, error: 'No credits available' }),
         { status: 403, headers: corsHeaders }
@@ -149,6 +158,7 @@ serve(async (req) => {
       Provide a helpful debugging response focusing on web development best practices.
     `;
 
+    console.log('Calling OpenAI API...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -156,7 +166,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4.1-2025-04-14',
         messages: [
           {
             role: 'system',
@@ -183,6 +193,8 @@ serve(async (req) => {
 
     const data = await response.json();
     const aiResponse = data.choices[0]?.message?.content || 'No response generated';
+    
+    console.log('OpenAI response received successfully');
 
     return new Response(
       JSON.stringify({ success: true, response: aiResponse }),

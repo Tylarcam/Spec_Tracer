@@ -1,7 +1,11 @@
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Sparkles, Bug, Copy, Square, Monitor, Maximize2, PenTool, ArrowUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useRef } from 'react';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { X, Copy, Eye, Bug, Camera, Sparkles, Zap } from 'lucide-react';
+import { ElementInfo } from '@/shared/types';
+import { sanitizeText } from '@/utils/sanitization';
+import { useToast } from '@/hooks/use-toast';
 
 interface QuickActionModalProps {
   visible: boolean;
@@ -11,28 +15,6 @@ interface QuickActionModalProps {
   onAction: (action: string | { type: string; mode?: string; input?: string }) => void;
 }
 
-type ScreenshotMode = 'element' | 'viewport' | 'fullpage' | 'freeform' | 'rect';
-
-const screenshotModes: { mode: ScreenshotMode; label: string; icon: React.ComponentType }[] = [
-  { mode: 'element', label: 'Element', icon: Square },
-  { mode: 'viewport', label: 'Viewport', icon: Monitor },
-  { mode: 'fullpage', label: 'Full Page', icon: Maximize2 },
-  { mode: 'freeform', label: 'Freeform', icon: PenTool },
-  { mode: 'rect', label: 'Rectangle', icon: Square },
-];
-
-const contextModes = [
-  { mode: 'basic', label: 'Basic Context' },
-  { mode: 'advanced', label: 'Advanced Context' },
-];
-
-const actions = [
-  { key: 'copy', label: 'Copy', icon: Copy },
-  { key: 'screenshot', label: 'Shot', icon: Camera },
-  { key: 'context', label: 'Gen', icon: Sparkles },
-  { key: 'debug', label: 'Fix', icon: Bug },
-];
-
 const QuickActionModal: React.FC<QuickActionModalProps> = ({
   visible,
   x,
@@ -40,247 +22,241 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({
   onClose,
   onAction,
 }) => {
-  const modalRef = useRef<HTMLDivElement>(null);
-  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const [showContextInput, setShowContextInput] = useState(false);
   const [contextInput, setContextInput] = useState('');
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [modalRef, onClose]);
-
-  useEffect(() => {
-    const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (activeSubmenu) {
-          setActiveSubmenu(null);
-        } else {
-          onClose();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleEscKey);
-    return () => {
-      document.removeEventListener('keydown', handleEscKey);
-    };
-  }, [onClose, activeSubmenu]);
-
-  useEffect(() => {
-    const updatePosition = () => {
-      if (!modalRef.current) return;
-
-      const modalWidth = modalRef.current.offsetWidth;
-      const modalHeight = modalRef.current.offsetHeight;
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-
-      let newX = x;
-      let newY = y;
-
-      if (newX - modalWidth / 2 < 0) {
-        newX = modalWidth / 2;
-      } else if (newX + modalWidth / 2 > windowWidth) {
-        newX = windowWidth - modalWidth / 2;
-      }
-
-      if (newY - modalHeight / 2 < 0) {
-        newY = modalHeight / 2;
-      } else if (newY + modalHeight / 2 > windowHeight) {
-        newY = windowHeight - modalHeight / 2;
-      }
-    };
-
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-
-    return () => {
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [x, y]);
+  const [showScreenshotOptions, setShowScreenshotOptions] = useState(false);
+  const { toast } = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   if (!visible) return null;
 
-  const handleAction = (actionKey: string) => {
-    if (actionKey === 'screenshot') {
-      setActiveSubmenu('screenshot');
-    } else if (actionKey === 'context') {
-      setActiveSubmenu('context');
-    } else {
-      onAction(actionKey);
-      onClose();
+  // Calculate safe position
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const modalWidth = 280;
+  const modalHeight = 320;
+  
+  const safeX = Math.min(x, viewportWidth - modalWidth - 20);
+  const safeY = Math.min(y, viewportHeight - modalHeight - 20);
+
+  const handleContextSubmit = () => {
+    if (contextInput.trim()) {
+      onAction({ type: 'context', mode: 'custom', input: contextInput });
+      setContextInput('');
+      setShowContextInput(false);
     }
   };
 
-  const handleScreenshotMode = (mode: ScreenshotMode) => {
+  const handleScreenshotAction = (mode: string) => {
     onAction({ type: 'screenshot', mode });
-    onClose();
+    setShowScreenshotOptions(false);
   };
 
-  const handleContextMode = (mode: string) => {
-    if (mode === 'basic') {
-      onAction({ type: 'context', mode, input: contextInput });
-      onClose();
-    } else {
-      onAction({ type: 'context', mode, input: contextInput });
-      onClose();
-    }
-  };
+  const quickActions = [
+    {
+      id: 'copy',
+      label: 'Copy Details',
+      icon: Copy,
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/10',
+      hoverColor: 'hover:bg-blue-500/20',
+      description: 'Copy element details to clipboard'
+    },
+    {
+      id: 'details',
+      label: 'Inspect Element',
+      icon: Eye,
+      color: 'text-green-400',
+      bgColor: 'bg-green-500/10',
+      hoverColor: 'hover:bg-green-500/20',
+      description: 'Open detailed element inspector'
+    },
+    {
+      id: 'debug',
+      label: 'AI Debug',
+      icon: Bug,
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-500/10',
+      hoverColor: 'hover:bg-purple-500/20',
+      description: 'Get AI-powered debugging help'
+    },
+    {
+      id: 'screenshot',
+      label: 'Screenshot',
+      icon: Camera,
+      color: 'text-orange-400',
+      bgColor: 'bg-orange-500/10',
+      hoverColor: 'hover:bg-orange-500/20',
+      description: 'Take element screenshot'
+    },
+  ];
 
   return (
-    <div className="fixed inset-0 z-50 pointer-events-none">
-      <div
-        ref={modalRef}
-        className="pointer-events-auto"
+    <div
+      className="fixed inset-0 z-50 pointer-events-none"
+      onClick={onClose}
+    >
+      <Card
+        className="absolute bg-slate-900/95 border-cyan-500/50 shadow-2xl pointer-events-auto"
         style={{
-          position: 'absolute',
-          left: x,
-          top: y - 48,
-          zIndex: 1000,
-          transform: 'translate(-50%, -50%)'
+          left: safeX,
+          top: safeY,
+          width: modalWidth,
+          backdropFilter: 'blur(8px)',
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(34, 197, 94, 0.2)',
         }}
+        onClick={(e) => e.stopPropagation()}
       >
-        {!activeSubmenu ? (
-          // Main horizontal buttons menu
-          <div 
-            className="flex items-center"
-            style={{
-              background: 'rgba(30, 41, 59, 0.95)',
-              border: '1px solid rgba(34, 211, 238, 0.6)',
-              borderRadius: '12px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 211, 238, 0.2)',
-              padding: '12px 16px',
-              gap: '8px',
-              backdropFilter: 'blur(8px)'
-            }}
-          >
-            {actions.map((action) => (
-              <button
-                key={action.key}
-                onClick={() => handleAction(action.key)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
-                style={{
-                  minWidth: '64px',
-                  background: 'rgba(51, 65, 85, 0.8)',
-                  border: '1px solid transparent',
-                  borderRadius: '8px',
-                  color: '#67e8f9',
-                  fontWeight: '500',
-                  fontSize: '14px',
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(6, 182, 212, 0.6)';
-                  e.currentTarget.style.borderColor = 'rgba(34, 211, 238, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(51, 65, 85, 0.8)';
-                  e.currentTarget.style.borderColor = 'transparent';
-                }}
-                type="button"
-              >
-                <action.icon className="h-4 w-4" style={{ color: '#67e8f9' }} />
-                {action.label}
-              </button>
-            ))}
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-cyan-400">Quick Actions</h3>
+            <Button
+              onClick={onClose}
+              variant="ghost"
+              size="sm"
+              className="text-gray-400 hover:text-white h-6 w-6 p-0"
+            >
+              <X className="h-3 w-3" />
+            </Button>
           </div>
-        ) : activeSubmenu === 'screenshot' ? (
-          // Screenshot submenu
-          <div 
-            className="p-2 min-w-[200px]"
-            style={{
-              background: 'rgba(30, 41, 59, 0.95)',
-              border: '1px solid rgba(34, 211, 238, 0.6)',
-              borderRadius: '12px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 211, 238, 0.2)',
-              backdropFilter: 'blur(8px)'
-            }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-cyan-400 text-sm font-medium">Screenshot Mode</div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setActiveSubmenu(null)}
-                className="text-gray-400 hover:text-white p-1"
-              >
-                <ArrowUp className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="space-y-1">
-              {screenshotModes.map((mode) => (
+
+          {!showContextInput && !showScreenshotOptions && (
+            <div className="space-y-2">
+              {quickActions.map((action) => (
                 <Button
-                  key={mode.mode}
+                  key={action.id}
+                  onClick={() => {
+                    if (action.id === 'screenshot') {
+                      setShowScreenshotOptions(true);
+                    } else {
+                      onAction(action.id);
+                    }
+                  }}
                   variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-left hover:bg-cyan-500/20 text-gray-300 hover:text-white"
-                  onClick={() => handleScreenshotMode(mode.mode)}
+                  className={`w-full justify-start ${action.color} ${action.bgColor} ${action.hoverColor} border border-transparent hover:border-current/20 transition-all`}
                 >
-                  <mode.icon className="w-4 h-4 mr-2" />
-                  {mode.label}
+                  <action.icon className="h-4 w-4 mr-2" />
+                  <div className="text-left">
+                    <div className="font-medium">{action.label}</div>
+                    <div className="text-xs opacity-70">{action.description}</div>
+                  </div>
                 </Button>
               ))}
+              
+              <div className="mt-3 pt-3 border-t border-slate-700/50">
+                <Button
+                  onClick={() => setShowContextInput(true)}
+                  variant="ghost"
+                  className="w-full justify-start text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20 border border-transparent hover:border-yellow-400/20 transition-all"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  <div className="text-left">
+                    <div className="font-medium">Custom Context</div>
+                    <div className="text-xs opacity-70">Generate context prompt</div>
+                  </div>
+                </Button>
+              </div>
             </div>
-          </div>
-        ) : activeSubmenu === 'context' ? (
-          // Context submenu
-          <div 
-            className="p-2 min-w-[240px]"
-            style={{
-              background: 'rgba(30, 41, 59, 0.95)',
-              border: '1px solid rgba(34, 211, 238, 0.6)',
-              borderRadius: '12px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 211, 238, 0.2)',
-              backdropFilter: 'blur(8px)'
-            }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-cyan-400 text-sm font-medium">Generate Context</div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setActiveSubmenu(null)}
-                className="text-gray-400 hover:text-white p-1"
-              >
-                <ArrowUp className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="mb-3">
+          )}
+
+          {showContextInput && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setShowContextInput(false)}
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-white"
+                >
+                  ←
+                </Button>
+                <h4 className="text-sm font-medium text-yellow-400">Custom Context</h4>
+              </div>
+              
               <input
+                ref={inputRef}
                 type="text"
                 value={contextInput}
                 onChange={(e) => setContextInput(e.target.value)}
-                placeholder="What do you want to know?"
-                className="w-full px-2 py-1 text-sm bg-slate-700 border border-cyan-500/30 rounded text-white placeholder-gray-400"
+                placeholder="Describe what you want to debug..."
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:border-yellow-400 focus:outline-none"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleContextSubmit();
+                  }
+                }}
                 autoFocus
               />
-            </div>
-            <div className="space-y-1">
-              {contextModes.map((mode) => (
+              
+              <div className="flex gap-2">
                 <Button
-                  key={mode.mode}
+                  onClick={handleContextSubmit}
+                  disabled={!contextInput.trim()}
+                  className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white"
+                  size="sm"
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Generate
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowContextInput(false);
+                    setContextInput('');
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-600 text-gray-400 hover:text-white"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {showScreenshotOptions && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setShowScreenshotOptions(false)}
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-start text-left hover:bg-cyan-500/20 text-gray-300 hover:text-white"
-                  onClick={() => handleContextMode(mode.mode)}
+                  className="text-gray-400 hover:text-white"
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  {mode.label}
+                  ←
                 </Button>
-              ))}
+                <h4 className="text-sm font-medium text-orange-400">Screenshot Options</h4>
+              </div>
+              
+              <div className="space-y-2">
+                <Button
+                  onClick={() => handleScreenshotAction('element')}
+                  variant="ghost"
+                  className="w-full justify-start text-orange-400 bg-orange-500/10 hover:bg-orange-500/20"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Element Only
+                </Button>
+                <Button
+                  onClick={() => handleScreenshotAction('viewport')}
+                  variant="ghost"
+                  className="w-full justify-start text-orange-400 bg-orange-500/10 hover:bg-orange-500/20"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Full Viewport
+                </Button>
+                <Button
+                  onClick={() => handleScreenshotAction('selection')}
+                  variant="ghost"
+                  className="w-full justify-start text-orange-400 bg-orange-500/10 hover:bg-orange-500/20"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Custom Selection
+                </Button>
+              </div>
             </div>
-          </div>
-        ) : null}
-      </div>
+          )}
+        </div>
+      </Card>
     </div>
   );
 };

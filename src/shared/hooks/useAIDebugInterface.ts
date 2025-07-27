@@ -24,9 +24,12 @@ export const useAIDebugInterface = (
       let attempt = 0;
       let response: any = null;
       let lastError: any = null;
+      
       while (attempt <= MAX_RETRIES) {
         try {
+          console.log(`AI Debug attempt ${attempt + 1}:`, { prompt, element: detectedElement });
           response = await callAIDebugFunction(prompt, detectedElement, cursorPosition);
+          console.log('AI Debug response received:', response);
           lastError = null;
           break;
         } catch (error) {
@@ -39,10 +42,12 @@ export const useAIDebugInterface = (
           attempt++;
         }
       }
+      
       if (lastError) {
         throw lastError;
       }
 
+      // Record the successful AI response
       recordEvent({
         type: 'llm_response',
         position: cursorPosition,
@@ -55,8 +60,12 @@ export const useAIDebugInterface = (
           text: sanitizeText(detectedElement.text),
         } : undefined,
       });
+      
       setShowAIDebugModal(false);
       return response;
+    } catch (error) {
+      console.error('AI Debug Error:', error);
+      throw error;
     } finally {
       setIsAIAnalyzing(false);
     }
