@@ -58,10 +58,6 @@ class LogTracePopup {
           await this.saveSettings();
         }
       }
-
-      // Check for existing authentication from main app
-      await this.checkMainAppAuth();
-      
       this.authLoading = false;
     } catch (error) {
       console.error('Failed to check auth state:', error);
@@ -120,8 +116,6 @@ class LogTracePopup {
 
   async handleSignIn() {
     this.isLoading = true;
-    this.render(); // Re-render to show loading state
-    
     try {
       const response = await fetch(`${this.supabaseUrl}/auth/v1/token?grant_type=password`, {
         method: 'POST',
@@ -150,7 +144,6 @@ class LogTracePopup {
         this.showNotification('Signed in successfully', 'success');
         this.email = '';
         this.password = '';
-        this.render(); // Re-render to show user info
       }
     } catch (error) {
       this.showNotification('Sign in failed', 'error');
@@ -240,21 +233,8 @@ class LogTracePopup {
       this.user = null;
       await this.saveSettings();
       this.showNotification('Signed out successfully', 'success');
-      this.render(); // Re-render to show sign-in form
     } catch (error) {
       this.showNotification('Sign out failed', 'error');
-    }
-  }
-
-  async handleOpenMainApp() {
-    try {
-      // Open the main LogTrace app in a new tab
-      await chrome.tabs.create({
-        url: 'https://trace-sight-debug-view.vercel.app/auth?return=extension'
-      });
-      this.showNotification('Opening main app...', 'info');
-    } catch (error) {
-      this.showNotification('Failed to open main app', 'error');
     }
   }
 
@@ -284,13 +264,13 @@ class LogTracePopup {
       
       <div class="tabs-container">
         <div class="tabs-header">
-          <button class="tab-btn ${this.currentTabName === 'general' ? 'active' : ''}" data-tab="general">
+          <button class="tab-btn ${this.currentTabName === 'general' ? 'active' : ''}" onclick="popup.switchTab('general')">
             General
           </button>
-          <button class="tab-btn ${this.currentTabName === 'account' ? 'active' : ''}" data-tab="account">
+          <button class="tab-btn ${this.currentTabName === 'account' ? 'active' : ''}" onclick="popup.switchTab('account')">
             Account
           </button>
-          <button class="tab-btn ${this.currentTabName === 'api' ? 'active' : ''}" data-tab="api">
+          <button class="tab-btn ${this.currentTabName === 'api' ? 'active' : ''}" onclick="popup.switchTab('api')">
             API
           </button>
         </div>
@@ -368,7 +348,7 @@ class LogTracePopup {
               <span>Signed in</span>
             </div>
           </div>
-          <button class="btn btn-secondary" data-action="signout">
+          <button class="btn btn-secondary" onclick="popup.handleSignOut()">
             Sign Out
           </button>
         </div>
@@ -377,13 +357,11 @@ class LogTracePopup {
       return `
         <div class="section">
           <div class="section-title">Authentication</div>
-          
           <div class="auth-section">
             <div class="auth-header">
               <span class="auth-icon">🔐</span>
               <span class="auth-title">Sign In to LogTrace</span>
             </div>
-            
             <div class="auth-form">
               <div class="form-group">
                 <label class="form-label">Email</label>
@@ -406,30 +384,17 @@ class LogTracePopup {
                 >
               </div>
               <div class="auth-buttons">
-                <button class="btn btn-primary" data-action="signin" ${this.isLoading ? 'disabled' : ''}>
+                <button class="btn btn-primary" onclick="popup.handleSignIn()" ${this.isLoading ? 'disabled' : ''}>
                   ${this.isLoading ? 'Signing In...' : 'Sign In'}
                 </button>
-                <button class="btn btn-secondary" data-action="signup" ${this.isLoading ? 'disabled' : ''}>
+                <button class="btn btn-secondary" onclick="popup.handleSignUp()" ${this.isLoading ? 'disabled' : ''}>
                   ${this.isLoading ? 'Signing Up...' : 'Sign Up'}
                 </button>
               </div>
-              <button class="btn btn-secondary" data-action="github" ${this.isLoading ? 'disabled' : ''}>
+              <button class="btn btn-secondary" onclick="popup.handleSignInWithGitHub()" ${this.isLoading ? 'disabled' : ''}>
                 Continue with GitHub
               </button>
             </div>
-          </div>
-          
-          <div class="auth-section" style="margin-top: 16px;">
-            <div class="auth-header">
-              <span class="auth-icon">🌐</span>
-              <span class="auth-title">Use Main App Session</span>
-            </div>
-            <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 12px;">
-              Already signed in on the main LogTrace app? Open it to sync your session.
-            </p>
-            <button class="btn btn-primary" data-action="openMainApp">
-              Open Main App
-            </button>
           </div>
         </div>
       `;
@@ -513,66 +478,6 @@ class LogTracePopup {
         this.password = e.target.value;
       });
     }
-
-    // Bind authentication button clicks
-    this.bindAuthButtons();
-  }
-
-  bindAuthButtons() {
-    // Sign In button
-    const signInBtn = document.querySelector('button[data-action="signin"]');
-    if (signInBtn) {
-      signInBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await this.handleSignIn();
-      });
-    }
-
-    // Sign Up button
-    const signUpBtn = document.querySelector('button[data-action="signup"]');
-    if (signUpBtn) {
-      signUpBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await this.handleSignUp();
-      });
-    }
-
-    // GitHub Sign In button
-    const githubBtn = document.querySelector('button[data-action="github"]');
-    if (githubBtn) {
-      githubBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await this.handleSignInWithGitHub();
-      });
-    }
-
-    // Sign Out button
-    const signOutBtn = document.querySelector('button[data-action="signout"]');
-    if (signOutBtn) {
-      signOutBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await this.handleSignOut();
-      });
-    }
-
-    // Open Main App button
-    const openMainAppBtn = document.querySelector('button[data-action="openMainApp"]');
-    if (openMainAppBtn) {
-      openMainAppBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await this.handleOpenMainApp();
-      });
-    }
-
-    // Tab buttons
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    tabButtons.forEach(btn => {
-      const tabName = btn.getAttribute('data-tab');
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.switchTab(tabName);
-      });
-    });
   }
 
   updateStatusIndicator() {
@@ -673,31 +578,6 @@ class LogTracePopup {
         }
       }, 300);
     }, 3000);
-  }
-
-  async checkMainAppAuth() {
-    try {
-      // Check if user is already signed in on the main app
-      const mainAppUrl = 'https://kepmuysqytngtqterosr.supabase.co';
-      
-      // Try to get session from localStorage (if accessible)
-      const response = await fetch(`${mainAppUrl}/auth/v1/user`, {
-        headers: {
-          'apikey': this.supabaseKey
-        }
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        if (userData.id && !this.user) {
-          // User is signed in on main app but not in extension
-          this.showNotification('Found existing session from main app', 'info');
-          // Note: We can't access the main app's tokens directly due to security restrictions
-        }
-      }
-    } catch (error) {
-      // Silently fail - this is expected if user is not signed in
-    }
   }
 }
 
