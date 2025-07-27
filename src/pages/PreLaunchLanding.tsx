@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Target, Sparkles, Play, Users, Mail, Zap, Clock, Crown, Share2 } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowRight, Target, Sparkles, Play, Users, Mail, Zap, Clock, Crown, Share2, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { enhancedValidation } from '@/utils/enhancedSanitization';
+import PaymentButton from '@/components/PaymentButton';
 
 const PreLaunchLanding = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isScrolled, setIsScrolled] = useState(false);
   const [email, setEmail] = useState('');
   const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
@@ -22,6 +24,24 @@ const PreLaunchLanding = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Handle payment status from URL params
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    if (paymentStatus === 'success') {
+      toast({
+        title: 'Payment Successful!',
+        description: 'Welcome to LogTrace Pro! Your founding user access is now active.',
+        variant: 'default',
+      });
+    } else if (paymentStatus === 'canceled') {
+      toast({
+        title: 'Payment Canceled',
+        description: 'Your payment was canceled. You can try again anytime.',
+        variant: 'destructive',
+      });
+    }
+  }, [searchParams, toast]);
 
   const handleTryDemo = () => {
     navigate('/debug?onboarding=true');
@@ -264,7 +284,7 @@ const PreLaunchLanding = () => {
         </div>
       </section>
 
-      {/* Pre-Order/Waitlist CTA Section */}
+      {/* Pre-Order/Payment CTA Section */}
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-400/30 rounded-2xl p-12 text-center">
@@ -314,7 +334,7 @@ const PreLaunchLanding = () => {
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
               <div className="flex gap-2 w-full sm:w-auto">
                 <input
                   type="email"
@@ -323,17 +343,25 @@ const PreLaunchLanding = () => {
                   onChange={handleEmailChange}
                   onKeyPress={handleEmailKeyPress}
                   className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400/20 flex-1 min-w-0"
-                  disabled={isJoiningWaitlist}
                 />
-                <Button
-                  onClick={handleJoinWaitlist}
-                  disabled={!email.trim() || isJoiningWaitlist}
-                  className="bg-green-500 hover:bg-green-600 text-black font-bold px-6 py-4 text-lg h-auto whitespace-nowrap disabled:opacity-50"
-                >
-                  <Mail className="h-5 w-5 mr-2" />
-                  {isJoiningWaitlist ? 'Joining...' : 'Join Waitlist'}
-                </Button>
+                <PaymentButton email={email} />
               </div>
+            </div>
+            
+            <div className="text-center mb-4">
+              <span className="text-slate-400">or</span>
+            </div>
+            
+            <div className="flex justify-center">
+              <Button
+                onClick={handleJoinWaitlist}
+                disabled={!email.trim() || isJoiningWaitlist}
+                variant="outline"
+                className="border-slate-400 text-slate-400 hover:bg-slate-800 hover:text-white px-6 py-4 text-lg h-auto disabled:opacity-50"
+              >
+                <Mail className="h-5 w-5 mr-2" />
+                {isJoiningWaitlist ? 'Joining...' : 'Join Free Waitlist'}
+              </Button>
             </div>
             
             <div className="text-sm text-slate-400 mt-6 text-center">
@@ -360,8 +388,8 @@ const PreLaunchLanding = () => {
             </h2>
             
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Only {spotsLeft} spots left for lifetime Pro access. 
-              Join the waitlist now before we close early access.
+              Only {spotsLeft} spots left for Pro access. 
+              Get instant access now or join the waitlist.
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -383,27 +411,17 @@ const PreLaunchLanding = () => {
                   onChange={handleEmailChange}
                   onKeyPress={handleEmailKeyPress}
                   className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 flex-1 min-w-0"
-                  disabled={isJoiningWaitlist}
                 />
-                <Button
-                  onClick={handleJoinWaitlist}
-                  disabled={!email.trim() || isJoiningWaitlist}
-                  variant="outline"
-                  size="lg"
-                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-6 py-4 text-lg h-auto whitespace-nowrap disabled:opacity-50"
-                >
-                  <Users className="h-5 w-5 mr-2" />
-                  {isJoiningWaitlist ? 'Joining...' : 'Join Waitlist'}
-                </Button>
+                <PaymentButton email={email} />
               </div>
             </div>
             
             <div className="text-sm text-slate-400 mt-6 text-center">
               <span className="text-yellow-400 font-medium">⏰ Limited time offer</span>
               <span className="mx-2">•</span>
-              <span>Lifetime Pro access included</span>
+              <span>Instant Pro access</span>
               <span className="mx-2">•</span>
-              <span>Referral bonus system</span>
+              <span>Founding user benefits</span>
             </div>
           </div>
         </div>
@@ -412,4 +430,4 @@ const PreLaunchLanding = () => {
   );
 };
 
-export default PreLaunchLanding; 
+export default PreLaunchLanding;
