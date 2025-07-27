@@ -14,6 +14,8 @@ import Settings from "./pages/Settings";
 import Upgrade from "./pages/Upgrade";
 import NotFound from "./pages/NotFound";
 import ContextTransform from "./pages/ContextTransform";
+import Debug from "./pages/Debug";
+import InteractiveDemo from "./pages/InteractiveDemo";
 
 const queryClient = new QueryClient();
 
@@ -27,8 +29,10 @@ function App() {
             <ErrorBoundary>
               <Routes>
                 <Route path="/" element={<Landing />} />
+                <Route path="/prelaunch" element={<PreLaunchLanding />} />
                 <Route path="/pre-launch-landing" element={<PreLaunchLanding />} />
-                <Route path="/debug" element={<Index />} />
+                <Route path="/debug" element={<Debug />} />
+                <Route path="/interactive-demo" element={<InteractiveDemo />} />
                 <Route path="/home" element={<Home />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/settings" element={<Settings />} />
