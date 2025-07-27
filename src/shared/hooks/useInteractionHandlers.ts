@@ -65,7 +65,7 @@ export const useInteractionHandlers = ({
     };
   }, [isTraceActive, handleEscapeKey]);
 
-  // Right-click context menu handler
+  // Right-click context menu handler - optimized with useCallback
   const handleContextMenu = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isTraceActive) return;
 
@@ -110,6 +110,7 @@ export const useInteractionHandlers = ({
     });
   }, [isTraceActive, setCursorPosition, extractElementDetails, setDetectedElement, setShowInteractivePanel, recordEvent]);
 
+  // Cursor movement handler - optimized with useCallback
   const handleCursorMovement = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isTraceActive || isHoverPaused) return;
 
@@ -128,6 +129,7 @@ export const useInteractionHandlers = ({
     }
   }, [extractElementDetails, setCursorPosition, setDetectedElement, isTraceActive, isHoverPaused]);
 
+  // Element click handler - optimized with useCallback
   const handleElementClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isTraceActive || isMobile) return;
 

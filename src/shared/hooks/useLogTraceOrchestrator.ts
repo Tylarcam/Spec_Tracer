@@ -117,11 +117,19 @@ export const useLogTraceOrchestrator = () => {
     setLoadingError(null);
   }, [clearSettingsError, clearStorageError]);
 
+  // Stable setIsTraceActive function to prevent circular dependencies
+  const stableSetIsTraceActive = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
+    setIsTraceActive(prev => {
+      const newValue = typeof value === 'function' ? value(prev) : value;
+      return newValue;
+    });
+  }, []);
+
   // Memoized return object to prevent unnecessary re-renders with all dependencies
   return useMemo(() => ({
     // Primary State
     isTraceActive,
-    setIsTraceActive,
+    setIsTraceActive: stableSetIsTraceActive,
     cursorPosition,
     setCursorPosition,
     detectedElement,
@@ -158,6 +166,7 @@ export const useLogTraceOrchestrator = () => {
     debugContext,
   }), [
     isTraceActive,
+    stableSetIsTraceActive,
     cursorPosition,
     setCursorPosition,
     detectedElement,

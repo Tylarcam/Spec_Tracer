@@ -58,6 +58,9 @@ const LogTrace: React.FC<LogTraceProps> = ({
     modalRef,
   } = orchestrator;
 
+  // Create refs for panels
+  const interactivePanelRef = useRef<HTMLDivElement>(null);
+
   // Sync event count with parent component
   useEffect(() => {
     if (onEventCountChange) {
@@ -112,14 +115,12 @@ const LogTrace: React.FC<LogTraceProps> = ({
     onElementClick: handleElementClick,
   });
 
-  // Sync capture state with parent
+  // Fix: Sync capture state with parent WITHOUT creating circular dependency
   useEffect(() => {
-    setIsTraceActive(captureActive);
-  }, [captureActive, setIsTraceActive]);
-
-  useEffect(() => {
-    onCaptureToggle(isTraceActive);
-  }, [isTraceActive, onCaptureToggle]);
+    if (captureActive !== isTraceActive) {
+      setIsTraceActive(captureActive);
+    }
+  }, [captureActive, isTraceActive, setIsTraceActive]);
 
   // Set up DOM event listeners
   useEffect(() => {
@@ -188,7 +189,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
       <NavBar
         isTracing={isTraceActive}
         isHoverEnabled={!isHoverPaused}
-        onToggleTracing={() => setIsTraceActive(!isTraceActive)}
+        onToggleTracing={() => onCaptureToggle(!isTraceActive)}
         onToggleHover={() => setIsHoverPaused(!isHoverPaused)}
         onOpenSettings={() => setShowSettings(true)}
         onToggleTerminal={() => setShowTerminal(!showTerminal)}
@@ -217,19 +218,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
         mousePosition={cursorPosition}
         onClose={() => setShowInteractivePanel(false)}
         onDebug={() => setShowAIDebugModal(true)}
-        onPin={() => {
-          if (detectedElement) {
-            addInspector(detectedElement, cursorPosition);
-          }
-        }}
-        onScreenshot={() => {
-          // Handle screenshot action
-          console.log('Screenshot requested');
-        }}
-        onContext={() => {
-          // Handle context action
-          console.log('Context requested');
-        }}
+        panelRef={interactivePanelRef}
       />
 
       {/* Multiple Element Inspectors */}
