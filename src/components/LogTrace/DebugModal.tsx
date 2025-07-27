@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
-import { X, Sparkles, Copy, Zap } from 'lucide-react';
+import { X, Sparkles, Copy, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
@@ -77,11 +77,33 @@ const DebugModal: React.FC<DebugModalProps> = ({
   const [generatedPrompt, setGeneratedPrompt] = useState('');
   const [activeTab, setActiveTab] = useState('quick');
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
+  const [isElementContextExpanded, setIsElementContextExpanded] = useState(true);
   const { toast } = useToast();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedQuickObjective, setSelectedQuickObjective] = useState<string | null>(null);
   const [selectedAdvancedQuestion, setSelectedAdvancedQuestion] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Add viewport state management
+  const [viewportInfo, setViewportInfo] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+    zoom: window.devicePixelRatio || 1
+  });
+
+  // Monitor viewport changes
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportInfo({
+        width: window.innerWidth,
+        height: window.innerHeight,
+        zoom: window.devicePixelRatio || 1
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Get console logs for current element
   const currentElementSelector = useMemo(() => {
@@ -161,16 +183,25 @@ const DebugModal: React.FC<DebugModalProps> = ({
 
   if (!showDebugModal) return null;
 
-  // Check if mobile
-  const isMobile = window.innerWidth <= 768;
+  // Enhanced responsive detection
+  const isMobile = viewportInfo.width <= 768;
+  const isTablet = viewportInfo.width > 768 && viewportInfo.width <= 1024;
+  const isHighZoom = viewportInfo.zoom > 1.2;
+  const isLowZoom = viewportInfo.zoom < 0.8;
 
-  // Calculate safe modal dimensions
-  const viewportHeight = window.innerHeight;
-  const viewportWidth = window.innerWidth;
+  // Calculate responsive modal dimensions
   const safeTerminalHeight = terminalHeight || 0;
-  const availableHeight = viewportHeight - safeTerminalHeight - 32; // 32px for padding
-  const maxModalHeight = Math.min(availableHeight, viewportHeight * 0.85);
-  const maxModalWidth = Math.min(viewportWidth - 32, isMobile ? viewportWidth - 16 : 1024);
+  const availableHeight = viewportInfo.height - safeTerminalHeight - (isMobile ? 16 : 32);
+  const availableWidth = viewportInfo.width - (isMobile ? 16 : 32);
+  
+  // Dynamic modal sizing based on viewport and zoom
+  const maxModalHeight = isHighZoom 
+    ? Math.min(availableHeight * 0.9, availableHeight - 40) // More conservative for high zoom
+    : Math.min(availableHeight * 0.95, availableHeight - 20);
+    
+  const maxModalWidth = isMobile 
+    ? availableWidth 
+    : Math.min(availableWidth, isTablet ? 800 : 1024);
 
   // Add guest gating logic for extension
   const handleDebugSubmit = async (prompt: string) => {
@@ -302,113 +333,155 @@ const DebugModal: React.FC<DebugModalProps> = ({
         id="logtrace-modal"
         ref={modalRef}
         data-debug-modal
-        className="bg-slate-900/95 border-cyan-500/50 w-full overflow-hidden flex flex-col"
+        className="bg-slate-900/95 border-cyan-500/50 w-full flex flex-col overflow-hidden"
         style={{ 
           maxWidth: maxModalWidth,
           maxHeight: maxModalHeight,
-          height: isMobile ? maxModalHeight : 'auto',
-          minHeight: isMobile ? '60vh' : '500px'
+          minHeight: isMobile ? '50vh' : '400px',
+          height: 'auto'
         }}
       >
-        <div className={`${isMobile ? 'p-3' : 'p-6'} flex-1 flex flex-col min-h-0`}>
-          <div className={`flex items-center justify-between ${isMobile ? 'mb-3' : 'mb-6'} flex-shrink-0`}>
-            <h3 id="debug-modal-title" className={`font-bold text-cyan-400 ${isMobile ? 'text-lg' : 'text-2xl'}`}>Debug Assistant</h3>
-            <Button 
-              data-close-button
-              onClick={() => setShowDebugModal(false)}
-              variant="ghost" 
-              className="text-gray-400 hover:text-white"
-              size={isMobile ? "sm" : "default"}
-            >
-              <X className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-            </Button>
-          </div>
+        {/* Header - Always visible */}
+        <div className={`${isMobile ? 'p-3' : 'p-4'} flex items-center justify-between border-b border-cyan-500/20 flex-shrink-0 bg-slate-900/80`}>
+          <h3 id="debug-modal-title" className={`font-bold text-cyan-400 ${isMobile ? 'text-lg' : 'text-xl'}`}>
+            Debug Assistant
+          </h3>
+          <Button 
+            data-close-button
+            onClick={() => setShowDebugModal(false)}
+            variant="ghost" 
+            className="text-gray-400 hover:text-white"
+            size={isMobile ? "sm" : "default"}
+          >
+            <X className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+          </Button>
+        </div>
 
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+          {/* Element Context Section - Collapsible */}
           {currentElement && (
-            <div className={`${isMobile ? 'mb-3 p-3' : 'mb-6 p-4'} bg-slate-800/50 rounded-lg border border-green-500/30 flex-shrink-0`}>
-              <h4 className={`text-green-400 font-semibold ${isMobile ? 'mb-1 text-sm' : 'mb-2'}`}>Element Context</h4>
-              {/* Enhanced details, reusing PinnedDetails logic */}
-              <div className={`space-y-2 ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="secondary" className="bg-green-500/20 text-green-400">
-                    {currentElement.tag.toUpperCase()}
-                  </Badge>
-                  {/* Interactive badge */}
-                  {(['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null) && (
-                    <Badge variant="outline" className={`border-green-500/30 text-green-400 ml-2 ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                      Interactive
-                    </Badge>
-                  )}
-                </div>
-                {currentElement.id && (
-                  <div className="flex justify-between"><span className="text-gray-400">ID:</span><span className="text-green-300 font-mono">#{sanitizeText(currentElement.id)}</span></div>
+            <div className={`${isMobile ? 'mx-3 mt-3' : 'mx-4 mt-4'} bg-slate-800/50 rounded-lg border border-green-500/30 flex-shrink-0`}>
+              <button
+                onClick={() => setIsElementContextExpanded(!isElementContextExpanded)}
+                className={`w-full flex items-center justify-between ${isMobile ? 'p-3' : 'p-4'} text-left hover:bg-slate-700/30 transition-colors`}
+                aria-expanded={isElementContextExpanded}
+              >
+                <h4 className={`text-green-400 font-semibold ${isMobile ? 'text-sm' : 'text-base'}`}>
+                  Element Context
+                </h4>
+                {isElementContextExpanded ? (
+                  <ChevronUp className={`text-green-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                ) : (
+                  <ChevronDown className={`text-green-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
                 )}
-                {currentElement.classes.length > 0 && (
-                  <div className="flex justify-between"><span className="text-gray-400">Classes:</span><span className="text-green-300 font-mono text-right">.{currentElement.classes.map(c => sanitizeText(c)).join(' .')}</span></div>
-                )}
-                {currentElement.text && (
-                  <div className="flex justify-between"><span className="text-gray-400">Text:</span><span className={`text-gray-300 text-right truncate ${isMobile ? 'max-w-32' : 'max-w-48'}`}>"{sanitizeText(currentElement.text)}"</span></div>
-                )}
-                {/* Primary Value */}
-                {currentElement.attributes?.find(attr => attr.name === 'data-lov-id') && (
-                  <div className="flex justify-between"><span className="text-gray-400">data-lov-id:</span><span className="text-blue-300 font-mono">{currentElement.attributes.find(attr => attr.name === 'data-lov-id')?.value}</span></div>
-                )}
-                {/* Source Attribution */}
-                {currentElement.attributes?.find(attr => attr.name === 'data-source' || attr.name === 'data-attribution') && (
-                  <div className="flex justify-between"><span className="text-gray-400">{currentElement.attributes.find(attr => attr.name === 'data-source' || attr.name === 'data-attribution')?.name}:</span><span className="text-orange-300 font-mono">{currentElement.attributes.find(attr => attr.name === 'data-source' || attr.name === 'data-attribution')?.value}</span></div>
-                )}
-                {/* Attributes Table */}
-                {currentElement.attributes && currentElement.attributes.length > 0 && (
-                  <div className="space-y-1 mt-2">
-                    <div className={`font-semibold text-green-400 mb-1 ${isMobile ? 'text-xs' : ''}`}>All Attributes</div>
-                    <div className={`${isMobile ? 'max-h-20' : 'max-h-24'} overflow-y-auto border border-green-500/10 rounded bg-slate-800/40`}>
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="text-left text-green-300">
-                            <th className={`py-1 px-2 font-semibold ${isMobile ? 'text-xs' : ''}`}>attribute</th>
-                            <th className={`py-1 px-2 font-semibold ${isMobile ? 'text-xs' : ''}`}>value</th>
-                            <th className={`py-1 px-2 font-semibold ${isMobile ? 'text-xs' : ''}`}>actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {currentElement.attributes.map(attr => (
-                            <tr key={attr.name} className="border-t border-green-500/5">
-                              <td className={`py-1 px-2 text-gray-400 align-top whitespace-nowrap ${isMobile ? 'text-xs' : ''}`}>{attr.name}</td>
-                              <td className={`py-1 px-2 text-orange-300 font-mono align-top break-all whitespace-pre-wrap ${isMobile ? 'max-w-[80px] text-xs' : 'max-w-[150px]'}`}>{sanitizeText(attr.value)}</td>
-                              <td className="py-1 px-2 align-top">
-                                <button
-                                  className="text-cyan-400 hover:text-cyan-200 px-1"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(attr.value);
-                                    toast({ title: 'Copied', description: `Copied value for ${attr.name}`, variant: 'default' });
-                                  }}
-                                  title="Copy value"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className={`inline ${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+              </button>
+              
+              {isElementContextExpanded && (
+                <div className={`${isMobile ? 'px-3 pb-3' : 'px-4 pb-4'}`}>
+                  <div className={`space-y-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="secondary" className="bg-green-500/20 text-green-400">
+                        {currentElement.tag.toUpperCase()}
+                      </Badge>
+                      {(['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null) && (
+                        <Badge variant="outline" className="border-green-500/30 text-green-400 ml-2">
+                          Interactive
+                        </Badge>
+                      )}
                     </div>
+                    
+                    {/* Basic Info */}
+                    <div className="grid grid-cols-1 gap-1">
+                      {currentElement.id && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">ID:</span>
+                          <span className="text-green-300 font-mono text-right break-all">#{sanitizeText(currentElement.id)}</span>
+                        </div>
+                      )}
+                      {currentElement.classes.length > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Classes:</span>
+                          <span className="text-green-300 font-mono text-right break-all">.{currentElement.classes.map(c => sanitizeText(c)).join(' .')}</span>
+                        </div>
+                      )}
+                      {currentElement.text && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Text:</span>
+                          <span className="text-gray-300 text-right break-all max-w-[60%]">"{sanitizeText(currentElement.text)}"</span>
+                        </div>
+                      )}
+                      {currentElement.attributes?.find(attr => attr.name === 'data-lov-id') && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">data-lov-id:</span>
+                          <span className="text-blue-300 font-mono text-right break-all">{currentElement.attributes.find(attr => attr.name === 'data-lov-id')?.value}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Attributes Table - Horizontal Scroll */}
+                    {currentElement.attributes && currentElement.attributes.length > 0 && (
+                      <div className="mt-3">
+                        <div className={`font-semibold text-green-400 mb-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          All Attributes
+                        </div>
+                        <div className="overflow-x-auto border border-green-500/10 rounded bg-slate-800/40">
+                          <table className="w-full text-xs min-w-full">
+                            <thead>
+                              <tr className="text-left text-green-300">
+                                <th className="py-1 px-2 font-semibold whitespace-nowrap">attribute</th>
+                                <th className="py-1 px-2 font-semibold whitespace-nowrap">value</th>
+                                <th className="py-1 px-2 font-semibold whitespace-nowrap">actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {currentElement.attributes.map(attr => (
+                                <tr key={attr.name} className="border-t border-green-500/5">
+                                  <td className="py-1 px-2 text-gray-400 align-top whitespace-nowrap">{attr.name}</td>
+                                  <td className="py-1 px-2 text-orange-300 font-mono align-top break-all whitespace-pre-wrap max-w-[200px]">
+                                    {sanitizeText(attr.value)}
+                                  </td>
+                                  <td className="py-1 px-2 align-top whitespace-nowrap">
+                                    <button
+                                      className="text-cyan-400 hover:text-cyan-200 px-1"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(attr.value);
+                                        toast({ title: 'Copied', description: `Copied value for ${attr.name}`, variant: 'default' });
+                                      }}
+                                      title="Copy value"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="inline w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                      </svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-hidden">
+          {/* Tabs Section - Scrollable */}
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
-              <TabsList className={`grid w-full grid-cols-3 bg-slate-800/50 flex-shrink-0 ${isMobile ? 'h-8' : ''}`}>
-                <TabsTrigger value="quick" className={`data-[state=active]:bg-cyan-600 ${isMobile ? 'text-xs px-2' : ''}`}>
+              <TabsList className={`grid w-full grid-cols-3 bg-slate-800/50 flex-shrink-0 ${isMobile ? 'h-8 mx-3' : 'h-10 mx-4'}`}>
+                <TabsTrigger value="quick" className={`data-[state=active]:bg-cyan-600 ${isMobile ? 'text-xs px-2' : 'text-sm'}`}>
                   <div className="flex items-center gap-1">
                     <Zap className={`text-cyan-400 ${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                     <span>Quick Debug</span>
                   </div>
                 </TabsTrigger>
-                <TabsTrigger value="advanced" className={`data-[state=active]:bg-cyan-600 ${isMobile ? 'text-xs px-2' : ''}`}>Advanced</TabsTrigger>
-                <TabsTrigger value="prompt" className={`data-[state=active]:bg-cyan-600 ${isMobile ? 'text-xs px-1' : ''}`}>
+                <TabsTrigger value="advanced" className={`data-[state=active]:bg-cyan-600 ${isMobile ? 'text-xs px-2' : 'text-sm'}`}>
+                  Advanced
+                </TabsTrigger>
+                <TabsTrigger value="prompt" className={`data-[state=active]:bg-cyan-600 ${isMobile ? 'text-xs px-1' : 'text-sm'}`}>
                   <div className="flex items-center gap-1">
                     <Sparkles className={`text-yellow-400 ${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                     <span className={isMobile ? 'hidden' : ''}>Prompt</span>
@@ -416,60 +489,55 @@ const DebugModal: React.FC<DebugModalProps> = ({
                 </TabsTrigger>
               </TabsList>
 
+              {/* Tab Content - Scrollable */}
               <div className="flex-1 min-h-0 overflow-hidden">
-                <TabsContent value="quick" className={`${isMobile ? 'space-y-2 mt-2' : 'space-y-4 mt-4'} h-full overflow-y-auto`}>
-                  {/* Add helpful description */}
+                <TabsContent value="quick" className={`${isMobile ? 'space-y-3 mt-3 mx-3' : 'space-y-4 mt-4 mx-4'} h-full overflow-y-auto pb-4`}>
+                  {/* Direct AI Debug Description */}
                   <div className={`${isMobile ? 'p-2' : 'p-3'} bg-cyan-500/10 rounded-lg border border-cyan-500/20`}>
                     <div className="flex items-center gap-2 mb-1">
                       <Zap className={`text-cyan-400 ${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
-                      <span className={`text-cyan-400 font-medium ${isMobile ? 'text-sm' : ''}`}>Direct AI Debug</span>
+                      <span className={`text-cyan-400 font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>Direct AI Debug</span>
                     </div>
                     <p className={`text-cyan-300/80 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                       Type your request and get an immediate AI response. No complex setup needed.
                     </p>
                   </div>
 
-                  {/* Quick Objective Pills Row */}
-                  <div className="flex flex-wrap gap-2 mb-2" role="listbox" aria-label="Quick Debug Objectives" aria-orientation="horizontal">
-                    {quickObjectives.map((obj, idx) => (
-                      <button
-                        key={obj.label}
-                        className={`${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-xs'} rounded-full font-semibold border border-cyan-500/30 bg-slate-800 text-cyan-300 hover:bg-cyan-700/30 focus:outline-none focus:ring-2 focus:ring-cyan-400 ${selectedQuickObjective === obj.label ? 'bg-cyan-600 text-white' : ''}`}
-                        onClick={() => {
-                          setSelectedQuickObjective(obj.label);
-                          setUserIntent(obj.label);
-                          setTimeout(() => inputRef.current?.focus(), 0);
-                        }}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' || e.key === ' ') {
+                  {/* Quick Objective Pills - Horizontal Scroll */}
+                  <div className="overflow-x-auto">
+                    <div className="flex gap-2 mb-3 min-w-max" role="listbox" aria-label="Quick Debug Objectives">
+                      {quickObjectives.map((obj, idx) => (
+                        <button
+                          key={obj.label}
+                          className={`${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-sm'} rounded-full font-semibold border border-cyan-500/30 bg-slate-800 text-cyan-300 hover:bg-cyan-700/30 focus:outline-none focus:ring-2 focus:ring-cyan-400 whitespace-nowrap ${selectedQuickObjective === obj.label ? 'bg-cyan-600 text-white' : ''}`}
+                          onClick={() => {
                             setSelectedQuickObjective(obj.label);
                             setUserIntent(obj.label);
                             setTimeout(() => inputRef.current?.focus(), 0);
-                          }
-                          // Arrow navigation
-                          if (e.key === 'ArrowRight') {
-                            const next = (idx + 1) % quickObjectives.length;
-                            const nextButton = e.currentTarget.parentElement?.children[next] as HTMLElement | undefined;
-                            nextButton?.focus();
-                          }
-                          if (e.key === 'ArrowLeft') {
-                            const prev = (idx - 1 + quickObjectives.length) % quickObjectives.length;
-                            const prevButton = e.currentTarget.parentElement?.children[prev] as HTMLElement | undefined;
-                            prevButton?.focus();
-                          }
-                        }}
-                        tabIndex={0}
-                        role="option"
-                        aria-selected={selectedQuickObjective === obj.label}
-                        title={obj.tooltip}
-                      >
-                        {obj.label}
-                      </button>
-                    ))}
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              setSelectedQuickObjective(obj.label);
+                              setUserIntent(obj.label);
+                              setTimeout(() => inputRef.current?.focus(), 0);
+                            }
+                          }}
+                          tabIndex={0}
+                          role="option"
+                          aria-selected={selectedQuickObjective === obj.label}
+                          title={obj.tooltip}
+                        >
+                          {obj.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  {/* End Pills Row */}
-                  <div>
-                    <label className={`block text-cyan-400 font-semibold ${isMobile ? 'mb-1 text-sm' : 'mb-2'}`}>What do you want to change or fix?</label>
+
+                  {/* Input Section */}
+                  <div className="space-y-3">
+                    <label className={`block text-cyan-400 font-semibold ${isMobile ? 'text-sm' : 'text-base'}`}>
+                      What do you want to change or fix?
+                    </label>
                     <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>
                       <Input
                         ref={inputRef}
@@ -478,14 +546,14 @@ const DebugModal: React.FC<DebugModalProps> = ({
                           setUserIntent(e.target.value);
                           setSelectedQuickObjective(null);
                         }}
-                        className={`bg-slate-800 border-green-500/30 text-green-400 ${isMobile ? 'text-sm' : ''}`}
+                        className={`bg-slate-800 border-green-500/30 text-green-400 flex-1 ${isMobile ? 'text-sm' : ''}`}
                         placeholder="e.g., Make responsive, Fix alignment, Add hover effect..."
                         maxLength={500}
                       />
                       <Button 
                         onClick={() => handleDebugSubmit(userIntent)}
                         disabled={isAnalyzing || !userIntent.trim()}
-                        className={`bg-green-600 hover:bg-green-700 text-white ${isMobile ? 'text-sm h-8' : ''}`}
+                        className={`bg-green-600 hover:bg-green-700 text-white ${isMobile ? 'text-sm h-10' : ''}`}
                         size={isMobile ? "sm" : "default"}
                       >
                         <Zap className={`${isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'}`} />
@@ -493,112 +561,109 @@ const DebugModal: React.FC<DebugModalProps> = ({
                       </Button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                </TabsContent>
+
+                <TabsContent value="advanced" className={`${isMobile ? 'space-y-3 mt-3 mx-3' : 'space-y-4 mt-4 mx-4'} h-full overflow-y-auto pb-4`}>
+                  <div className="space-y-3">
+                    <label className={`block text-cyan-400 font-semibold ${isMobile ? 'text-sm' : 'text-base'}`}>
+                      Target Context For Debug
+                    </label>
+                    
+                    {/* Contextual guidance block */}
+                    {currentElement && (
+                      <div className={`p-3 rounded bg-slate-800/70 border border-cyan-500/20 ${isMobile ? 'text-xs' : 'text-sm'} text-cyan-200 space-y-1`}>
+                        <div><span className="font-bold">Tag:</span> &lt;{currentElement.tag}&gt; {currentElement.id && <span className="ml-2 font-mono text-green-300">#{sanitizeText(currentElement.id)}</span>}</div>
+                        {currentElement.classes.length > 0 && <div><span className="font-bold">Classes:</span> <span className="font-mono text-green-300">.{currentElement.classes.map(c => sanitizeText(c)).join(' .')}</span></div>}
+                        {currentElement.text && <div><span className="font-bold">Text:</span> <span className="text-gray-300">"{sanitizeText(currentElement.text)}"</span></div>}
+                        {(['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null) && <div><span className="font-bold text-green-400">Interactive element</span></div>}
+                        {currentElement.attributes && currentElement.attributes.length > 0 && (
+                          <div><span className="font-bold">Key attributes:</span> {currentElement.attributes.slice(0,3).map(attr => <span key={attr.name} className="ml-1 font-mono text-orange-300">{attr.name}="{sanitizeText(attr.value)}"</span>)}</div>
+                        )}
+                        {eventListeners.length > 0 && <div><span className="font-bold">Event listeners:</span> <span className="font-mono text-purple-300">{eventListeners.join(', ')}</span></div>}
+                        {computedStyles && (
+                          <div><span className="font-bold">Styles:</span> <span className="font-mono text-blue-300">display={computedStyles.display}, visibility={computedStyles.visibility}, pointer-events={computedStyles.pointerEvents}</span></div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Advanced Debug Questions - Horizontal Scroll */}
+                    <div>
+                      <label className={`block text-cyan-400 font-semibold mb-2 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                        Select a Question
+                      </label>
+                      <div className="overflow-x-auto">
+                        <div className="flex gap-2 min-w-max">
+                          {[
+                            'Why might this element not be behaving as expected?',
+                            'Are there any CSS properties preventing interaction?',
+                            'Are there any event listeners that might be interfering?',
+                            'What accessibility concerns might exist?',
+                            'How could the user experience be improved?'
+                          ].map((q, idx) => (
+                            <button
+                              key={q}
+                              className={`${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-sm'} rounded-full font-semibold border border-cyan-500/30 bg-slate-800 text-cyan-300 hover:bg-cyan-700/30 focus:outline-none focus:ring-2 focus:ring-cyan-400 whitespace-nowrap ${selectedAdvancedQuestion === q ? 'bg-cyan-600 text-white' : ''}`}
+                              onClick={() => setSelectedAdvancedQuestion(q)}
+                              tabIndex={0}
+                              role="option"
+                              aria-selected={selectedAdvancedQuestion === q}
+                            >
+                              {q}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Textarea
+                      value={advancedPrompt}
+                      onChange={(e) => setAdvancedPrompt(e.target.value)}
+                      className={`bg-slate-800 border-green-500/30 text-green-400 ${isMobile ? 'min-h-20 text-sm' : 'min-h-32'}`}
+                      placeholder="Describe your advanced debug question or issue..."
+                      maxLength={2000}
+                    />
                     <Button 
-                      onClick={handleGeneratePrompt}
-                      disabled={isGeneratingPrompt || !userIntent.trim()}
-                      variant="outline"
-                      className={`border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/10 ${isMobile ? 'text-xs h-8' : ''}`}
+                      onClick={async () => {
+                        let contextInfo = '';
+                        if (currentElement) {
+                          const isInteractive = ['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null;
+                          const eventListeners = [];
+                          const el = currentElement.element as any;
+                          [
+                            'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmouseout',
+                            'onmouseenter', 'onmouseleave', 'onkeydown', 'onkeyup', 'oninput',
+                            'onchange', 'onfocus', 'onblur', 'onsubmit'
+                          ].forEach(listener => {
+                            if (typeof el[listener] === 'function') eventListeners.push(listener);
+                          });
+                          const styles = window.getComputedStyle(currentElement.element);
+                          contextInfo = `Target Context For Debug:\n- Tag: <${currentElement.tag}>\n- ID: ${currentElement.id || 'none'}\n- Classes: ${currentElement.classes.join(', ') || 'none'}\n- Text: "${currentElement.text || 'none'}"\n- Interactive: ${isInteractive ? 'Yes' : 'No'}\n- Event Listeners: ${eventListeners.join(', ') || 'none'}\n- Styles: display=${styles.display}, visibility=${styles.visibility}, pointer-events=${styles.pointerEvents}`;
+                        }
+                        const selectedQuestion = selectedAdvancedQuestion ? `Selected Question: ${selectedAdvancedQuestion}\n` : '';
+                        const userInput = advancedPrompt ? `User Input: ${advancedPrompt}\n` : '';
+                        const fullPrompt = `${selectedQuestion}${userInput}${contextInfo}`;
+                        await handleDebugSubmit(fullPrompt);
+                      }}
+                      disabled={isAnalyzing}
+                      className={`bg-cyan-600 hover:bg-cyan-700 text-white w-full ${isMobile ? 'text-sm h-10' : ''}`}
                       size={isMobile ? "sm" : "default"}
                     >
-                      <Sparkles className={`text-yellow-400 ${isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'}`} />
-                      {isGeneratingPrompt ? 'Generating...' : (isMobile ? 'Advanced' : 'Advanced Context')}
+                      {isAnalyzing ? 'Analyzing...' : 'Advanced Debug'}
                     </Button>
                   </div>
                 </TabsContent>
 
-                <TabsContent value="advanced" className={`${isMobile ? 'space-y-2 mt-2' : 'space-y-4 mt-4'} h-full overflow-y-auto`}>
-                <div>
-                  <label className={`block text-cyan-400 font-semibold ${isMobile ? 'mb-1 text-sm' : 'mb-2'}`}>Target Context For Debug</label>
-                  {/* Contextual guidance block */}
-                  {currentElement && (
-                    <div className={`mb-2 p-2 rounded bg-slate-800/70 border border-cyan-500/20 ${isMobile ? 'text-xs' : 'text-xs'} text-cyan-200 space-y-1`}>
-                      <div><span className="font-bold">Tag:</span> &lt;{currentElement.tag}&gt; {currentElement.id && <span className="ml-2 font-mono text-green-300">#{sanitizeText(currentElement.id)}</span>}</div>
-                      {currentElement.classes.length > 0 && <div><span className="font-bold">Classes:</span> <span className="font-mono text-green-300">.{currentElement.classes.map(c => sanitizeText(c)).join(' .')}</span></div>}
-                      {currentElement.text && <div><span className="font-bold">Text:</span> <span className="text-gray-300">"{sanitizeText(currentElement.text)}"</span></div>}
-                      {(['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null) && <div><span className="font-bold text-green-400">Interactive element</span></div>}
-                      {/* Key attributes */}
-                      {currentElement.attributes && currentElement.attributes.length > 0 && (
-                        <div><span className="font-bold">Key attributes:</span> {currentElement.attributes.slice(0,3).map(attr => <span key={attr.name} className="ml-1 font-mono text-orange-300">{attr.name}="{sanitizeText(attr.value)}"</span>)}</div>
-                      )}
-                      {/* Event listeners */}
-                      {eventListeners.length > 0 && <div><span className="font-bold">Event listeners:</span> <span className="font-mono text-purple-300">{eventListeners.join(', ')}</span></div>}
-                      {/* Notable computed styles */}
-                      {computedStyles && (
-                        <div><span className="font-bold">Styles:</span> <span className="font-mono text-blue-300">display={computedStyles.display}, visibility={computedStyles.visibility}, pointer-events={computedStyles.pointerEvents}</span></div>
-                      )}
-                    </div>
-                  )}
-                  {/* Advanced Debug Quick Pills */}
-                  <label className={`block text-cyan-400 font-semibold ${isMobile ? 'mb-1 text-sm' : 'mb-2'}`}>Select a Question</label>
-                  <div className="flex flex-wrap gap-2 mb-2" role="listbox" aria-label="Advanced Debug Questions" aria-orientation="horizontal">
-                    {[
-                      'Why might this element not be behaving as expected?',
-                      'Are there any CSS properties preventing interaction?',
-                      'Are there any event listeners that might be interfering?',
-                      'What accessibility concerns might exist?',
-                      'How could the user experience be improved?'
-                    ].map((q, idx) => (
-                      <button
-                        key={q}
-                        className={`${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-xs'} rounded-full font-semibold border border-cyan-500/30 bg-slate-800 text-cyan-300 hover:bg-cyan-700/30 focus:outline-none focus:ring-2 focus:ring-cyan-400 ${selectedAdvancedQuestion === q ? 'bg-cyan-600 text-white' : ''}`}
-                        onClick={() => setSelectedAdvancedQuestion(q)}
-                        tabIndex={0}
-                        role="option"
-                        aria-selected={selectedAdvancedQuestion === q}
-                      >
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                  <Textarea
-                    value={advancedPrompt}
-                    onChange={(e) => setAdvancedPrompt(e.target.value)}
-                    className={`bg-slate-800 border-green-500/30 text-green-400 ${isMobile ? 'min-h-20 text-sm' : 'min-h-32'}`}
-                    placeholder="Describe your advanced debug question or issue..."
-                    maxLength={2000}
-                  />
-                  <Button 
-                    onClick={async () => {
-                      // Compose the full prompt
-                      let contextInfo = '';
-                      if (currentElement) {
-                        const isInteractive = ['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null;
-                        const eventListeners = [];
-                        const el = currentElement.element as any;
-                        [
-                          'onclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmouseout',
-                          'onmouseenter', 'onmouseleave', 'onkeydown', 'onkeyup', 'oninput',
-                          'onchange', 'onfocus', 'onblur', 'onsubmit'
-                        ].forEach(listener => {
-                          if (typeof el[listener] === 'function') eventListeners.push(listener);
-                        });
-                        const styles = window.getComputedStyle(currentElement.element);
-                        contextInfo = `Target Context For Debug:\n- Tag: <${currentElement.tag}>\n- ID: ${currentElement.id || 'none'}\n- Classes: ${currentElement.classes.join(', ') || 'none'}\n- Text: "${currentElement.text || 'none'}"\n- Interactive: ${isInteractive ? 'Yes' : 'No'}\n- Event Listeners: ${eventListeners.join(', ') || 'none'}\n- Styles: display=${styles.display}, visibility=${styles.visibility}, pointer-events=${styles.pointerEvents}`;
-                      }
-                      const selectedQuestion = selectedAdvancedQuestion ? `Selected Question: ${selectedAdvancedQuestion}\n` : '';
-                      const userInput = advancedPrompt ? `User Input: ${advancedPrompt}\n` : '';
-                      const fullPrompt = `${selectedQuestion}${userInput}${contextInfo}`;
-                      await handleDebugSubmit(fullPrompt);
-                    }}
-                    disabled={isAnalyzing}
-                    className={`bg-cyan-600 hover:bg-cyan-700 text-white ${isMobile ? 'mt-1 text-sm h-8' : 'mt-2'}`}
-                    size={isMobile ? "sm" : "default"}
-                  >
-                    {isAnalyzing ? 'Analyzing...' : 'Advanced Debug'}
-                  </Button>
-                </div>
-                </TabsContent>
-
-                <TabsContent value="prompt" className={`${isMobile ? 'space-y-2 mt-2' : 'space-y-4 mt-4'} h-full overflow-y-auto`}>
-                  <div>
+                <TabsContent value="prompt" className={`${isMobile ? 'space-y-3 mt-3 mx-3' : 'space-y-4 mt-4 mx-4'} h-full overflow-y-auto pb-4`}>
+                  <div className="space-y-3">
                     <div className={`flex items-center justify-between ${isMobile ? 'mb-1' : 'mb-2'}`}>
-                      <label className={`text-cyan-400 font-semibold ${isMobile ? 'text-sm' : ''}`}>Generated Context Prompt</label>
+                      <label className={`text-cyan-400 font-semibold ${isMobile ? 'text-sm' : 'text-base'}`}>
+                        Generated Context Prompt
+                      </label>
                       <Button 
                         onClick={handleCopyPrompt}
                         disabled={!generatedPrompt}
                         variant="outline"
-                        className={`border-green-500/30 text-green-400 hover:bg-green-500/10 ${isMobile ? 'text-xs h-6' : ''}`}
+                        className={`border-green-500/30 text-green-400 hover:bg-green-500/10 ${isMobile ? 'text-xs h-8' : ''}`}
                         size={isMobile ? "sm" : "sm"}
                       >
                         <Copy className={`${isMobile ? 'w-3 h-3 mr-0.5' : 'w-4 h-4 mr-1'}`} /> Copy
@@ -614,11 +679,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
                       />
                     </ScrollArea>
                     {generatedPrompt && (
-                      <div className={`flex gap-2 ${isMobile ? 'mt-1 flex-col' : 'mt-2'}`}>
+                      <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>
                         <Button 
                           onClick={() => handleDebugSubmit(generatedPrompt)}
                           disabled={isAnalyzing}
-                          className={`bg-purple-600 hover:bg-purple-700 text-white ${isMobile ? 'text-sm h-8' : ''}`}
+                          className={`bg-purple-600 hover:bg-purple-700 text-white flex-1 ${isMobile ? 'text-sm h-10' : ''}`}
                           size={isMobile ? "sm" : "default"}
                         >
                           {isAnalyzing ? 'Analyzing..' : 'Debug with Generated Prompt'}
@@ -626,7 +691,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                         <Button 
                           onClick={handleCopyPrompt}
                           variant="outline"
-                          className={`border-green-500/30 text-green-400 hover:bg-green-500/10 ${isMobile ? 'text-sm h-8' : ''}`}
+                          className={`border-green-500/30 text-green-400 hover:bg-green-500/10 ${isMobile ? 'text-sm h-10' : ''}`}
                           size={isMobile ? "sm" : "default"}
                         >
                           <Copy className={`${isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-1'}`} /> Copy to Clipboard
@@ -639,8 +704,9 @@ const DebugModal: React.FC<DebugModalProps> = ({
             </Tabs>
           </div>
 
+          {/* Error Message - Always visible at bottom */}
           {errorMessage && (
-            <div className={`${isMobile ? 'mt-2 p-2' : 'mt-4 p-3'} bg-red-800/60 text-red-200 rounded animate-pulse ${isMobile ? 'text-sm' : ''} flex-shrink-0`}>
+            <div className={`${isMobile ? 'mx-3 mb-3 p-2' : 'mx-4 mb-4 p-3'} bg-red-800/60 text-red-200 rounded animate-pulse ${isMobile ? 'text-sm' : 'text-base'} flex-shrink-0`}>
               {errorMessage}
             </div>
           )}

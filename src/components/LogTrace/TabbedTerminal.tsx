@@ -50,7 +50,10 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
     
     const handleMouseMove = (e: MouseEvent) => {
       const deltaY = startY - e.clientY;
-      const newHeight = Math.max(200, Math.min(window.innerHeight * 0.75, startHeight + deltaY));
+      // Allow resizing up to cover the instruction card and go up to navbar
+      // Navbar is typically 64px (mt-16 = 4rem = 64px), so we allow up to that
+      const maxHeight = window.innerHeight - 64; // 64px for navbar
+      const newHeight = Math.max(200, Math.min(maxHeight, startHeight + deltaY));
       setCurrentHeight(newHeight);
     };
     
@@ -88,10 +91,10 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
 
   return (
     <div
-      className={`w-full ${isMobile ? 'z-100' : 'z-50'}`}
+      className={`fixed bottom-0 left-0 right-0 ${isMobile ? 'z-50' : 'z-40'}`}
       style={{ height: `${currentHeight}px` }}
     >
-      <Card className={`bg-slate-900/95 border-green-500/50 ${isMobile ? 'rounded-none border-x-0 border-b-0' : 'rounded-t-lg border-b-0'} h-full`}>
+      <Card className={`bg-slate-900/95 border-green-500/50 ${isMobile ? 'rounded-none border-x-0 border-b-0' : 'rounded-t-lg border-b-0'} h-full shadow-2xl`}>
         {/* Resize Handle */}
         {!isMobile && (
           <div

@@ -38,6 +38,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [quickActionPosition, setQuickActionPosition] = useState({ x: 0, y: 0 });
   const [showTerminal, setShowTerminal] = useState(false);
+  const [terminalHeight, setTerminalHeight] = useState(384);
   const [activeScreenshotOverlay, setActiveScreenshotOverlay] = useState<'rectangle' | 'freeform' | null>(null);
   
   // State to pause cursor movement when quick actions are visible
@@ -49,8 +50,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const { toast } = useToast();
   
   // Screenshot functionality
-  const { 
-    captureElement, 
+  const {  
     captureWindow, 
     captureFullscreen, 
     isCapturing 
@@ -94,6 +94,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
       setIsHoverPaused(false);
     } else if (showAIDebugModal) {
       setShowAIDebugModal(false);
+    } else if (showTerminal) {
+      setShowTerminal(false);
     } else if (inspectors.length > 0) {
       // Close most recent inspector
       const mostRecent = inspectors.reduce((latest, current) => 
@@ -255,33 +257,76 @@ const LogTrace: React.FC<LogTraceProps> = ({
     }
   };
 
-  // New function to generate context prompts based on mode
+  // Updated function to generate context prompts based on mode with structured templates
   const generateContextPrompt = (mode: string, userInput: string, element: any): string => {
     const baseElementInfo = `
 Element: <${element.tag}${element.id ? ` id="${element.id}"` : ''}${element.classes.length ? ` class="${element.classes.join(' ')}"` : ''}>
 Text: "${element.text}"
 Position: x:${cursorPosition.x}, y:${cursorPosition.y}
+Size: ${element.size ? `${element.size.width}x${element.size.height}` : 'Unknown'}
+Parent Path: ${element.parentPath || 'N/A'}
 `;
 
+    // Get computed styles for the element
+    const computedStyles = getComputedStyles(element.element);
+    
+    // Build context-specific information
+    let contextInfo = '';
+    let systemInstructions = '';
+    let analysisInstructions = '';
+    
     switch (mode) {
       case 'layout':
-        return `${baseElementInfo}
+        systemInstructions = `You are a front-end layout analyst. Review the provided HTML/CSS/DOM snapshot and output a structured critique on layout balance, alignment, and hierarchy. Highlight problem zones and offer optimization strategies. Focus on:
+- Visual hierarchy and spacing
+- Alignment and positioning issues
+- Responsive design considerations
+- CSS layout method effectiveness
+- Cross-browser compatibility concerns`;
 
+        contextInfo = `
+CSS Properties:
+${computedStyles}
+DOM Structure: ${extractDOMStructure(element.element)}
+`;
+
+        analysisInstructions = `
 Please analyze the layout and positioning of this element:
 
-1. How is this element positioned in the layout?
-2. What CSS properties are affecting its layout?
+1. How is this element positioned in the layout? (flexbox, grid, absolute, etc.)
+2. What CSS properties are affecting its layout behavior?
 3. Are there any layout issues or improvements needed?
 4. How does it interact with surrounding elements?
 5. What responsive considerations should be made?
+6. Are there any alignment or spacing problems?
 
 ${userInput ? `Additional context: ${userInput}` : ''}
 
-Provide specific, actionable insights about the layout and positioning.`;
-
+Expected Output Format:
+- Identify specific layout issues or areas of concern
+- Provide actionable recommendations for layout improvements
+- Rate severity (Low/Medium/High)
+- Include code examples where applicable`;
+        break;
+        
       case 'accessibility':
-        return `${baseElementInfo}
+        systemInstructions = `You are an accessibility auditor. Examine the provided DOM and metadata for compliance with WCAG 2.1. Focus on:
+- Color contrast ratios
+- Keyboard navigation support
+- ARIA roles and attributes
+- Alt text for images
+- Screen reader compatibility
+- Focus management
+- Semantic HTML structure`;
 
+        contextInfo = `
+CSS Properties:
+${computedStyles}
+ARIA Attributes: ${extractARIAInfo(element.element)}
+Interactive Properties: ${extractInteractiveInfo(element.element)}
+`;
+
+        analysisInstructions = `
 Please analyze the accessibility of this element:
 
 1. What accessibility features does this element have?
@@ -289,14 +334,33 @@ Please analyze the accessibility of this element:
 3. How well does it work with screen readers?
 4. What ARIA attributes would improve accessibility?
 5. Are there any keyboard navigation concerns?
+6. Does it meet WCAG 2.1 guidelines?
 
 ${userInput ? `Additional context: ${userInput}` : ''}
 
-Provide specific, actionable accessibility improvements.`;
-
+Expected Output Format:
+- List specific WCAG violations with line references
+- Rate severity (Critical/Moderate/Minor)
+- Provide fix instructions with attribute examples
+- Include accessibility best practices`;
+        break;
+        
       case 'performance':
-        return `${baseElementInfo}
+        systemInstructions = `You are a web performance analyst. Based on the provided performance trace and DOM structure, detect UI bottlenecks, expensive renders, and inefficient CSS/JS patterns. Focus on:
+- Layout thrashing and reflows
+- Memory leaks and garbage collection
+- CSS selector complexity
+- Event listener optimization
+- Render performance bottlenecks
+- Resource loading optimization`;
 
+        contextInfo = `
+CSS Properties:
+${computedStyles}
+Performance Indicators: ${extractPerformanceInfo(element.element)}
+`;
+
+        analysisInstructions = `
 Please analyze the performance implications of this element:
 
 1. What performance impact does this element have?
@@ -304,15 +368,27 @@ Please analyze the performance implications of this element:
 3. How could this element be optimized?
 4. Are there any unnecessary re-renders or calculations?
 5. What performance best practices could be applied?
+6. Are there any memory leaks or inefficient patterns?
 
 ${userInput ? `Additional context: ${userInput}` : ''}
 
-Provide specific, actionable performance optimizations.`;
-
+Expected Output Format:
+- Identify memory leaks, layout thrashing, event bloat
+- Provide source file or component references
+- Suggest optimizations using async, lazy load, etc.
+- Rate performance impact (Low/Medium/High)`;
+        break;
+        
       case 'general':
       default:
-        return `${baseElementInfo}
+        systemInstructions = `You are a web development expert. Analyze the provided element and context to provide comprehensive insights and actionable recommendations.`;
 
+        contextInfo = `
+CSS Properties:
+${computedStyles}
+`;
+
+        analysisInstructions = `
 Please provide a comprehensive analysis of this element:
 
 1. What is the purpose and function of this element?
@@ -324,7 +400,83 @@ Please provide a comprehensive analysis of this element:
 ${userInput ? `Additional context: ${userInput}` : ''}
 
 Provide a detailed analysis with specific insights and recommendations.`;
+        break;
     }
+
+    return `${systemInstructions}
+
+${baseElementInfo}
+${contextInfo}
+
+${analysisInstructions}`;
+  };
+
+  // Helper functions for extracting element information
+  const getComputedStyles = (element: HTMLElement): string => {
+    const styles = window.getComputedStyle(element);
+    const relevantProperties = [
+      'display', 'position', 'top', 'left', 'right', 'bottom',
+      'width', 'height', 'margin', 'padding', 'border',
+      'flex-direction', 'justify-content', 'align-items',
+      'grid-template-columns', 'grid-template-rows',
+      'z-index', 'opacity', 'visibility', 'overflow',
+      'background', 'color', 'font-size', 'font-weight'
+    ];
+
+    return relevantProperties
+      .map(prop => `${prop}: ${styles.getPropertyValue(prop)}`)
+      .join('\n');
+  };
+
+  const extractDOMStructure = (element: HTMLElement): string => {
+    const parent = element.parentElement;
+    const siblings = parent ? Array.from(parent.children) : [];
+    const siblingIndex = siblings.indexOf(element);
+    
+    return `Parent: ${parent?.tagName?.toLowerCase() || 'root'}
+Siblings: ${siblings.length} (index: ${siblingIndex})
+Children: ${element.children.length}`;
+  };
+
+  const extractARIAInfo = (element: HTMLElement): string => {
+    const ariaAttributes = [
+      'role', 'aria-label', 'aria-labelledby', 'aria-describedby',
+      'aria-hidden', 'aria-expanded', 'aria-pressed', 'aria-checked',
+      'aria-required', 'aria-invalid', 'aria-disabled'
+    ];
+
+    const ariaInfo = ariaAttributes
+      .map(attr => {
+        const value = element.getAttribute(attr);
+        return value ? `${attr}="${value}"` : null;
+      })
+      .filter(Boolean)
+      .join(', ');
+
+    return ariaInfo || 'No ARIA attributes found';
+  };
+
+  const extractInteractiveInfo = (element: HTMLElement): string => {
+    const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(element.tagName.toLowerCase());
+    const hasClickHandler = element.onclick !== null;
+    const tabIndex = element.getAttribute('tabindex');
+    const isFocusable = element.focus !== undefined;
+    
+    return `Interactive: ${isInteractive || hasClickHandler}
+Focusable: ${isFocusable}
+Tab Index: ${tabIndex || 'default'}`;
+  };
+
+  const extractPerformanceInfo = (element: HTMLElement): string => {
+    const styles = window.getComputedStyle(element);
+    const hasTransform = styles.transform !== 'none';
+    const hasTransition = styles.transition !== 'all 0s ease 0s';
+    const hasAnimation = styles.animation !== 'none';
+    
+    return `Transforms: ${hasTransform ? 'Yes' : 'No'}
+Transitions: ${hasTransition ? 'Yes' : 'No'}
+Animations: ${hasAnimation ? 'Yes' : 'No'}
+Will-change: ${styles.willChange}`;
   };
 
   // Handle screenshot actions
@@ -567,6 +719,8 @@ Provide a detailed analysis with specific insights and recommendations.`;
         debugResponses={debugResponses}
         clearDebugResponses={clearDebugResponses}
         currentElement={detectedElement}
+        terminalHeight={terminalHeight}
+        onTerminalHeightChange={setTerminalHeight}
       />
 
       {/* Terminal Button - Lower Left Corner */}
