@@ -410,10 +410,9 @@ const DebugModal: React.FC<DebugModalProps> = ({
   return (
     <div
       data-debug-modal
-      className="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-end justify-center"
+      className="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center"
       style={{ 
-        bottom: safeTerminalHeight,
-        padding: isMobile ? '12px' : '24px'
+        padding: isMobile ? '16px' : '32px'
       }}
       role="dialog"
       aria-modal="true"
@@ -423,18 +422,23 @@ const DebugModal: React.FC<DebugModalProps> = ({
         id="logtrace-modal"
         ref={modalRef}
         data-debug-modal
-        className="bg-slate-900/98 border-slate-700/50 w-full max-w-2xl rounded-2xl shadow-2xl backdrop-blur-xl"
+        className="bg-slate-900/95 border-cyan-500/50 backdrop-blur-md shadow-xl shadow-cyan-500/20 w-full max-w-4xl rounded-xl flex flex-col"
         style={{ 
-          maxHeight: Math.min(viewportInfo.height * 0.75, 600),
-          minHeight: 400,
+          maxHeight: isMobile ? `calc(100vh - 32px)` : '700px',
+          minHeight: isMobile ? '400px' : '500px',
+          height: 'auto',
+          maxWidth: isMobile ? `calc(100vw - 32px)` : '1200px',
           transform: 'translateZ(0)',
-          willChange: 'transform'
+          willChange: 'transform',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
         }}
       >
         {/* Sleek Header */}
-        <div className="flex items-center justify-between p-6 pb-4 border-b border-slate-700/30">
+        <div className="flex items-center justify-between p-4 border-b border-cyan-500/20 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
               <Zap className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -448,109 +452,147 @@ const DebugModal: React.FC<DebugModalProps> = ({
             data-close-button
             onClick={() => setShowDebugModal(false)}
             variant="ghost" 
-            className="w-8 h-8 p-0 rounded-full hover:bg-slate-800/50 text-slate-400 hover:text-white transition-colors"
+            className="w-8 h-8 p-0 rounded-lg hover:bg-slate-800/50 text-slate-400 hover:text-white transition-colors"
           >
             <X className="w-4 h-4" />
           </Button>
         </div>
 
-        {/* Clean Content Area */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {/* Element Context - Compact */}
-          {currentElement && (
-            <div className="px-6 py-4 border-b border-slate-700/30 bg-slate-800/20">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="text-sm font-medium text-slate-300">Selected Element</span>
-                </div>
-                <button
-                  onClick={() => setIsElementContextExpanded(!isElementContextExpanded)}
-                  className="text-slate-400 hover:text-white transition-colors"
-                  aria-expanded={isElementContextExpanded}
-                >
-                  {isElementContextExpanded ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-              
-              {isElementContextExpanded && (
-                <div className="space-y-3">
+        {/* Content Area */}
+        <div className="flex-1 overflow-hidden flex min-h-0">
+          {/* Left Panel - Element Context */}
+          <div className="w-1/3 border-r border-cyan-500/20 flex flex-col">
+            {/* Element Context */}
+            {currentElement && (
+              <div className="p-4 border-b border-cyan-500/20 flex-shrink-0">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-xs">
-                      {currentElement.tag.toUpperCase()}
-                    </Badge>
-                    {(['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null) && (
-                      <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">
-                        Interactive
-                      </Badge>
-                    )}
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="text-sm font-medium text-slate-300">Selected Element</span>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {currentElement.id && (
-                      <div>
-                        <span className="text-slate-400 text-xs">ID</span>
-                        <div className="text-green-300 font-mono text-xs mt-1">#{sanitizeText(currentElement.id)}</div>
-                      </div>
+                  <button
+                    onClick={() => setIsElementContextExpanded(!isElementContextExpanded)}
+                    className="text-slate-400 hover:text-white transition-colors"
+                    aria-expanded={isElementContextExpanded}
+                  >
+                    {isElementContextExpanded ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
                     )}
-                    {currentElement.classes.length > 0 && (
-                      <div>
-                        <span className="text-slate-400 text-xs">Classes</span>
-                        <div className="text-green-300 font-mono text-xs mt-1">.{currentElement.classes.map(c => sanitizeText(c)).join(' .')}</div>
-                      </div>
-                    )}
-                    {currentElement.text && (
-                      <div className="col-span-2">
-                        <span className="text-slate-400 text-xs">Text</span>
-                        <div className="text-slate-300 text-xs mt-1">"{sanitizeText(currentElement.text)}"</div>
-                      </div>
-                    )}
+                  </button>
+                </div>
+                
+                {isElementContextExpanded && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-xs">
+                        {currentElement.tag.toUpperCase()}
+                      </Badge>
+                      {(['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null) && (
+                        <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">
+                          Interactive
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      {currentElement.id && (
+                        <div>
+                          <span className="text-slate-400 text-xs">ID</span>
+                          <div className="text-green-300 font-mono text-xs mt-1">#{sanitizeText(currentElement.id)}</div>
+                        </div>
+                      )}
+                      {currentElement.classes.length > 0 && (
+                        <div>
+                          <span className="text-slate-400 text-xs">Classes</span>
+                          <div className="text-green-300 font-mono text-xs mt-1">.{currentElement.classes.map(c => sanitizeText(c)).join(' .')}</div>
+                        </div>
+                      )}
+                      {currentElement.text && (
+                        <div>
+                          <span className="text-slate-400 text-xs">Text</span>
+                          <div className="text-slate-300 text-xs mt-1">"{sanitizeText(currentElement.text)}"</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Context Summary */}
+            {currentElement && (
+              <div className="p-4 border-b border-cyan-500/20 flex-shrink-0">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                  <span className="text-sm font-medium text-slate-300">Element Context</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div><span className="text-slate-400">Tag:</span> <span className="text-purple-300 font-mono">&lt;{currentElement.tag}&gt;</span></div>
+                  {currentElement.id && <div><span className="text-slate-400">ID:</span> <span className="text-green-300 font-mono">#{sanitizeText(currentElement.id)}</span></div>}
+                  {currentElement.classes.length > 0 && <div><span className="text-slate-400">Classes:</span> <span className="text-green-300 font-mono">.{currentElement.classes.map(c => sanitizeText(c)).join(' .')}</span></div>}
+                  {(['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null) && <div><span className="text-green-400 font-medium">Interactive element</span></div>}
+                </div>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="p-4 flex-shrink-0">
+                <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-lg p-3 border border-red-500/20">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-red-500/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-3 h-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-red-400 font-medium text-xs">Error</h4>
+                      <p className="text-red-300/80 text-xs">{errorMessage}</p>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
-          {/* Clean Tabs */}
-          <div className="flex-1 overflow-hidden flex flex-col">
+          {/* Right Panel - Debug Interface */}
+          <div className="flex-1 flex flex-col min-h-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-3 bg-slate-800/30 mx-6 mt-4 rounded-xl p-1">
+              <TabsList className="grid w-full grid-cols-3 bg-slate-800/30 ml-0 mr-2 mt-4 rounded-lg p-1 flex-shrink-0">
                 <TabsTrigger 
                   value="quick" 
-                  className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-lg text-sm font-medium transition-all"
+                  className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-md text-sm font-medium transition-all px-2"
                 >
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4" />
+                  <div className="flex items-center gap-1">
+                    <Zap className="w-3 h-3" />
                     <span>Quick</span>
                   </div>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="advanced" 
-                  className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-lg text-sm font-medium transition-all"
+                  className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-md text-sm font-medium transition-all px-2"
                 >
                   Advanced
                 </TabsTrigger>
                 <TabsTrigger 
                   value="prompt" 
-                  className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-lg text-sm font-medium transition-all"
+                  className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-md text-sm font-medium transition-all px-2"
                 >
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
+                  <div className="flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
                     <span>Prompt</span>
                   </div>
                 </TabsTrigger>
               </TabsList>
 
               {/* Tab Content */}
-              <div className="flex-1 overflow-y-auto">
-                <TabsContent value="quick" className="px-6 py-4 space-y-4">
+              <div className="flex-1 overflow-y-auto min-h-0 p-3">
+                <TabsContent value="quick" className="space-y-4 h-full">
                   {/* Quick Debug Intro */}
-                  <div className="text-center py-2">
-                    <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <div className="text-center py-2 flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Zap className="w-6 h-6 text-white" />
                     </div>
                     <h3 className="text-white font-semibold text-lg mb-1">Quick Debug</h3>
@@ -558,11 +600,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
                   </div>
 
                   {/* Quick Actions Grid */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {quickObjectives.slice(0, 8).map((obj) => (
+                  <div className="grid grid-cols-3 gap-2 flex-shrink-0">
+                    {quickObjectives.slice(0, 12).map((obj) => (
                       <button
                         key={obj.label}
-                        className={`p-3 rounded-xl border transition-all duration-200 text-left ${
+                        className={`p-3 rounded-lg border transition-all duration-200 text-left ${
                           selectedQuickObjective === obj.label 
                             ? 'border-cyan-500 bg-cyan-500/10 text-cyan-300' 
                             : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:border-slate-600 hover:bg-slate-800/70'
@@ -580,7 +622,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                   </div>
 
                   {/* Input Section */}
-                  <div className="space-y-3">
+                  <div className="space-y-3 flex-shrink-0">
                     <div className="relative">
                       <Input
                         ref={inputRef}
@@ -589,14 +631,14 @@ const DebugModal: React.FC<DebugModalProps> = ({
                           setUserIntent(e.target.value);
                           setSelectedQuickObjective(null);
                         }}
-                        className="bg-slate-800/50 border-slate-600 text-white placeholder:text-slate-400 h-12 rounded-xl pr-24"
+                        className="bg-slate-800/50 border-slate-600 text-white placeholder:text-slate-400 h-12 rounded-lg pr-24"
                         placeholder="Describe what you want to fix or improve..."
                         maxLength={500}
                       />
                       <Button 
                         onClick={() => handleDebugSubmit(userIntent)}
                         disabled={isAnalyzing || !userIntent.trim()}
-                        className="absolute right-1 top-1 h-10 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-lg transition-all"
+                        className="absolute right-1 top-1 h-10 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-md transition-all"
                       >
                         {isAnalyzing ? (
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -611,10 +653,10 @@ const DebugModal: React.FC<DebugModalProps> = ({
                   </div>
                 </TabsContent>
 
-                <TabsContent value="advanced" className="px-6 py-4 space-y-4">
+                <TabsContent value="advanced" className="space-y-4 h-full">
                   {/* Advanced Debug Intro */}
-                  <div className="text-center py-2">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <div className="text-center py-2 flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                       </svg>
@@ -623,24 +665,8 @@ const DebugModal: React.FC<DebugModalProps> = ({
                     <p className="text-slate-400 text-sm">Deep analysis with detailed context</p>
                   </div>
                   
-                  {/* Context Summary */}
-                  {currentElement && (
-                    <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                        <span className="text-sm font-medium text-slate-300">Element Context</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div><span className="text-slate-400">Tag:</span> <span className="text-purple-300 font-mono">&lt;{currentElement.tag}&gt;</span></div>
-                        {currentElement.id && <div><span className="text-slate-400">ID:</span> <span className="text-green-300 font-mono">#{sanitizeText(currentElement.id)}</span></div>}
-                        {currentElement.classes.length > 0 && <div className="col-span-2"><span className="text-slate-400">Classes:</span> <span className="text-green-300 font-mono">.{currentElement.classes.map(c => sanitizeText(c)).join(' .')}</span></div>}
-                        {(['button','a','input','select','textarea'].includes(currentElement.tag) || currentElement.element?.onclick != null) && <div className="col-span-2"><span className="text-green-400 font-medium">Interactive element</span></div>}
-                      </div>
-                    </div>
-                  )}
-                  
                   {/* Advanced Questions */}
-                  <div className="space-y-2">
+                  <div className="space-y-2 flex-shrink-0">
                     <label className="block text-slate-300 font-medium text-sm">
                       Common Questions
                     </label>
@@ -653,7 +679,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                       ].map((q) => (
                         <button
                           key={q}
-                          className={`p-3 rounded-xl border text-left transition-all duration-200 ${
+                          className={`p-3 rounded-lg border text-left transition-all duration-200 ${
                             selectedAdvancedQuestion === q 
                               ? 'border-purple-500 bg-purple-500/10 text-purple-300' 
                               : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:border-slate-600 hover:bg-slate-800/70'
@@ -666,11 +692,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
                     </div>
                   </div>
                   
-                  <div className="space-y-3">
+                  <div className="space-y-3 flex-shrink-0">
                     <Textarea
                       value={advancedPrompt}
                       onChange={(e) => setAdvancedPrompt(e.target.value)}
-                      className="bg-slate-800/50 border-slate-600 text-white placeholder:text-slate-400 min-h-24 rounded-xl resize-none"
+                      className="bg-slate-800/50 border-slate-600 text-white placeholder:text-slate-400 min-h-24 rounded-lg resize-none"
                       placeholder="Describe your advanced debug question or issue..."
                       maxLength={2000}
                     />
@@ -697,7 +723,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                         await handleDebugSubmit(fullPrompt);
                       }}
                       disabled={isAnalyzing}
-                      className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-xl h-12 transition-all"
+                      className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-lg h-12 transition-all"
                     >
                       {isAnalyzing ? (
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -713,18 +739,18 @@ const DebugModal: React.FC<DebugModalProps> = ({
                   </div>
                 </TabsContent>
 
-                <TabsContent value="prompt" className="px-6 py-4 space-y-4">
+                <TabsContent value="prompt" className="space-y-4 h-full">
                   {/* Prompt Tab Intro */}
-                  <div className="text-center py-2">
-                    <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <div className="text-center py-2 flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Sparkles className="w-6 h-6 text-white" />
                     </div>
                     <h3 className="text-white font-semibold text-lg mb-1">Context Prompt</h3>
                     <p className="text-slate-400 text-sm">AI-generated prompts with full context</p>
                   </div>
                   
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                  <div className="space-y-3 flex-1 flex flex-col min-h-0">
+                    <div className="flex items-center justify-between flex-shrink-0">
                       <label className="text-slate-300 font-medium text-sm">
                         Generated Prompt
                       </label>
@@ -732,27 +758,27 @@ const DebugModal: React.FC<DebugModalProps> = ({
                         onClick={handleCopyPrompt}
                         disabled={!generatedPrompt}
                         variant="outline"
-                        className="border-slate-600 text-slate-300 hover:bg-slate-800/50 rounded-lg h-8 px-3"
+                        className="border-slate-600 text-slate-300 hover:bg-slate-800/50 rounded-md h-8 px-3"
                         size="sm"
                       >
                         <Copy className="w-3 h-3 mr-1" /> Copy
                       </Button>
                     </div>
-                    <ScrollArea className="w-full rounded-xl border border-slate-600 h-48">
+                    <ScrollArea className="w-full rounded-lg border border-slate-600 flex-1 min-h-0">
                       <Textarea
                         value={generatedPrompt}
                         onChange={(e) => setGeneratedPrompt(e.target.value)}
-                        className="bg-slate-800/50 border-none text-slate-300 resize-none min-h-48 rounded-xl"
+                        className="bg-slate-800/50 border-none text-slate-300 resize-none h-full rounded-lg"
                         placeholder="Generated prompt will appear here..."
                         readOnly={!generatedPrompt}
                       />
                     </ScrollArea>
                     {generatedPrompt && (
-                      <div className="flex gap-3">
+                      <div className="flex gap-3 flex-shrink-0">
                         <Button 
                           onClick={() => handleDebugSubmit(generatedPrompt)}
                           disabled={isAnalyzing}
-                          className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white rounded-xl h-12"
+                          className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white rounded-lg h-12"
                         >
                           {isAnalyzing ? (
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -766,7 +792,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                         <Button 
                           onClick={handleCopyPrompt}
                           variant="outline"
-                          className="border-slate-600 text-slate-300 hover:bg-slate-800/50 rounded-xl h-12 px-4"
+                          className="border-slate-600 text-slate-300 hover:bg-slate-800/50 rounded-lg h-12 px-4"
                         >
                           <Copy className="w-4 h-4" />
                         </Button>
@@ -777,60 +803,41 @@ const DebugModal: React.FC<DebugModalProps> = ({
               </div>
             </Tabs>
           </div>
-
-          {/* Authentication Prompt - Global Overlay */}
-          {showAuthPrompt && (
-            <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-sm flex items-center justify-center z-10">
-              <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700/50 max-w-md w-full mx-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center">
-                    <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="text-orange-400 font-semibold text-lg">Authentication Required</h4>
-                    <p className="text-orange-300/80 text-sm">Sign in to access AI debugging features</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <Button 
-                    onClick={() => window.location.href = '/auth'}
-                    className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl"
-                  >
-                    Sign In
-                  </Button>
-                  <Button 
-                    onClick={() => setShowAuthPrompt(false)}
-                    variant="outline"
-                    className="border-slate-600 text-slate-300 hover:bg-slate-800/50 rounded-xl"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Error Message */}
-          {errorMessage && (
-            <div className="px-6 py-4">
-              <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-2xl p-4 border border-red-500/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-red-500/20 rounded-xl flex items-center justify-center">
-                    <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-red-400 font-medium text-sm">Error</h4>
-                    <p className="text-red-300/80 text-xs">{errorMessage}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Authentication Prompt - Global Overlay */}
+        {showAuthPrompt && (
+          <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-sm flex items-center justify-center z-10">
+            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700/50 max-w-md w-full mx-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-orange-400 font-semibold text-lg">Authentication Required</h4>
+                  <p className="text-orange-300/80 text-sm">Sign in to access AI debugging features</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => window.location.href = '/auth'}
+                  className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg"
+                >
+                  Sign In
+                </Button>
+                <Button 
+                  onClick={() => setShowAuthPrompt(false)}
+                  variant="outline"
+                  className="border-slate-600 text-slate-300 hover:bg-slate-800/50 rounded-lg"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

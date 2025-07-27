@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Play, Pause, Crown, Zap, Activity, Infinity, LogIn, LogOut, Settings } from 'lucide-react';
+import { Play, Pause, Crown, Zap, Activity, Infinity, LogIn, LogOut, Settings, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Badge } from '@/components/ui/badge';
@@ -62,8 +62,11 @@ const NavBar: React.FC<NavBarProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-green-400">LogTrace</h1>
+            <div className="flex items-center gap-2">
+              <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-2 rounded-lg">
+                <Target className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-xl font-bold text-green-400">LogTrace</span>
             </div>
 
             {/* Center Controls - Universal Control Panel */}

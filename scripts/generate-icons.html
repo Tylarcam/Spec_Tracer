@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogTrace Icon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1e293b;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .icon-preview {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #475569;
+            border-radius: 8px;
+        }
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #059669;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LogTrace Icon Generator</h1>
+        <p>Click the buttons below to download the icons for the Chrome extension.</p>
+        
+        <div id="icon16" class="icon-preview">
+            <h3>16x16</h3>
+            <canvas id="canvas16" width="16" height="16"></canvas>
+            <br>
+            <button onclick="downloadIcon(16)">Download icon16.png</button>
+        </div>
+        
+        <div id="icon32" class="icon-preview">
+            <h3>32x32</h3>
+            <canvas id="canvas32" width="32" height="32"></canvas>
+            <br>
+            <button onclick="downloadIcon(32)">Download icon32.png</button>
+        </div>
+        
+        <div id="icon48" class="icon-preview">
+            <h3>48x48</h3>
+            <canvas id="canvas48" width="48" height="48"></canvas>
+            <br>
+            <button onclick="downloadIcon(48)">Download icon48.png</button>
+        </div>
+        
+        <div id="icon128" class="icon-preview">
+            <h3>128x128</h3>
+            <canvas id="canvas128" width="128" height="128"></canvas>
+            <br>
+            <button onclick="downloadIcon(128)">Download icon128.png</button>
+        </div>
+    </div>
+
+    <script>
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            const center = size / 2;
+            const radius = size * 0.45;
+            
+            // Create gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, 0);
+            gradient.addColorStop(0, '#10b981'); // green-500
+            gradient.addColorStop(1, '#06b6d4'); // cyan-500
+            
+            // Draw background circle
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(center, center, radius, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw target rings
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = Math.max(1, size / 40);
+            
+            // Outer ring
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath();
+            ctx.arc(center, center, radius * 0.8, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Middle ring
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            ctx.arc(center, center, radius * 0.53, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Inner ring
+            ctx.globalAlpha = 0.7;
+            ctx.beginPath();
+            ctx.arc(center, center, radius * 0.27, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Center dot
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(center, center, radius * 0.1, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+        
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const link = document.createElement('a');
+            link.download = `icon${size}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Draw all icons when page loads
+        window.onload = function() {
+            drawIcon(document.getElementById('canvas16'), 16);
+            drawIcon(document.getElementById('canvas32'), 32);
+            drawIcon(document.getElementById('canvas48'), 48);
+            drawIcon(document.getElementById('canvas128'), 128);
+        };
+    </script>
+</body>
+</html> 
