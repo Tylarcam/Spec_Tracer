@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
@@ -15,6 +14,7 @@ import TabbedTerminal from './LogTrace/TabbedTerminal';
 import InteractivePanel from './LogTrace/InteractivePanel';
 import QuickActionModal from './LogTrace/QuickActionModal';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
+import { formatElementDataForCopy } from '@/utils/elementDataFormatter';
 
 interface LogTraceProps {
   captureActive: boolean;
@@ -109,11 +109,9 @@ const LogTrace: React.FC<LogTraceProps> = ({
     // Show quick actions
     setShowQuickActions(true);
     
-    // Record the right-click event
+    // Record the right-click event with correct type structure
     recordEvent({
-      id: crypto.randomUUID(),
       type: 'click',
-      timestamp: new Date().toISOString(),
       position: { x: e.clientX, y: e.clientY },
       element: {
         tag: elementInfo.tag,
@@ -134,9 +132,13 @@ const LogTrace: React.FC<LogTraceProps> = ({
     if (typeof action === 'string') {
       switch (action) {
         case 'copy':
-          // Copy element details to clipboard
-          const elementData = JSON.stringify(detectedElement, null, 2);
-          navigator.clipboard.writeText(elementData);
+          // Copy element details to clipboard using formatted data
+          const elementData = formatElementDataForCopy(detectedElement, cursorPosition);
+          navigator.clipboard.writeText(elementData).then(() => {
+            console.log('Element details copied to clipboard');
+          }).catch(err => {
+            console.error('Failed to copy to clipboard:', err);
+          });
           break;
         case 'details':
           // Open element inspector

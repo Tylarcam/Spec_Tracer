@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Sparkles, Bug, Eye, Square, Monitor, Maximize2, PenTool, ArrowUp } from 'lucide-react';
+import { Camera, Sparkles, Bug, Copy, Square, Monitor, Maximize2, PenTool, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface QuickActionModalProps {
@@ -27,7 +27,7 @@ const contextGenOptions = [
 ];
 
 const actions = [
-  { key: 'details', label: 'View', icon: Eye },
+  { key: 'copy', label: 'Copy', icon: Copy },
   { key: 'screenshot', label: 'Shot', icon: Camera },
   { key: 'context', label: 'Gen', icon: Sparkles },
   { key: 'debug', label: 'Fix', icon: Bug },
@@ -234,4 +234,4 @@ const QuickActionModal: React.FC<QuickActionModalProps> = ({ visible, x, y, onCl
   );
 };
 
-export default QuickActionModal; 
+export default QuickActionModal;
