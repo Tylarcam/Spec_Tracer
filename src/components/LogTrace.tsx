@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
@@ -5,11 +6,13 @@ import { useMultipleInspectors } from '@/shared/hooks/useMultipleInspectors';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Terminal } from 'lucide-react';
+import NavBar from './NavBar';
 import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
 import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
 import TabbedTerminal from './LogTrace/TabbedTerminal';
+import InteractivePanel from './LogTrace/InteractivePanel';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 
 interface LogTraceProps {
@@ -26,6 +29,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const isMobile = useIsMobile();
   const [showTerminal, setShowTerminal] = useState(false);
   const [isHoverPaused, setIsHoverPaused] = useState(false);
+  const [showInteractivePanel, setShowInteractivePanel] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(400);
   
   const orchestrator = useLogTraceOrchestrator();
@@ -64,6 +69,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const handleEscapeKey = () => {
     if (showAIDebugModal) {
       setShowAIDebugModal(false);
+    } else if (showInteractivePanel) {
+      setShowInteractivePanel(false);
     } else if (inspectors.length > 0) {
       // Close most recent inspector
       const mostRecent = inspectors.reduce((latest, current) => 
@@ -86,6 +93,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const {
     handleCursorMovement,
     handleElementClick: handleElementClickEvent,
+    handleContextMenu,
     handleTouchStart,
     handleTouchEnd,
   } = useInteractionHandlers({
@@ -93,10 +101,10 @@ const LogTrace: React.FC<LogTraceProps> = ({
     isHoverPaused,
     detectedElement,
     cursorPosition,
-    showInteractivePanel: false, // No longer used
+    showInteractivePanel,
     setCursorPosition,
     setDetectedElement,
-    setShowInteractivePanel: () => {}, // No longer used
+    setShowInteractivePanel,
     setShowAIDebugModal,
     extractElementDetails,
     recordEvent,
@@ -125,6 +133,10 @@ const LogTrace: React.FC<LogTraceProps> = ({
       handleElementClickEvent(e as any);
     };
 
+    const handleRightClick = (e: MouseEvent) => {
+      handleContextMenu(e as any);
+    };
+
     const handleTouchStartEvent = (e: TouchEvent) => {
       if (handleTouchStart) {
         handleTouchStart(e as any);
@@ -140,6 +152,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
     // Add event listeners
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('click', handleClick);
+    document.addEventListener('contextmenu', handleRightClick);
     
     if (isMobile) {
       document.addEventListener('touchstart', handleTouchStartEvent);
@@ -150,18 +163,20 @@ const LogTrace: React.FC<LogTraceProps> = ({
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('click', handleClick);
+      document.removeEventListener('contextmenu', handleRightClick);
       
       if (isMobile) {
         document.removeEventListener('touchstart', handleTouchStartEvent);
         document.removeEventListener('touchend', handleTouchEndEvent);
       }
     };
-  }, [isTraceActive, handleCursorMovement, handleElementClickEvent, handleTouchStart, handleTouchEnd, isMobile]);
+  }, [isTraceActive, handleCursorMovement, handleElementClickEvent, handleContextMenu, handleTouchStart, handleTouchEnd, isMobile]);
 
   // Clear all inspectors when trace is deactivated
   useEffect(() => {
     if (!isTraceActive) {
       clearAllInspectors();
+      setShowInteractivePanel(false);
     }
   }, [isTraceActive, clearAllInspectors]);
 
@@ -169,8 +184,20 @@ const LogTrace: React.FC<LogTraceProps> = ({
 
   return (
     <div className="relative w-full h-full">
+      {/* Universal Control Panel in NavBar */}
+      <NavBar
+        isTracing={isTraceActive}
+        isHoverEnabled={!isHoverPaused}
+        onToggleTracing={() => setIsTraceActive(!isTraceActive)}
+        onToggleHover={() => setIsHoverPaused(!isHoverPaused)}
+        onOpenSettings={() => setShowSettings(true)}
+        onToggleTerminal={() => setShowTerminal(!showTerminal)}
+        eventCount={capturedEvents?.length || 0}
+        showTerminal={showTerminal}
+      />
+
       {/* Instructions Card - Always visible */}
-      <div className="relative z-10 p-4 md:p-6">
+      <div className="relative z-10 p-4 md:p-6 mt-16">
         <InstructionsCard />
       </div>
 
@@ -181,6 +208,28 @@ const LogTrace: React.FC<LogTraceProps> = ({
         mousePosition={cursorPosition}
         overlayRef={overlayRef}
         inspectorCount={inspectors.length}
+      />
+
+      {/* Interactive Panel for Quick Actions */}
+      <InteractivePanel
+        isVisible={showInteractivePanel}
+        currentElement={detectedElement}
+        mousePosition={cursorPosition}
+        onClose={() => setShowInteractivePanel(false)}
+        onDebug={() => setShowAIDebugModal(true)}
+        onPin={() => {
+          if (detectedElement) {
+            addInspector(detectedElement, cursorPosition);
+          }
+        }}
+        onScreenshot={() => {
+          // Handle screenshot action
+          console.log('Screenshot requested');
+        }}
+        onContext={() => {
+          // Handle context action
+          console.log('Context requested');
+        }}
       />
 
       {/* Multiple Element Inspectors */}
@@ -211,15 +260,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
         generateAdvancedPrompt={generateElementPrompt}
         modalRef={modalRef}
       />
-
-      {/* Floating Terminal Toggle Button */}
-      <Button
-        onClick={() => setShowTerminal(true)}
-        className="fixed bottom-4 left-4 z-50 bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 shadow-lg"
-        size="sm"
-      >
-        <Terminal className="h-5 w-5" />
-      </Button>
 
       {/* Terminal Panel */}
       <div className={`fixed bottom-0 left-0 right-0 ${showTerminal ? `h-[${terminalHeight}px]` : 'h-auto'} z-40 transition-all duration-300 ease-in-out`}>

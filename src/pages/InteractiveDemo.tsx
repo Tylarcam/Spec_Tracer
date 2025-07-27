@@ -5,7 +5,7 @@ import LogTrace from '@/components/LogTrace';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PlayCircle, Smartphone, Monitor, Zap, Target, Code, Settings } from 'lucide-react';
+import { PlayCircle, Smartphone, Target, Zap, Code } from 'lucide-react';
 
 const InteractiveDemo: React.FC = () => {
   const isMobile = useIsMobile();
@@ -163,44 +163,6 @@ const InteractiveDemo: React.FC = () => {
             </Card>
           ))}
         </div>
-
-        {/* Mobile-specific demo tools */}
-        {isMobile && (
-          <Card className="bg-slate-800/50 border-slate-700/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg text-blue-400">
-                <Settings className="h-5 w-5" />
-                Demo Controls
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Touch-friendly demo navigation
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={handleCaptureToggle}
-                  className={captureActive ? 'bg-green-600 border-green-600 text-white' : ''}
-                >
-                  {captureActive ? 'Stop Capture' : 'Start Capture'}
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => console.log('Demo interaction logged')}
-                >
-                  Log Interaction
-                </Button>
-              </div>
-              
-              <div className="text-xs text-slate-400 pt-2 border-t border-slate-700">
-                <strong>Tip:</strong> Use the floating debug panel to access all LogTrace features during the demo
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );

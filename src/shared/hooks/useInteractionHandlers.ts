@@ -65,6 +65,51 @@ export const useInteractionHandlers = ({
     };
   }, [isTraceActive, handleEscapeKey]);
 
+  // Right-click context menu handler
+  const handleContextMenu = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isTraceActive) return;
+
+    const target = e.target as HTMLElement;
+    
+    // Skip if right-clicking on LogTrace UI elements
+    if (target && (
+        target.closest('#logtrace-overlay') ||
+        target.closest('#logtrace-modal') ||
+        target.closest('[data-interactive-panel]') ||
+        target.closest('[data-inspector-panel]')
+    )) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Update cursor position and detected element
+    setCursorPosition({ x: e.clientX, y: e.clientY });
+    const elementInfo = extractElementDetails(target);
+    setDetectedElement(elementInfo);
+
+    // Show the interactive panel with quick actions
+    setShowInteractivePanel(true);
+
+    // Record the right-click event
+    recordEvent({
+      id: crypto.randomUUID(),
+      type: 'click',
+      timestamp: new Date().toISOString(),
+      position: { x: e.clientX, y: e.clientY },
+      element: {
+        tag: elementInfo.tag,
+        id: elementInfo.id,
+        classes: elementInfo.classes,
+        text: elementInfo.text,
+        parentPath: elementInfo.parentPath,
+        attributes: elementInfo.attributes,
+        size: elementInfo.size,
+      },
+    });
+  }, [isTraceActive, setCursorPosition, extractElementDetails, setDetectedElement, setShowInteractivePanel, recordEvent]);
+
   const handleCursorMovement = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isTraceActive || isHoverPaused) return;
 
@@ -150,6 +195,7 @@ export const useInteractionHandlers = ({
   return {
     handleCursorMovement,
     handleElementClick,
+    handleContextMenu,
     handleTouchStart: isMobile ? handleTouchStart : undefined,
     handleTouchEnd: isMobile ? handleTouchEnd : undefined,
   };
