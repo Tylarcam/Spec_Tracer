@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
+import PreLaunchLanding from "./pages/PreLaunchLanding";
 import Settings from "./pages/Settings";
 import Upgrade from "./pages/Upgrade";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ function App() {
             <ErrorBoundary>
               <Routes>
                 <Route path="/" element={<Landing />} />
+                <Route path="/pre-launch-landing" element={<PreLaunchLanding />} />
                 <Route path="/debug" element={<Index />} />
                 <Route path="/home" element={<Home />} />
                 <Route path="/auth" element={<Auth />} />
