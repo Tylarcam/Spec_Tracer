@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
@@ -27,11 +26,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   onEventCountChange 
 }) => {
   const isMobile = useIsMobile();
-  const [showTerminal, setShowTerminal] = useState(false);
-  const [isHoverPaused, setIsHoverPaused] = useState(false);
-  const [showInteractivePanel, setShowInteractivePanel] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [terminalHeight, setTerminalHeight] = useState(400);
   
   const orchestrator = useLogTraceOrchestrator();
   const { debugResponses, clearDebugResponses } = useDebugResponses();
@@ -72,8 +67,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const handleEscapeKey = () => {
     if (showAIDebugModal) {
       setShowAIDebugModal(false);
-    } else if (showInteractivePanel) {
-      setShowInteractivePanel(false);
     } else if (inspectors.length > 0) {
       // Close most recent inspector
       const mostRecent = inspectors.reduce((latest, current) => 
@@ -101,13 +94,13 @@ const LogTrace: React.FC<LogTraceProps> = ({
     handleTouchEnd,
   } = useInteractionHandlers({
     isTraceActive,
-    isHoverPaused,
+    isHoverPaused: false,
     detectedElement,
     cursorPosition,
-    showInteractivePanel,
+    showInteractivePanel: false,
     setCursorPosition,
     setDetectedElement,
-    setShowInteractivePanel,
+    setShowInteractivePanel: () => {},
     setShowAIDebugModal,
     extractElementDetails,
     recordEvent,
@@ -177,7 +170,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
   useEffect(() => {
     if (!isTraceActive) {
       clearAllInspectors();
-      setShowInteractivePanel(false);
     }
   }, [isTraceActive, clearAllInspectors]);
 
@@ -188,13 +180,13 @@ const LogTrace: React.FC<LogTraceProps> = ({
       {/* Universal Control Panel in NavBar */}
       <NavBar
         isTracing={isTraceActive}
-        isHoverEnabled={!isHoverPaused}
+        isHoverEnabled={true}
         onToggleTracing={() => onCaptureToggle(!isTraceActive)}
-        onToggleHover={() => setIsHoverPaused(!isHoverPaused)}
+        onToggleHover={() => {}}
         onOpenSettings={() => setShowSettings(true)}
-        onToggleTerminal={() => setShowTerminal(!showTerminal)}
+        onToggleTerminal={() => {}}
         eventCount={capturedEvents?.length || 0}
-        showTerminal={showTerminal}
+        showTerminal={false}
       />
 
       {/* Instructions Card - Always visible */}
@@ -209,16 +201,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
         mousePosition={cursorPosition}
         overlayRef={overlayRef}
         inspectorCount={inspectors.length}
-      />
-
-      {/* Interactive Panel for Quick Actions */}
-      <InteractivePanel
-        isVisible={showInteractivePanel}
-        currentElement={detectedElement}
-        mousePosition={cursorPosition}
-        onClose={() => setShowInteractivePanel(false)}
-        onDebug={() => setShowAIDebugModal(true)}
-        panelRef={interactivePanelRef}
       />
 
       {/* Multiple Element Inspectors */}
@@ -249,21 +231,6 @@ const LogTrace: React.FC<LogTraceProps> = ({
         generateAdvancedPrompt={generateElementPrompt}
         modalRef={modalRef}
       />
-
-      {/* Terminal Panel */}
-      <div className={`fixed bottom-0 left-0 right-0 ${showTerminal ? `h-[${terminalHeight}px]` : 'h-auto'} z-40 transition-all duration-300 ease-in-out`}>
-        <TabbedTerminal
-          showTerminal={showTerminal}
-          setShowTerminal={setShowTerminal}
-          events={capturedEvents || []}
-          exportEvents={exportCapturedEvents}
-          clearEvents={clearCapturedEvents}
-          debugResponses={debugResponses}
-          clearDebugResponses={clearDebugResponses}
-          currentElement={detectedElement}
-          terminalHeight={terminalHeight}
-        />
-      </div>
     </div>
   );
 };

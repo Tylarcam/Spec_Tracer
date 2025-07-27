@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Play, Pause, Crown, Zap, Activity, Infinity, LogIn, LogOut, Settings, Terminal, MousePointer } from 'lucide-react';
+import { Play, Pause, Crown, Zap, Activity, Infinity, LogIn, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Badge } from '@/components/ui/badge';
@@ -92,48 +92,6 @@ const NavBar: React.FC<NavBarProps> = ({
                 )}
                 <span className="ml-2">
                   {isTracing ? 'Pause' : 'Start'} Trace
-                </span>
-              </Toggle>
-            </div>
-
-            {/* Hover Toggle */}
-            <div className="flex items-center space-x-2">
-              <Toggle
-                pressed={isHoverEnabled}
-                onPressedChange={onToggleHover}
-                aria-label="Toggle hover detection"
-                className={`
-                  transition-colors duration-200
-                  ${isHoverEnabled 
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white data-[state=on]:bg-blue-600 data-[state=on]:text-white' 
-                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white'
-                  }
-                `}
-              >
-                <MousePointer className="h-4 w-4" />
-                <span className="ml-2">
-                  {isHoverEnabled ? 'Hover On' : 'Hover Off'}
-                </span>
-              </Toggle>
-            </div>
-
-            {/* Terminal Toggle */}
-            <div className="flex items-center space-x-2">
-              <Toggle
-                pressed={showTerminal}
-                onPressedChange={onToggleTerminal}
-                aria-label="Toggle terminal"
-                className={`
-                  transition-colors duration-200
-                  ${showTerminal 
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white data-[state=on]:bg-purple-600 data-[state=on]:text-white' 
-                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white'
-                  }
-                `}
-              >
-                <Terminal className="h-4 w-4" />
-                <span className="ml-2">
-                  {showTerminal ? 'Terminal On' : 'Terminal Off'}
                 </span>
               </Toggle>
             </div>
