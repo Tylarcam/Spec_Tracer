@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -165,6 +164,14 @@ const DebugModal: React.FC<DebugModalProps> = ({
   // Check if mobile
   const isMobile = window.innerWidth <= 768;
 
+  // Calculate safe modal dimensions
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+  const safeTerminalHeight = terminalHeight || 0;
+  const availableHeight = viewportHeight - safeTerminalHeight - 32; // 32px for padding
+  const maxModalHeight = Math.min(availableHeight, viewportHeight * 0.85);
+  const maxModalWidth = Math.min(viewportWidth - 32, isMobile ? viewportWidth - 16 : 1024);
+
   // Add guest gating logic for extension
   const handleDebugSubmit = async (prompt: string) => {
     if (!prompt.trim()) {
@@ -284,7 +291,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
       data-debug-modal
       className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
       style={{ 
-        bottom: terminalHeight,
+        bottom: safeTerminalHeight,
         padding: isMobile ? '8px' : '16px'
       }}
       role="dialog"
@@ -295,15 +302,16 @@ const DebugModal: React.FC<DebugModalProps> = ({
         id="logtrace-modal"
         ref={modalRef}
         data-debug-modal
-        className="bg-slate-900/95 border-cyan-500/50 w-full overflow-hidden"
+        className="bg-slate-900/95 border-cyan-500/50 w-full overflow-hidden flex flex-col"
         style={{ 
-          maxWidth: isMobile ? '100%' : '1024px',
-          maxHeight: isMobile ? `calc(100vh - ${terminalHeight + 16}px)` : `calc(90vh - ${terminalHeight}px)`,
-          height: isMobile ? `calc(100vh - ${terminalHeight + 16}px)` : 'auto'
+          maxWidth: maxModalWidth,
+          maxHeight: maxModalHeight,
+          height: isMobile ? maxModalHeight : 'auto',
+          minHeight: isMobile ? '60vh' : '500px'
         }}
       >
-        <div className={`${isMobile ? 'p-3' : 'p-6'} h-full flex flex-col`}>
-          <div className={`flex items-center justify-between ${isMobile ? 'mb-3' : 'mb-6'}`}>
+        <div className={`${isMobile ? 'p-3' : 'p-6'} flex-1 flex flex-col min-h-0`}>
+          <div className={`flex items-center justify-between ${isMobile ? 'mb-3' : 'mb-6'} flex-shrink-0`}>
             <h3 id="debug-modal-title" className={`font-bold text-cyan-400 ${isMobile ? 'text-lg' : 'text-2xl'}`}>Debug Assistant</h3>
             <Button 
               data-close-button
@@ -317,7 +325,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
           </div>
 
           {currentElement && (
-            <div className={`${isMobile ? 'mb-3 p-3' : 'mb-6 p-4'} bg-slate-800/50 rounded-lg border border-green-500/30`}>
+            <div className={`${isMobile ? 'mb-3 p-3' : 'mb-6 p-4'} bg-slate-800/50 rounded-lg border border-green-500/30 flex-shrink-0`}>
               <h4 className={`text-green-400 font-semibold ${isMobile ? 'mb-1 text-sm' : 'mb-2'}`}>Element Context</h4>
               {/* Enhanced details, reusing PinnedDetails logic */}
               <div className={`space-y-2 ${isMobile ? 'text-xs' : 'text-xs'}`}>
@@ -353,7 +361,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                 {currentElement.attributes && currentElement.attributes.length > 0 && (
                   <div className="space-y-1 mt-2">
                     <div className={`font-semibold text-green-400 mb-1 ${isMobile ? 'text-xs' : ''}`}>All Attributes</div>
-                    <div className={`${isMobile ? 'max-h-24' : 'max-h-32'} overflow-y-auto border border-green-500/10 rounded bg-slate-800/40`}>
+                    <div className={`${isMobile ? 'max-h-20' : 'max-h-24'} overflow-y-auto border border-green-500/10 rounded bg-slate-800/40`}>
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="text-left text-green-300">
@@ -366,7 +374,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
                           {currentElement.attributes.map(attr => (
                             <tr key={attr.name} className="border-t border-green-500/5">
                               <td className={`py-1 px-2 text-gray-400 align-top whitespace-nowrap ${isMobile ? 'text-xs' : ''}`}>{attr.name}</td>
-                              <td className={`py-1 px-2 text-orange-300 font-mono align-top break-all whitespace-pre-wrap ${isMobile ? 'max-w-[100px] text-xs' : 'max-w-[200px]'}`}>{sanitizeText(attr.value)}</td>
+                              <td className={`py-1 px-2 text-orange-300 font-mono align-top break-all whitespace-pre-wrap ${isMobile ? 'max-w-[80px] text-xs' : 'max-w-[150px]'}`}>{sanitizeText(attr.value)}</td>
                               <td className="py-1 px-2 align-top">
                                 <button
                                   className="text-cyan-400 hover:text-cyan-200 px-1"
@@ -390,9 +398,9 @@ const DebugModal: React.FC<DebugModalProps> = ({
             </div>
           )}
 
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
-              <TabsList className={`grid w-full grid-cols-3 bg-slate-800/50 ${isMobile ? 'h-8' : ''}`}>
+              <TabsList className={`grid w-full grid-cols-3 bg-slate-800/50 flex-shrink-0 ${isMobile ? 'h-8' : ''}`}>
                 <TabsTrigger value="quick" className={`data-[state=active]:bg-cyan-600 ${isMobile ? 'text-xs px-2' : ''}`}>
                   <div className="flex items-center gap-1">
                     <Zap className={`text-cyan-400 ${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
@@ -596,11 +604,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
                         <Copy className={`${isMobile ? 'w-3 h-3 mr-0.5' : 'w-4 h-4 mr-1'}`} /> Copy
                       </Button>
                     </div>
-                    <ScrollArea className={`w-full rounded-md border border-green-500/30 ${isMobile ? 'h-32' : 'h-64'}`}>
+                    <ScrollArea className={`w-full rounded-md border border-green-500/30 ${isMobile ? 'h-40' : 'h-64'}`}>
                       <Textarea
                         value={generatedPrompt}
                         onChange={(e) => setGeneratedPrompt(e.target.value)}
-                        className={`bg-slate-800 border-none text-green-400 resize-none ${isMobile ? 'min-h-32 text-sm' : 'min-h-60'}`}
+                        className={`bg-slate-800 border-none text-green-400 resize-none ${isMobile ? 'min-h-40 text-sm' : 'min-h-60'}`}
                         placeholder="Generated prompt will appear here..."
                         readOnly={!generatedPrompt}
                       />
@@ -625,14 +633,14 @@ const DebugModal: React.FC<DebugModalProps> = ({
                         </Button>
                       </div>
                     )}
-              </div>
+                  </div>
                 </TabsContent>
               </div>
             </Tabs>
           </div>
 
           {errorMessage && (
-            <div className={`${isMobile ? 'mt-2 p-2' : 'mt-4 p-3'} bg-red-800/60 text-red-200 rounded animate-pulse ${isMobile ? 'text-sm' : ''}`}>
+            <div className={`${isMobile ? 'mt-2 p-2' : 'mt-4 p-3'} bg-red-800/60 text-red-200 rounded animate-pulse ${isMobile ? 'text-sm' : ''} flex-shrink-0`}>
               {errorMessage}
             </div>
           )}

@@ -7,23 +7,22 @@ interface QuickActionModalProps {
   x: number;
   y: number;
   onClose: () => void;
-  onAction: (action: 'screenshot' | 'context' | 'debug' | 'details' | { type: 'screenshot', mode: ScreenshotMode } | { type: 'context', mode: string, input: string }) => void;
+  onAction: (action: string | { type: string; mode?: string; input?: string }) => void;
 }
 
-type ScreenshotMode = 'rectangle' | 'window' | 'fullscreen' | 'freeform';
+type ScreenshotMode = 'element' | 'viewport' | 'fullpage' | 'freeform' | 'rect';
 
-const screenshotOptions = [
-  { mode: 'rectangle' as ScreenshotMode, label: 'Rect', icon: Square },
-  { mode: 'window' as ScreenshotMode, label: 'Win', icon: Monitor },
-  { mode: 'fullscreen' as ScreenshotMode, label: 'Full', icon: Maximize2 },
-  { mode: 'freeform' as ScreenshotMode, label: 'Free', icon: PenTool },
+const screenshotModes: { mode: ScreenshotMode; label: string; icon: React.ComponentType }[] = [
+  { mode: 'element', label: 'Element', icon: Square },
+  { mode: 'viewport', label: 'Viewport', icon: Monitor },
+  { mode: 'fullpage', label: 'Full Page', icon: Maximize2 },
+  { mode: 'freeform', label: 'Freeform', icon: PenTool },
+  { mode: 'rect', label: 'Rectangle', icon: Square },
 ];
 
-const contextGenOptions = [
-  { key: 'edit', label: 'Edit', icon: Sparkles },
-  { key: 'fix', label: 'Fix', icon: Bug },
-  { key: 'tell', label: 'Tell', icon: Eye },
-  { key: 'show', label: 'Show', icon: Monitor },
+const contextModes = [
+  { mode: 'basic', label: 'Basic Context' },
+  { mode: 'advanced', label: 'Advanced Context' },
 ];
 
 const actions = [
@@ -31,205 +30,206 @@ const actions = [
   { key: 'screenshot', label: 'Shot', icon: Camera },
   { key: 'context', label: 'Gen', icon: Sparkles },
   { key: 'debug', label: 'Fix', icon: Bug },
-] as const;
+];
 
-type ActionKey = typeof actions[number]['key'];
-
-const QuickActionModal: React.FC<QuickActionModalProps> = ({ visible, x, y, onClose, onAction }) => {
+const QuickActionModal: React.FC<QuickActionModalProps> = ({
+  visible,
+  x,
+  y,
+  onClose,
+  onAction,
+}) => {
   const modalRef = useRef<HTMLDivElement>(null);
-  const [showScreenshotMenu, setShowScreenshotMenu] = useState(false);
-  const [screenshotBtnRect, setScreenshotBtnRect] = useState<DOMRect | null>(null);
-  const hideMenuTimeout = useRef<NodeJS.Timeout | null>(null);
-  const [showContextMenu, setShowContextMenu] = useState(false);
-  const [selectedContextGen, setSelectedContextGen] = useState<string | null>(null);
-  const [contextGenInput, setContextGenInput] = useState('');
-  const contextMenuTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const [contextInput, setContextInput] = useState('');
 
   useEffect(() => {
-    if (!visible) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    const handleClick = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         onClose();
       }
     };
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('mousedown', handleClick);
+
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [visible, onClose]);
+  }, [modalRef, onClose]);
 
-  // Helper to show/hide screenshot menu with delay
-  const openScreenshotMenu = (e: React.MouseEvent) => {
-    if (hideMenuTimeout.current) clearTimeout(hideMenuTimeout.current);
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    setScreenshotBtnRect(rect);
-    setShowScreenshotMenu(true);
-  };
-  const closeScreenshotMenu = () => {
-    if (hideMenuTimeout.current) clearTimeout(hideMenuTimeout.current);
-    hideMenuTimeout.current = setTimeout(() => setShowScreenshotMenu(false), 400);
-  };
-  const cancelCloseScreenshotMenu = () => {
-    if (hideMenuTimeout.current) clearTimeout(hideMenuTimeout.current);
-  };
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
 
-  const openContextMenu = (e: React.MouseEvent) => {
-    if (contextMenuTimeout.current) clearTimeout(contextMenuTimeout.current);
-    setShowContextMenu(true);
-  };
-  const closeContextMenu = () => {
-    if (contextMenuTimeout.current) clearTimeout(contextMenuTimeout.current);
-    contextMenuTimeout.current = setTimeout(() => setShowContextMenu(false), 400);
-  };
-  const cancelCloseContextMenu = () => {
-    if (contextMenuTimeout.current) clearTimeout(contextMenuTimeout.current);
-  };
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    const updatePosition = () => {
+      if (!modalRef.current) return;
+
+      const modalWidth = modalRef.current.offsetWidth;
+      const modalHeight = modalRef.current.offsetHeight;
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+
+      let newX = x;
+      let newY = y;
+
+      if (newX - modalWidth / 2 < 0) {
+        newX = modalWidth / 2;
+      } else if (newX + modalWidth / 2 > windowWidth) {
+        newX = windowWidth - modalWidth / 2;
+      }
+
+      if (newY - modalHeight / 2 < 0) {
+        newY = modalHeight / 2;
+      } else if (newY + modalHeight / 2 > windowHeight) {
+        newY = windowHeight - modalHeight / 2;
+      }
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [x, y]);
 
   if (!visible) return null;
 
+  const handleAction = (actionKey: string) => {
+    if (actionKey === 'screenshot') {
+      setActiveSubmenu('screenshot');
+    } else if (actionKey === 'context') {
+      setActiveSubmenu('context');
+    } else {
+      onAction(actionKey);
+      onClose();
+    }
+  };
+
+  const handleScreenshotMode = (mode: ScreenshotMode) => {
+    onAction({ type: 'screenshot', mode });
+    onClose();
+  };
+
+  const handleContextMode = (mode: string) => {
+    if (mode === 'basic') {
+      onAction({ type: 'context', mode, input: contextInput });
+      onClose();
+    } else {
+      onAction({ type: 'context', mode, input: contextInput });
+      onClose();
+    }
+  };
+
   return (
-    <div
-      ref={modalRef}
-      style={{ position: 'absolute', left: x, top: y - 48, zIndex: 1000 }}
-      className="flex items-center bg-slate-900/95 border border-cyan-700 rounded-full shadow-lg px-2 py-1 gap-1 animate-fade-in"
-      tabIndex={-1}
-      data-quick-actions="true"
-    >
-      {actions.map(({ key, label, icon: Icon }) => {
-        if (key === 'screenshot') {
-          return (
-            <div key={key} className="relative flex items-center">
-              <button
-                onClick={openScreenshotMenu}
-                onMouseEnter={openScreenshotMenu}
-                onMouseLeave={closeScreenshotMenu}
-                className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-cyan-900 border border-transparent hover:border-cyan-400 text-cyan-100 font-semibold text-sm transition-colors focus:outline-none"
-                style={{ minWidth: 56 }}
-                type="button"
-              >
-                <Icon className="h-4 w-4 text-cyan-300" />
-                {label}
-              </button>
-              {showScreenshotMenu && (
-                <div
-                  onMouseEnter={cancelCloseScreenshotMenu}
-                  onMouseLeave={closeScreenshotMenu}
-                  className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-slate-900 border border-cyan-700 rounded-xl shadow-lg py-2 px-2 flex flex-col gap-1 min-w-[120px] z-50"
+    <div className="fixed inset-0 z-50 pointer-events-none">
+      <div
+        ref={modalRef}
+        className="absolute bg-slate-800/95 backdrop-blur-sm border border-cyan-500/30 rounded-lg shadow-xl pointer-events-auto"
+        style={{
+          left: `${x}px`,
+          top: `${y}px`,
+          transform: 'translate(-50%, -50%)',
+        }}
+      >
+        {!activeSubmenu ? (
+          // Main menu
+          <div className="p-2 min-w-[200px]">
+            <div className="text-cyan-400 text-sm font-medium mb-2 px-2">Quick Actions</div>
+            <div className="space-y-1">
+              {actions.map((action) => (
+                <Button
+                  key={action.key}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-left hover:bg-cyan-500/20 text-gray-300 hover:text-white"
+                  onClick={() => handleAction(action.key)}
                 >
-                  {screenshotOptions.map(({ mode, label, icon: OptIcon }) => (
-                    <button
-                      key={mode}
-                      onClick={() => {
-                        setShowScreenshotMenu(false);
-                        onAction({ type: 'screenshot', mode });
-                      }}
-                      className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-cyan-900 text-cyan-100 text-sm font-medium transition-colors w-full"
-                      type="button"
-                    >
-                      <OptIcon className="h-4 w-4 text-cyan-300" />
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
+                  <action.icon className="w-4 h-4 mr-2" />
+                  {action.label}
+                </Button>
+              ))}
             </div>
-          );
-        }
-        if (key === 'context') {
-          return (
-            <div key={key} className="relative flex items-center">
-              <button
-                onClick={openContextMenu}
-                onMouseEnter={openContextMenu}
-                onMouseLeave={closeContextMenu}
-                className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-cyan-900 border border-transparent hover:border-cyan-400 text-cyan-100 font-semibold text-sm transition-colors focus:outline-none"
-                style={{ minWidth: 56 }}
-                type="button"
+          </div>
+        ) : activeSubmenu === 'screenshot' ? (
+          // Screenshot submenu
+          <div className="p-2 min-w-[200px]">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-cyan-400 text-sm font-medium">Screenshot Mode</div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveSubmenu(null)}
+                className="text-gray-400 hover:text-white p-1"
               >
-                <Icon className="h-4 w-4 text-cyan-300" />
-                {label}
-              </button>
-              {showContextMenu && (
-                <div
-                  onMouseEnter={cancelCloseContextMenu}
-                  onMouseLeave={closeContextMenu}
-                  className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-slate-900 border border-cyan-700 rounded-xl shadow-lg py-2 px-2 flex flex-col gap-1 min-w-[120px] z-50"
-                >
-                  {contextGenOptions.map(({ key: ctxKey, label: ctxLabel, icon: CtxIcon }) => (
-                    <button
-                      key={ctxKey}
-                      onClick={() => {
-                        setSelectedContextGen(ctxKey);
-                        setShowContextMenu(false);
-                      }}
-                      className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-cyan-900 text-cyan-100 text-sm font-medium transition-colors w-full"
-                      type="button"
-                    >
-                      <CtxIcon className="h-4 w-4 text-cyan-300" />
-                      {ctxLabel}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {selectedContextGen && (
-                <div className="flex items-center mt-1 absolute left-1/2 -translate-x-1/2 top-full z-50 bg-slate-900 border border-cyan-700 rounded shadow-lg px-2 py-1">
-                  <input
-                    className="w-32 px-2 py-1 text-xs rounded border border-cyan-500/30 bg-slate-800 text-cyan-200"
-                    placeholder={
-                      selectedContextGen === 'edit' ? 'Edit...'
-                      : selectedContextGen === 'fix' ? 'Fix...'
-                      : selectedContextGen === 'tell' ? 'Tell...'
-                      : 'Show...'
-                    }
-                    value={contextGenInput}
-                    onChange={e => setContextGenInput(e.target.value)}
-                    maxLength={60}
-                    autoFocus
-                  />
-                  <button
-                    className="ml-1 p-1 rounded bg-cyan-700 hover:bg-cyan-800"
-                    onClick={() => {
-                      onAction({ type: 'context', mode: selectedContextGen, input: contextGenInput });
-                      setSelectedContextGen(null);
-                      setContextGenInput('');
-                    }}
-                    disabled={!contextGenInput.trim()}
-                  >
-                    <ArrowUp className="w-4 h-4 text-white" />
-                  </button>
-                  <button
-                    className="ml-1 p-1 rounded bg-gray-700 hover:bg-gray-800 text-xs text-white"
-                    onClick={() => {
-                      setSelectedContextGen(null);
-                      setContextGenInput('');
-                    }}
-                    tabIndex={-1}
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
+                <ArrowUp className="w-4 h-4" />
+              </Button>
             </div>
-          );
-        }
-        return (
-          <button
-            key={key}
-            onClick={() => onAction(key)}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-cyan-900 border border-transparent hover:border-cyan-400 text-cyan-100 font-semibold text-sm transition-colors focus:outline-none"
-            style={{ minWidth: 56 }}
-            type="button"
-          >
-            <Icon className="h-4 w-4 text-cyan-300" />
-            {label}
-          </button>
-        );
-      })}
+            <div className="space-y-1">
+              {screenshotModes.map((mode) => (
+                <Button
+                  key={mode.mode}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-left hover:bg-cyan-500/20 text-gray-300 hover:text-white"
+                  onClick={() => handleScreenshotMode(mode.mode)}
+                >
+                  <mode.icon className="w-4 h-4 mr-2" />
+                  {mode.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ) : activeSubmenu === 'context' ? (
+          // Context submenu
+          <div className="p-2 min-w-[240px]">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-cyan-400 text-sm font-medium">Generate Context</div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveSubmenu(null)}
+                className="text-gray-400 hover:text-white p-1"
+              >
+                <ArrowUp className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="mb-3">
+              <input
+                type="text"
+                value={contextInput}
+                onChange={(e) => setContextInput(e.target.value)}
+                placeholder="What do you want to know?"
+                className="w-full px-2 py-1 text-sm bg-slate-700 border border-cyan-500/30 rounded text-white placeholder-gray-400"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1">
+              {contextModes.map((mode) => (
+                <Button
+                  key={mode.mode}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-left hover:bg-cyan-500/20 text-gray-300 hover:text-white"
+                  onClick={() => handleContextMode(mode.mode)}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {mode.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 };
