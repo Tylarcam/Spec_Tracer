@@ -50,7 +50,7 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
     
     const handleMouseMove = (e: MouseEvent) => {
       const deltaY = startY - e.clientY;
-      const newHeight = Math.max(200, Math.min(800, startHeight + deltaY));
+      const newHeight = Math.max(200, Math.min(window.innerHeight * 0.75, startHeight + deltaY));
       setCurrentHeight(newHeight);
     };
     

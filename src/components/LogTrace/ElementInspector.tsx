@@ -9,6 +9,7 @@ import { ElementInfo } from '@/shared/types';
 import { sanitizeText } from '@/utils/sanitization';
 import { useToast } from '@/hooks/use-toast';
 import { useConsoleLogs } from '@/shared/hooks/useConsoleLogs';
+import { useRepositionWithinViewport } from '@/hooks/useRepositionWithinViewport';
 
 interface ElementInspectorProps {
   isVisible: boolean;
@@ -55,6 +56,10 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   const [modalPosition, setModalPosition] = useState<{ x: number; y: number } | null>(null);
   const dragOffset = useRef<{ x: number; y: number } | null>(null);
   const dragging = useRef(false);
+  const internalRef = useRef<HTMLDivElement>(null);
+  const refToUse = panelRef || internalRef;
+
+  useRepositionWithinViewport(refToUse);
 
   // Update local pinned state when prop changes
   React.useEffect(() => {
@@ -65,7 +70,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
   const handleDragStart = (e: React.MouseEvent) => {
     if (isLocallyPinned) return;
     dragging.current = true;
-    const rect = panelRef?.current?.getBoundingClientRect();
+    const rect = refToUse.current?.getBoundingClientRect();
     dragOffset.current = rect
       ? { x: e.clientX - rect.left, y: e.clientY - rect.top }
       : { x: 0, y: 0 };
@@ -240,7 +245,7 @@ const ElementInspector: React.FC<ElementInspectorProps> = ({
 
   return (
     <div
-      ref={panelRef}
+      ref={refToUse}
       data-inspector-panel="true"
       className={`fixed pointer-events-auto z-50 ${isMobile ? 'inset-x-2 max-h-[calc(100vh-16px)]' : 'w-full max-w-md max-h-[80vh]'} overflow-y-auto ${isExtensionMode ? 'z-[10001]' : 'z-50'}`}
       style={isMobile ? { 
