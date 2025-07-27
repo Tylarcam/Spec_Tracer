@@ -19,6 +19,8 @@ interface TabbedTerminalProps {
   currentElement?: any;
   terminalHeight?: number;
   onTerminalHeightChange?: (height: number) => void;
+  activeTab?: 'events' | 'debug' | 'console';
+  onActiveTabChange?: (tab: 'events' | 'debug' | 'console') => void;
 }
 
 const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
@@ -32,8 +34,20 @@ const TabbedTerminal: React.FC<TabbedTerminalProps> = ({
   currentElement,
   terminalHeight = 384,
   onTerminalHeightChange,
+  activeTab: externalActiveTab,
+  onActiveTabChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<'events' | 'debug' | 'console'>('events');
+  const [internalActiveTab, setInternalActiveTab] = useState<'events' | 'debug' | 'console'>('events');
+  
+  // Use external activeTab if provided, otherwise use internal state
+  const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalActiveTab;
+  const setActiveTab = (tab: 'events' | 'debug' | 'console') => {
+    if (onActiveTabChange) {
+      onActiveTabChange(tab);
+    } else {
+      setInternalActiveTab(tab);
+    }
+  };
   const [associateWithElement, setAssociateWithElement] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [currentHeight, setCurrentHeight] = useState(terminalHeight);

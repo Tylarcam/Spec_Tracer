@@ -15,6 +15,7 @@ import { useContextEngine } from '@/shared/hooks/useContextEngine';
 import { transformContextRequest } from '@/shared/api';
 import QuickObjectivePill from './QuickObjectivePill';
 import { Badge } from '../ui/badge';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DebugModalProps {
   showDebugModal: boolean;
@@ -82,6 +83,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedQuickObjective, setSelectedQuickObjective] = useState<string | null>(null);
   const [selectedAdvancedQuestion, setSelectedAdvancedQuestion] = useState<string | null>(null);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   
   // Add viewport state management
@@ -91,7 +93,7 @@ const DebugModal: React.FC<DebugModalProps> = ({
     zoom: window.devicePixelRatio || 1
   });
 
-  // Monitor viewport changes
+    // Monitor viewport changes
   useEffect(() => {
     const handleResize = () => {
       setViewportInfo({
@@ -100,10 +102,23 @@ const DebugModal: React.FC<DebugModalProps> = ({
         zoom: window.devicePixelRatio || 1
       });
     };
-
+    
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Check authentication status and hide auth prompt if user is signed in
+  useEffect(() => {
+    if (!isExtensionMode && showAuthPrompt) {
+      const checkAuth = async () => {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+          setShowAuthPrompt(false);
+        }
+      };
+      checkAuth();
+    }
+  }, [isExtensionMode, showAuthPrompt]);
 
   // Get console logs for current element
   const currentElementSelector = useMemo(() => {
@@ -213,11 +228,22 @@ const DebugModal: React.FC<DebugModalProps> = ({
       });
       return;
     }
+    
+    // Check authentication for main app
+    if (!isExtensionMode) {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
+        setShowAuthPrompt(true);
+        return;
+      }
+    }
+    
     // Extension guest gating
     if (isExtensionMode && !user && guestDebugCount >= maxGuestDebugs) {
       setShowAuthModal && setShowAuthModal(true);
       return;
     }
+    
     try {
       setErrorMessage(null);
       await analyzeWithAI(prompt);
@@ -561,7 +587,40 @@ const DebugModal: React.FC<DebugModalProps> = ({
                       </Button>
                     </div>
                   </div>
+
                 </TabsContent>
+
+                {/* Authentication Prompt - Global for all tabs */}
+                {showAuthPrompt && (
+                  <div className={`${isMobile ? 'mx-3 mb-3' : 'mx-4 mb-4'} p-4 bg-orange-500/10 rounded-lg border border-orange-500/30`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className={`text-orange-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <span className={`text-orange-400 font-semibold ${isMobile ? 'text-sm' : 'text-base'}`}>Authentication Required</span>
+                    </div>
+                    <p className={`text-orange-300/90 ${isMobile ? 'text-xs' : 'text-sm'} mb-3`}>
+                      AI debugging features require you to be signed in. Please sign in to continue.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => window.location.href = '/auth'}
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                        size={isMobile ? "sm" : "default"}
+                      >
+                        Sign In
+                      </Button>
+                      <Button 
+                        onClick={() => setShowAuthPrompt(false)}
+                        variant="outline"
+                        className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+                        size={isMobile ? "sm" : "default"}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <TabsContent value="advanced" className={`${isMobile ? 'space-y-3 mt-3 mx-3' : 'space-y-4 mt-4 mx-4'} h-full overflow-y-auto pb-4`}>
                   <div className="space-y-3">

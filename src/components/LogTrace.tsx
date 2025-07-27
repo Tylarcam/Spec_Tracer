@@ -39,6 +39,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const [quickActionPosition, setQuickActionPosition] = useState({ x: 0, y: 0 });
   const [showTerminal, setShowTerminal] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(384);
+  const [terminalActiveTab, setTerminalActiveTab] = useState<'events' | 'debug' | 'console'>('events');
   const [activeScreenshotOverlay, setActiveScreenshotOverlay] = useState<'rectangle' | 'freeform' | null>(null);
   
   // State to pause cursor movement when quick actions are visible
@@ -86,6 +87,34 @@ const LogTrace: React.FC<LogTraceProps> = ({
       onEventCountChange(capturedEvents?.length || 0);
     }
   }, [capturedEvents, onEventCountChange]);
+
+  // Auto-convert llm_response events to debug responses for terminal display
+  useEffect(() => {
+    if (capturedEvents && capturedEvents.length > 0) {
+      // Find the most recent llm_response event
+      const latestLlmResponse = capturedEvents
+        .filter(event => event.type === 'llm_response')
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+      
+      if (latestLlmResponse && latestLlmResponse.response) {
+        // Check if this response is already in debugResponses to avoid duplicates
+        const isDuplicate = debugResponses.some(
+          debugResp => debugResp.prompt === latestLlmResponse.prompt && 
+                      debugResp.response === latestLlmResponse.response
+        );
+        
+        if (!isDuplicate) {
+          addDebugResponse(latestLlmResponse.prompt, latestLlmResponse.response);
+          
+          // Auto-open terminal to show the AI response
+          setShowTerminal(true);
+          
+          // Auto-switch to AI Debug tab in terminal
+          setTerminalActiveTab('debug');
+        }
+      }
+    }
+  }, [capturedEvents, debugResponses, addDebugResponse]);
 
   // Handle escape key functionality
   const handleEscapeKey = () => {
@@ -707,6 +736,11 @@ Will-change: ${styles.willChange}`;
         analyzeWithAI={analyzeElementWithAI}
         generateAdvancedPrompt={generateElementPrompt}
         modalRef={modalRef}
+        isExtensionMode={false}
+        user={null} // Will be handled by the modal itself
+        guestDebugCount={0}
+        maxGuestDebugs={5}
+        recordEvent={recordEvent}
       />
 
       {/* Tabbed Terminal */}
@@ -721,6 +755,8 @@ Will-change: ${styles.willChange}`;
         currentElement={detectedElement}
         terminalHeight={terminalHeight}
         onTerminalHeightChange={setTerminalHeight}
+        activeTab={terminalActiveTab}
+        onActiveTabChange={setTerminalActiveTab}
       />
 
       {/* Terminal Button - Lower Left Corner */}
