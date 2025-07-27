@@ -71,8 +71,8 @@ serve(async (req) => {
     if (!authHeader) {
       console.error('Missing authorization header');
       return new Response(
-        JSON.stringify({ success: false, error: 'Missing authorization header' }),
-        { status: 401, headers: corsHeaders }
+        JSON.stringify({ success: false, error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -85,7 +85,7 @@ serve(async (req) => {
       console.error('Authentication error:', authError);
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid authentication' }),
-        { status: 401, headers: corsHeaders }
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -100,44 +100,48 @@ serve(async (req) => {
       console.error('Input validation failed:', validation.error);
       return new Response(
         JSON.stringify({ success: false, error: validation.error }),
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if user has credits
-    const { data: creditData, error: creditError } = await supabase.rpc('use_credit', {
-      user_uuid: user.id
-    });
-
-    if (creditError) {
-      console.error('Credit check error:', creditError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Credit system error' }),
-        { status: 500, headers: corsHeaders }
-      );
-    }
-
-    if (!creditData) {
-      console.log('No credits available for user:', user.email);
-      return new Response(
-        JSON.stringify({ success: false, error: 'No credits available' }),
-        { status: 403, headers: corsHeaders }
-      );
-    }
-
-    // Call OpenAI API with enhanced security
+    // Check OpenAI API key
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
       console.error('OpenAI API key not configured');
       return new Response(
-        JSON.stringify({ success: false, error: 'Service temporarily unavailable' }),
-        { status: 503, headers: corsHeaders }
+        JSON.stringify({ success: false, error: 'AI service not configured' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Check if user has credits (skip for tylarcam@gmail.com)
+    if (user.email !== 'tylarcam@gmail.com') {
+      const { data: creditData, error: creditError } = await supabase.rpc('use_credit', {
+        user_uuid: user.id
+      });
+
+      if (creditError) {
+        console.error('Credit check error:', creditError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Credit system error' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!creditData) {
+        console.log('No credits available for user:', user.email);
+        return new Response(
+          JSON.stringify({ success: false, error: 'No credits available' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      console.log('Premium user tylarcam@gmail.com - skipping credit check');
+    }
+
     const sanitizedPrompt = body.prompt
-      .replace(/[<>]/g, '') // Remove angle brackets
-      .replace(/javascript:/gi, '') // Remove javascript: protocol
+      .replace(/[<>]/g, '')
+      .replace(/javascript:/gi, '')
       .trim();
 
     const contextualPrompt = `
@@ -158,7 +162,8 @@ serve(async (req) => {
       Provide a helpful debugging response focusing on web development best practices.
     `;
 
-    console.log('Calling OpenAI API...');
+    console.log('Calling OpenAI API with model gpt-4.1-2025-04-14...');
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -183,29 +188,65 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error('OpenAI API error:', errorData);
-      return new Response(
-        JSON.stringify({ success: false, error: 'AI service temporarily unavailable' }),
-        { status: 503, headers: corsHeaders }
-      );
+      const errorText = await response.text();
+      console.error('OpenAI API error:', response.status, errorText);
+      
+      // Handle specific OpenAI error cases
+      if (response.status === 401) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'AI API key invalid' }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'AI service rate limited' }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        return new Response(
+          JSON.stringify({ success: false, error: 'AI service temporarily unavailable' }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0]?.message?.content || 'No response generated';
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid OpenAI response format:', data);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid AI response format' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const aiResponse = data.choices[0].message.content || 'No response generated';
     
     console.log('OpenAI response received successfully');
 
     return new Response(
       JSON.stringify({ success: true, response: aiResponse }),
-      { headers: corsHeaders }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Edge function error:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Internal server error';
+    if (error instanceof Error) {
+      if (error.message.includes('fetch')) {
+        errorMessage = 'Network error - unable to connect to AI service';
+      } else if (error.message.includes('JSON')) {
+        errorMessage = 'Invalid request format';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
     return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error' }),
-      { status: 500, headers: corsHeaders }
+      JSON.stringify({ success: false, error: errorMessage }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

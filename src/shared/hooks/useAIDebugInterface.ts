@@ -8,6 +8,7 @@ import { useState, useCallback } from 'react';
 import { ElementInfo } from '../types';
 import { callAIDebugFunction } from '../api';
 import { sanitizeText } from '@/utils/sanitization';
+import { useNotification } from '@/hooks/useNotification';
 
 export const useAIDebugInterface = (
   detectedElement: ElementInfo | null,
@@ -16,6 +17,7 @@ export const useAIDebugInterface = (
 ) => {
   const [showAIDebugModal, setShowAIDebugModal] = useState(false);
   const [isAIAnalyzing, setIsAIAnalyzing] = useState(false);
+  const { error: notifyError } = useNotification();
 
   const analyzeElementWithAI = async (prompt: string) => {
     setIsAIAnalyzing(true);
@@ -35,6 +37,16 @@ export const useAIDebugInterface = (
         } catch (error) {
           lastError = error;
           console.error(`AI debug attempt ${attempt + 1} failed:`, error);
+          
+          // Don't retry on authentication or validation errors
+          if (error instanceof Error && (
+            error.message.includes('Authentication required') ||
+            error.message.includes('Invalid prompt format') ||
+            error.message.includes('AI service configuration error')
+          )) {
+            break;
+          }
+          
           if (attempt < MAX_RETRIES) {
             // Exponential backoff
             await new Promise(res => setTimeout(res, Math.pow(2, attempt) * 1000));
@@ -44,6 +56,11 @@ export const useAIDebugInterface = (
       }
       
       if (lastError) {
+        // Show user-friendly error notification
+        notifyError({
+          title: 'AI Debug Error',
+          description: lastError.message || 'An unexpected error occurred'
+        });
         throw lastError;
       }
 

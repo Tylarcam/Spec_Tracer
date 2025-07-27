@@ -1,4 +1,3 @@
-
 import { enhancedValidation } from '@/utils/enhancedSanitization';
 import { debugRateLimiter } from '@/utils/sanitization';
 import { ElementInfo } from './types';
@@ -22,8 +21,9 @@ export const callAIDebugFunction = async (
   }
 
   // Check if user is authenticated
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    console.error('Authentication error:', authError);
     throw new Error('Authentication required for AI debugging features. Please sign in to continue.');
   }
 
@@ -48,18 +48,40 @@ export const callAIDebugFunction = async (
 
     if (error) {
       console.error('Edge function error:', error);
-      throw new Error('Failed to get AI response');
+      
+      // Handle specific error cases
+      if (error.message?.includes('AI API key invalid')) {
+        throw new Error('AI service configuration error. Please contact support.');
+      } else if (error.message?.includes('AI service rate limited')) {
+        throw new Error('AI service is temporarily busy. Please try again in a moment.');
+      } else if (error.message?.includes('Network error')) {
+        throw new Error('Connection error. Please check your internet connection and try again.');
+      } else {
+        throw new Error(error.message || 'Failed to get AI response');
+      }
     }
 
     if (!data?.success) {
+      console.error('AI service returned error:', data?.error);
       throw new Error(data?.error || 'AI service error');
+    }
+
+    if (!data.response) {
+      console.error('AI service returned no response');
+      throw new Error('AI service returned empty response');
     }
 
     console.log('AI response received successfully:', data.response);
     return data.response;
   } catch (error) {
     console.error('AI Debug API Error:', error);
-    throw error;
+    
+    // Re-throw with user-friendly message
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('An unexpected error occurred. Please try again.');
+    }
   }
 };
 
