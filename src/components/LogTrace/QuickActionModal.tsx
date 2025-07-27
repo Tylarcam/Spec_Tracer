@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera, Sparkles, Bug, Copy, Square, Monitor, Maximize2, PenTool, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
