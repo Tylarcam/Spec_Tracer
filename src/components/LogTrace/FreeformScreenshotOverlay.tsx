@@ -1,12 +1,33 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 
 type Point = { x: number; y: number };
 
-const FreeformScreenshotOverlay: React.FC<{ onComplete?: (dataUrl: string) => void }> = ({ onComplete }) => {
+const FreeformScreenshotOverlay: React.FC<{ 
+  onComplete?: (dataUrl: string) => void;
+  onCancel?: () => void;
+}> = ({ onComplete, onCancel }) => {
   const [drawing, setDrawing] = useState(false);
   const [points, setPoints] = useState<Point[]>([]);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Handle ESC key to cancel screenshot
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (onCancel) {
+          onCancel();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onCancel]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -36,12 +57,6 @@ const FreeformScreenshotOverlay: React.FC<{ onComplete?: (dataUrl: string) => vo
     let dataUrl = canvas.toDataURL('image/png');
     if (overlayRef.current) overlayRef.current.style.display = '';
     if (onComplete) onComplete(dataUrl);
-    else {
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = 'freeform-screenshot.png';
-      link.click();
-    }
     setPoints([]);
   };
 

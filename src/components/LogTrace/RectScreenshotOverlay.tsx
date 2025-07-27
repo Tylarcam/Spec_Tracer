@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 
 type Selection = {
@@ -9,9 +9,30 @@ type Selection = {
   active: boolean;
 };
 
-const RectScreenshotOverlay: React.FC<{ onComplete?: (dataUrl: string) => void }> = ({ onComplete }) => {
+const RectScreenshotOverlay: React.FC<{ 
+  onComplete?: (dataUrl: string) => void;
+  onCancel?: () => void;
+}> = ({ onComplete, onCancel }) => {
   const [selection, setSelection] = useState<Selection | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Handle ESC key to cancel screenshot
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (onCancel) {
+          onCancel();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onCancel]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -46,12 +67,6 @@ const RectScreenshotOverlay: React.FC<{ onComplete?: (dataUrl: string) => void }
     const dataUrl = canvas.toDataURL('image/png');
     if (overlayRef.current) overlayRef.current.style.display = '';
     if (onComplete) onComplete(dataUrl);
-    else {
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = 'screenshot.png';
-      link.click();
-    }
     setSelection(null);
   };
 

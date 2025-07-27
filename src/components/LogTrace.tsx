@@ -12,9 +12,14 @@ import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
 import TabbedTerminal from './LogTrace/TabbedTerminal';
 import InteractivePanel from './LogTrace/InteractivePanel';
-import QuickActionModal from './LogTrace/QuickActionModal';
+import QuickActionPill from './LogTrace/QuickActionPill';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 import { formatElementDataForCopy } from '@/utils/elementDataFormatter';
+import { useScreenshot } from '@/shared/hooks/useScreenshot';
+import { useToast } from '@/hooks/use-toast';
+import { screenshotService } from '@/shared/services/screenshotService';
+import RectScreenshotOverlay from './LogTrace/RectScreenshotOverlay';
+import FreeformScreenshotOverlay from './LogTrace/FreeformScreenshotOverlay';
 
 interface LogTraceProps {
   captureActive: boolean;
@@ -32,10 +37,23 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [quickActionPosition, setQuickActionPosition] = useState({ x: 0, y: 0 });
   const [showTerminal, setShowTerminal] = useState(false);
+  const [activeScreenshotOverlay, setActiveScreenshotOverlay] = useState<'rectangle' | 'freeform' | null>(null);
+  
+  // State to pause cursor movement when quick actions are visible
+  const [isHoverPaused, setIsHoverPaused] = useState(false);
   
   const orchestrator = useLogTraceOrchestrator();
   const { debugResponses, clearDebugResponses } = useDebugResponses();
   const { inspectors, addInspector, removeInspector, bringToFront, clearAllInspectors } = useMultipleInspectors();
+  const { toast } = useToast();
+  
+  // Screenshot functionality
+  const { 
+    captureElement, 
+    captureWindow, 
+    captureFullscreen, 
+    isCapturing 
+  } = useScreenshot({ autoCopy: true });
 
   const {
     isTraceActive,
@@ -72,6 +90,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const handleEscapeKey = () => {
     if (showQuickActions) {
       setShowQuickActions(false);
+      setIsHoverPaused(false);
     } else if (showAIDebugModal) {
       setShowAIDebugModal(false);
     } else if (inspectors.length > 0) {
@@ -107,7 +126,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
     const elementInfo = extractElementDetails(target);
     setDetectedElement(elementInfo);
     
-    // Show quick actions
+    // Pause cursor movement and show quick actions
+    setIsHoverPaused(true);
     setShowQuickActions(true);
     
     // Record the right-click event with correct type structure
@@ -127,7 +147,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   };
 
   // Handle quick action selection
-  const handleQuickAction = (action: any) => {
+  const handleQuickAction = (action: 'screenshot' | 'context' | 'debug' | 'details' | 'copy' | { type: string; mode?: string; input?: string }) => {
     if (!detectedElement) return;
     
     if (typeof action === 'string') {
@@ -154,21 +174,104 @@ const LogTrace: React.FC<LogTraceProps> = ({
           console.log('Generate context for:', detectedElement);
           break;
         case 'screenshot':
-          // Take screenshot (placeholder)
-          console.log('Take screenshot of:', detectedElement);
+          // Take element screenshot by default
+          captureElement(detectedElement);
           break;
       }
     } else if (typeof action === 'object') {
-      // Handle complex actions like screenshot with mode
+      // Handle complex actions with mode and input
       if (action.type === 'screenshot') {
-        console.log('Take screenshot with mode:', action.mode);
+        handleScreenshotAction(action.mode);
       } else if (action.type === 'context') {
         console.log('Generate context with mode:', action.mode, 'input:', action.input);
+      } else if (action.type === 'debug') {
+        console.log('Debug with mode:', action.mode, 'input:', action.input);
+        // Open AI debug modal with custom input
+        if (action.input) {
+          // You can pass the custom input to the debug modal here
+          console.log('Custom debug input:', action.input);
+        }
+        setShowAIDebugModal(true);
       }
     }
     
     // Close quick actions
     setShowQuickActions(false);
+    setIsHoverPaused(false);
+  };
+
+  // Handle screenshot actions
+  const handleScreenshotAction = (mode?: string) => {
+    if (!mode) return;
+
+    switch (mode) {
+      case 'element':
+        if (detectedElement) {
+          captureElement(detectedElement);
+        }
+        break;
+      case 'rectangle':
+        setActiveScreenshotOverlay('rectangle');
+        break;
+      case 'window':
+        captureWindow();
+        break;
+      case 'fullscreen':
+        captureFullscreen();
+        break;
+      case 'freeform':
+        setActiveScreenshotOverlay('freeform');
+        break;
+      default:
+        console.warn('Unknown screenshot mode:', mode);
+    }
+  };
+
+  // Handle screenshot overlay completion
+  const handleScreenshotOverlayComplete = async (dataUrl: string) => {
+    setActiveScreenshotOverlay(null);
+    
+    try {
+      // Convert data URL to blob
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      
+      // Create a screenshot result object for consistency
+      const result = {
+        dataUrl,
+        blob,
+        filename: `screenshot-${Date.now()}.png`,
+        success: true
+      };
+      
+      // Use screenshotService for consistent clipboard handling
+      const copied = await screenshotService.copyToClipboard(result);
+      
+      if (copied) {
+        // Show success toast
+        toast({
+          title: 'Screenshot Copied',
+          description: 'Screenshot copied to clipboard',
+          variant: 'success'
+        });
+      } else {
+        throw new Error('Failed to copy to clipboard');
+      }
+    } catch (error) {
+      console.error('Failed to copy screenshot to clipboard:', error);
+      
+      // Show error toast
+      toast({
+        title: 'Copy Failed',
+        description: 'Failed to copy screenshot to clipboard',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Handle screenshot overlay cancellation
+  const handleScreenshotOverlayCancel = () => {
+    setActiveScreenshotOverlay(null);
   };
 
   // Set up interaction handlers
@@ -180,7 +283,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
     handleTouchEnd,
   } = useInteractionHandlers({
     isTraceActive,
-    isHoverPaused: false,
+    isHoverPaused,
     detectedElement,
     cursorPosition,
     showInteractivePanel: false,
@@ -257,6 +360,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
     if (!isTraceActive) {
       clearAllInspectors();
       setShowQuickActions(false);
+      setIsHoverPaused(false);
     }
   }, [isTraceActive, clearAllInspectors]);
 
@@ -290,12 +394,15 @@ const LogTrace: React.FC<LogTraceProps> = ({
         inspectorCount={inspectors.length}
       />
 
-      {/* Quick Action Modal */}
-      <QuickActionModal
+      {/* Quick Action Pill */}
+      <QuickActionPill
         visible={showQuickActions}
         x={quickActionPosition.x}
         y={quickActionPosition.y}
-        onClose={() => setShowQuickActions(false)}
+        onClose={() => {
+          setShowQuickActions(false);
+          setIsHoverPaused(false);
+        }}
         onAction={handleQuickAction}
       />
 
@@ -360,6 +467,14 @@ const LogTrace: React.FC<LogTraceProps> = ({
              {'>_'}
            </span>
         </Button>
+      )}
+
+      {/* Screenshot Overlays */}
+      {activeScreenshotOverlay === 'rectangle' && (
+        <RectScreenshotOverlay onComplete={handleScreenshotOverlayComplete} onCancel={handleScreenshotOverlayCancel} />
+      )}
+      {activeScreenshotOverlay === 'freeform' && (
+        <FreeformScreenshotOverlay onComplete={handleScreenshotOverlayComplete} onCancel={handleScreenshotOverlayCancel} />
       )}
     </div>
   );
