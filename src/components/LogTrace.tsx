@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useLogTraceOrchestrator } from '@/shared/hooks/useLogTraceOrchestrator';
 import { useInteractionHandlers } from '@/shared/hooks/useInteractionHandlers';
@@ -12,6 +13,7 @@ import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
 import TabbedTerminal from './LogTrace/TabbedTerminal';
 import InteractivePanel from './LogTrace/InteractivePanel';
+import QuickActionModal from './LogTrace/QuickActionModal';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 
 interface LogTraceProps {
@@ -27,6 +29,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const [showSettings, setShowSettings] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [quickActionPosition, setQuickActionPosition] = useState({ x: 0, y: 0 });
   
   const orchestrator = useLogTraceOrchestrator();
   const { debugResponses, clearDebugResponses } = useDebugResponses();
@@ -65,7 +69,9 @@ const LogTrace: React.FC<LogTraceProps> = ({
 
   // Handle escape key functionality
   const handleEscapeKey = () => {
-    if (showAIDebugModal) {
+    if (showQuickActions) {
+      setShowQuickActions(false);
+    } else if (showAIDebugModal) {
       setShowAIDebugModal(false);
     } else if (inspectors.length > 0) {
       // Close most recent inspector
@@ -83,6 +89,83 @@ const LogTrace: React.FC<LogTraceProps> = ({
     if (detectedElement) {
       addInspector(detectedElement, cursorPosition);
     }
+  };
+
+  // Handle right-click to show quick actions
+  const handleRightClick = (e: React.MouseEvent) => {
+    if (!isTraceActive) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Update position and element
+    setCursorPosition({ x: e.clientX, y: e.clientY });
+    setQuickActionPosition({ x: e.clientX, y: e.clientY });
+    
+    const target = e.target as HTMLElement;
+    const elementInfo = extractElementDetails(target);
+    setDetectedElement(elementInfo);
+    
+    // Show quick actions
+    setShowQuickActions(true);
+    
+    // Record the right-click event
+    recordEvent({
+      id: crypto.randomUUID(),
+      type: 'click',
+      timestamp: new Date().toISOString(),
+      position: { x: e.clientX, y: e.clientY },
+      element: {
+        tag: elementInfo.tag,
+        id: elementInfo.id,
+        classes: elementInfo.classes,
+        text: elementInfo.text,
+        parentPath: elementInfo.parentPath,
+        attributes: elementInfo.attributes,
+        size: elementInfo.size,
+      },
+    });
+  };
+
+  // Handle quick action selection
+  const handleQuickAction = (action: any) => {
+    if (!detectedElement) return;
+    
+    if (typeof action === 'string') {
+      switch (action) {
+        case 'copy':
+          // Copy element details to clipboard
+          const elementData = JSON.stringify(detectedElement, null, 2);
+          navigator.clipboard.writeText(elementData);
+          break;
+        case 'details':
+          // Open element inspector
+          addInspector(detectedElement, cursorPosition);
+          break;
+        case 'debug':
+          // Open AI debug modal
+          setShowAIDebugModal(true);
+          break;
+        case 'context':
+          // Generate context (placeholder)
+          console.log('Generate context for:', detectedElement);
+          break;
+        case 'screenshot':
+          // Take screenshot (placeholder)
+          console.log('Take screenshot of:', detectedElement);
+          break;
+      }
+    } else if (typeof action === 'object') {
+      // Handle complex actions like screenshot with mode
+      if (action.type === 'screenshot') {
+        console.log('Take screenshot with mode:', action.mode);
+      } else if (action.type === 'context') {
+        console.log('Generate context with mode:', action.mode, 'input:', action.input);
+      }
+    }
+    
+    // Close quick actions
+    setShowQuickActions(false);
   };
 
   // Set up interaction handlers
@@ -127,8 +210,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
       handleElementClickEvent(e as any);
     };
 
-    const handleRightClick = (e: MouseEvent) => {
-      handleContextMenu(e as any);
+    const handleRightClickEvent = (e: MouseEvent) => {
+      handleRightClick(e as any);
     };
 
     const handleTouchStartEvent = (e: TouchEvent) => {
@@ -146,7 +229,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
     // Add event listeners
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('click', handleClick);
-    document.addEventListener('contextmenu', handleRightClick);
+    document.addEventListener('contextmenu', handleRightClickEvent);
     
     if (isMobile) {
       document.addEventListener('touchstart', handleTouchStartEvent);
@@ -157,19 +240,20 @@ const LogTrace: React.FC<LogTraceProps> = ({
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('click', handleClick);
-      document.removeEventListener('contextmenu', handleRightClick);
+      document.removeEventListener('contextmenu', handleRightClickEvent);
       
       if (isMobile) {
         document.removeEventListener('touchstart', handleTouchStartEvent);
         document.removeEventListener('touchend', handleTouchEndEvent);
       }
     };
-  }, [isTraceActive, handleCursorMovement, handleElementClickEvent, handleContextMenu, handleTouchStart, handleTouchEnd, isMobile]);
+  }, [isTraceActive, handleCursorMovement, handleElementClickEvent, handleRightClick, handleTouchStart, handleTouchEnd, isMobile]);
 
   // Clear all inspectors when trace is deactivated
   useEffect(() => {
     if (!isTraceActive) {
       clearAllInspectors();
+      setShowQuickActions(false);
     }
   }, [isTraceActive, clearAllInspectors]);
 
@@ -201,6 +285,15 @@ const LogTrace: React.FC<LogTraceProps> = ({
         mousePosition={cursorPosition}
         overlayRef={overlayRef}
         inspectorCount={inspectors.length}
+      />
+
+      {/* Quick Action Modal */}
+      <QuickActionModal
+        visible={showQuickActions}
+        x={quickActionPosition.x}
+        y={quickActionPosition.y}
+        onClose={() => setShowQuickActions(false)}
+        onAction={handleQuickAction}
       />
 
       {/* Multiple Element Inspectors */}
