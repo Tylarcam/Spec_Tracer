@@ -1,7 +1,5 @@
-
 import React from 'react';
-import { MousePointer2, RotateCcw, Eye, Bug, Camera, Terminal, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { MousePointer2, RotateCcw, Eye, Bug, Camera, Terminal } from 'lucide-react';
 
 const InstructionsCard: React.FC = () => {
   return (
@@ -84,21 +82,14 @@ const InstructionsCard: React.FC = () => {
           <strong>Mobile:</strong> Touch and hold elements for inspection. Single panel optimized for mobile screens.
         </p>
         <p className="mt-2">
-          <strong>Keyboard Shortcuts:</strong> Use <kbd className="px-1 py-0.5 bg-slate-700 rounded">Esc</kbd> to close panels and <kbd className="px-1 py-0.5 bg-slate-700 rounded">Q</kbd> for quick actions.
+          <strong>Keyboard Shortcuts:</strong> Use <kbd className="px-1 py-0.5 bg-slate-700 rounded">Esc</kbd> to close panels.
         </p>
-      </div>
-
-      {/* Demo Button */}
-      <div className="mt-4 flex justify-center">
-        <Link to="/interactive-demo">
-          <button className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg shadow transition-colors flex items-center gap-2">
-            <ExternalLink className="h-4 w-4" />
-            Try Interactive Demo
-          </button>
-        </Link>
+        <p className="mt-2">
+          <strong>Quick Actions:</strong> When trace is activated, right-click any element to open the quick actions menu.
+        </p>
       </div>
     </div>
   );
 };
 
-export default InstructionsCard;
+export default InstructionsCard; 

@@ -31,6 +31,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const [showSettings, setShowSettings] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [quickActionPosition, setQuickActionPosition] = useState({ x: 0, y: 0 });
+  const [showTerminal, setShowTerminal] = useState(false);
   
   const orchestrator = useLogTraceOrchestrator();
   const { debugResponses, clearDebugResponses } = useDebugResponses();
@@ -326,6 +327,40 @@ const LogTrace: React.FC<LogTraceProps> = ({
         generateAdvancedPrompt={generateElementPrompt}
         modalRef={modalRef}
       />
+
+      {/* Tabbed Terminal */}
+      <TabbedTerminal
+        showTerminal={showTerminal}
+        setShowTerminal={setShowTerminal}
+        events={capturedEvents || []}
+        exportEvents={exportCapturedEvents}
+        clearEvents={clearCapturedEvents}
+        debugResponses={debugResponses}
+        clearDebugResponses={clearDebugResponses}
+        currentElement={detectedElement}
+      />
+
+      {/* Terminal Button - Lower Left Corner */}
+      {!showTerminal && (
+        <Button
+          onClick={() => setShowTerminal(true)}
+          className={`fixed ${isMobile ? 'bottom-6 left-6 w-16 h-16' : 'bottom-4 left-4 w-12 h-12'} z-30 bg-green-600 hover:bg-green-700 text-white rounded-full p-0 shadow-lg transition-all duration-200 hover:scale-105`}
+          style={{
+            boxShadow: '0 4px 20px rgba(34, 197, 94, 0.4), 0 0 0 1px rgba(34, 197, 94, 0.2)',
+            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+          }}
+        >
+                     <span style={{ 
+             fontSize: isMobile ? 24 : 32, 
+             display: 'flex', 
+             alignItems: 'center', 
+             justifyContent: 'center',
+             fontWeight: 'bold'
+           }}>
+             {'>_'}
+           </span>
+        </Button>
+      )}
     </div>
   );
 };

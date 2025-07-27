@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import LogTrace from '@/components/LogTrace';
@@ -108,7 +107,8 @@ const InteractiveDemo: React.FC = () => {
               {currentStep.description}
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center">
+          
+          <CardContent>
             <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3'} mb-6`}>
               <Button
                 onClick={() => setDemoStep((prev) => Math.min(prev + 1, demoSteps.length - 1))}
@@ -137,7 +137,7 @@ const InteractiveDemo: React.FC = () => {
         </Card>
 
         {/* Demo Features Grid */}
-        <div className={`grid gap-4 mb-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+        <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-4'}`}>
           {demoSteps.map((step, index) => (
             <Card 
               key={index}
@@ -168,4 +168,4 @@ const InteractiveDemo: React.FC = () => {
   );
 };
 
-export default InteractiveDemo;
+export default InteractiveDemo; 
