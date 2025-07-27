@@ -5,6 +5,7 @@ import { ArrowRight, Code, Zap, Target, Sparkles, Play, Eye, Mail, Users } from 
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { enhancedValidation } from '@/utils/enhancedSanitization';
 import PricingSection from '@/components/PricingSection';
 
 const Landing = () => {
@@ -47,35 +48,70 @@ const Landing = () => {
   };
 
   const handleJoinWaitlist = async () => {
-    if (!email.trim()) return;
+    const trimmedEmail = email.trim().toLowerCase();
+    
+    // Enhanced email validation
+    if (!enhancedValidation.validateEmail(trimmedEmail)) {
+      toast({
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsJoiningWaitlist(true);
+    
     try {
+      console.log('Checking for existing email:', trimmedEmail);
+      
+      // Check for duplicate with better error handling
       const { data: existing, error: fetchError } = await supabase
         .from('waitlist')
-        .select('id')
-        .eq('email', email.trim().toLowerCase())
+        .select('id, email')
+        .eq('email', trimmedEmail)
         .maybeSingle();
-      if (fetchError) throw fetchError;
+      
+      if (fetchError) {
+        console.error('Error checking existing email:', fetchError);
+        throw fetchError;
+      }
+      
       if (existing) {
+        console.log('Email already exists:', existing);
         toast({
           title: 'Already Signed Up',
           description: 'This email is already on the waitlist.',
           variant: 'default',
         });
-        setIsJoiningWaitlist(false);
         return;
       }
-      const { error } = await supabase
+      
+      console.log('Inserting new email:', trimmedEmail);
+      
+      // Insert new email with better error handling
+      const { data: insertData, error: insertError } = await supabase
         .from('waitlist')
-        .insert([{ email: email.trim().toLowerCase() }]);
-      if (error) throw error;
+        .insert([{ email: trimmedEmail }])
+        .select();
+      
+      if (insertError) {
+        console.error('Error inserting email:', insertError);
+        throw insertError;
+      }
+      
+      console.log('Successfully inserted email:', insertData);
+      
       toast({
         title: 'Success!',
         description: 'You have joined the waitlist. Check your email for confirmation.',
-        variant: 'success',
+        variant: 'default',
       });
+      
       setEmail('');
+      
     } catch (err: any) {
+      console.error('Waitlist error:', err);
       toast({
         title: 'Error',
         description: err?.message || 'Could not join waitlist. Please try again.',
@@ -83,6 +119,16 @@ const Landing = () => {
       });
     } finally {
       setIsJoiningWaitlist(false);
+    }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+  };
+
+  const handleEmailKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleJoinWaitlist();
     }
   };
 
@@ -147,21 +193,24 @@ const Landing = () => {
                 type="email"
                 placeholder="Enter your email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 flex-1 min-w-0"
+                onChange={handleEmailChange}
+                onKeyPress={handleEmailKeyPress}
+                className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 flex-1 min-w-0"
+                disabled={isJoiningWaitlist}
               />
               <Button
                 onClick={handleJoinWaitlist}
                 disabled={!email.trim() || isJoiningWaitlist}
                 variant="outline"
                 size="lg"
-                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-6 py-4 text-lg h-auto whitespace-nowrap"
+                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-6 py-4 text-lg h-auto whitespace-nowrap disabled:opacity-50"
               >
                 <Users className="h-5 w-5 mr-2" />
                 {isJoiningWaitlist ? 'Joining...' : 'Join Waitlist'}
               </Button>
             </div>
           </div>
+          
           {/* Privacy Assurance & Benefits */}
           <div className="text-sm text-slate-400 mb-6 text-center">
             <span className="text-cyan-400 font-medium">🎯 Early access to Chrome extension</span>
@@ -340,21 +389,24 @@ const Landing = () => {
                   type="email"
                   placeholder="your@email.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 flex-1 min-w-0"
+                  onChange={handleEmailChange}
+                  onKeyPress={handleEmailKeyPress}
+                  className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 flex-1 min-w-0"
+                  disabled={isJoiningWaitlist}
                 />
                 <Button
                   onClick={handleJoinWaitlist}
                   disabled={!email.trim() || isJoiningWaitlist}
                   variant="outline"
                   size="lg"
-                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-6 py-4 text-lg h-auto whitespace-nowrap"
+                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-6 py-4 text-lg h-auto whitespace-nowrap disabled:opacity-50"
                 >
                   <Mail className="h-5 w-5 mr-2" />
-                  Join Waitlist
+                  {isJoiningWaitlist ? 'Joining...' : 'Join Waitlist'}
                 </Button>
               </div>
             </div>
+            
             {/* Privacy Assurance & Benefits */}
             <div className="text-sm text-slate-400 mt-6 text-center">
               <span className="text-cyan-400 font-medium">🎯 Early access to Chrome extension</span>
