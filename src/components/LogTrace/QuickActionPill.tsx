@@ -64,6 +64,24 @@ const QuickActionPill: React.FC<QuickActionPillProps> = ({ visible, x, y, onClos
   };
 
   const handleDropdownAction = (type: string, mode: string, input?: string) => {
+    // For context actions, we need to provide a default input if none is provided
+    if (type === 'context' && !input) {
+      // Generate a default input based on the mode
+      switch (mode) {
+        case 'layout':
+          input = 'Analyze the layout and positioning';
+          break;
+        case 'accessibility':
+          input = 'Check accessibility features and issues';
+          break;
+        case 'performance':
+          input = 'Review performance implications';
+          break;
+        default:
+          input = 'Provide general analysis';
+      }
+    }
+    
     onAction({ type, mode, input });
     setExpandedButton(null);
     setCustomInput('');
@@ -76,7 +94,6 @@ const QuickActionPill: React.FC<QuickActionPillProps> = ({ visible, x, y, onClos
   };
 
   const screenshotOptions = [
-    { label: 'Element', mode: 'element' },
     { label: 'Rectangle', mode: 'rectangle' },
     { label: 'Window', mode: 'window' },
     { label: 'Full Screen', mode: 'fullscreen' },

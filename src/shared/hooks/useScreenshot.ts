@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import { screenshotService, ScreenshotOptions, ScreenshotResult, ScreenshotMode } from '@/shared/services/screenshotService';
-import { ElementInfo } from '@/shared/types';
 import { useToast } from '@/hooks/use-toast';
 
 export interface UseScreenshotOptions {
@@ -17,7 +16,6 @@ export const useScreenshot = (options: UseScreenshotOptions = {}) => {
 
   const captureScreenshot = useCallback(async (
     mode: ScreenshotMode,
-    element?: ElementInfo,
     coordinates?: { x: number; y: number; width: number; height: number }
   ) => {
     setIsCapturing(true);
@@ -25,7 +23,6 @@ export const useScreenshot = (options: UseScreenshotOptions = {}) => {
     try {
       const screenshotOptions: ScreenshotOptions = {
         mode,
-        element,
         coordinates,
         filename: `logtrace-${mode}-${Date.now()}`,
         quality: 1.0,
@@ -157,12 +154,8 @@ export const useScreenshot = (options: UseScreenshotOptions = {}) => {
   }, [lastResult]);
 
   // Convenience methods for each screenshot mode
-  const captureElement = useCallback((element: ElementInfo) => {
-    return captureScreenshot('element', element);
-  }, [captureScreenshot]);
-
   const captureRectangle = useCallback((coordinates: { x: number; y: number; width: number; height: number }) => {
-    return captureScreenshot('rectangle', undefined, coordinates);
+    return captureScreenshot('rectangle', coordinates);
   }, [captureScreenshot]);
 
   const captureWindow = useCallback(() => {
@@ -174,7 +167,7 @@ export const useScreenshot = (options: UseScreenshotOptions = {}) => {
   }, [captureScreenshot]);
 
   const captureFreeform = useCallback((coordinates: { x: number; y: number; width: number; height: number }) => {
-    return captureScreenshot('freeform', undefined, coordinates);
+    return captureScreenshot('freeform', coordinates);
   }, [captureScreenshot]);
 
   return {
@@ -186,7 +179,6 @@ export const useScreenshot = (options: UseScreenshotOptions = {}) => {
     captureScreenshot,
     
     // Convenience methods
-    captureElement,
     captureRectangle,
     captureWindow,
     captureFullscreen,

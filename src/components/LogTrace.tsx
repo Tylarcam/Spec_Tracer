@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { screenshotService } from '@/shared/services/screenshotService';
 import RectScreenshotOverlay from './LogTrace/RectScreenshotOverlay';
 import FreeformScreenshotOverlay from './LogTrace/FreeformScreenshotOverlay';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LogTraceProps {
   captureActive: boolean;
@@ -43,7 +44,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const [isHoverPaused, setIsHoverPaused] = useState(false);
   
   const orchestrator = useLogTraceOrchestrator();
-  const { debugResponses, clearDebugResponses } = useDebugResponses();
+  const { debugResponses, clearDebugResponses, addDebugResponse } = useDebugResponses();
   const { inspectors, addInspector, removeInspector, bringToFront, clearAllInspectors } = useMultipleInspectors();
   const { toast } = useToast();
   
@@ -170,12 +171,12 @@ const LogTrace: React.FC<LogTraceProps> = ({
           setShowAIDebugModal(true);
           break;
         case 'context':
-          // Generate context (placeholder)
-          console.log('Generate context for:', detectedElement);
+          // Generate context with default prompt
+          handleContextGeneration('general', 'Analyze this element and provide context');
           break;
         case 'screenshot':
-          // Take element screenshot by default
-          captureElement(detectedElement);
+          // Open screenshot options
+          setShowQuickActions(true);
           break;
       }
     } else if (typeof action === 'object') {
@@ -183,7 +184,8 @@ const LogTrace: React.FC<LogTraceProps> = ({
       if (action.type === 'screenshot') {
         handleScreenshotAction(action.mode);
       } else if (action.type === 'context') {
-        console.log('Generate context with mode:', action.mode, 'input:', action.input);
+        // Handle context generation with specific mode and input
+        handleContextGeneration(action.mode || 'general', action.input || '');
       } else if (action.type === 'debug') {
         console.log('Debug with mode:', action.mode, 'input:', action.input);
         // Open AI debug modal with custom input
@@ -200,16 +202,136 @@ const LogTrace: React.FC<LogTraceProps> = ({
     setIsHoverPaused(false);
   };
 
+  // New function to handle context generation
+  const handleContextGeneration = async (mode: string, userInput: string) => {
+    console.log('handleContextGeneration called with:', { mode, userInput, detectedElement });
+    
+    if (!detectedElement) {
+      console.log('No detected element, showing error toast');
+      toast({
+        title: 'No Element Selected',
+        description: 'Hover over an element first to generate context',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      // Generate appropriate prompt based on mode
+      const prompt = generateContextPrompt(mode, userInput, detectedElement);
+      console.log('Generated prompt:', prompt);
+      
+      // Show loading toast
+      toast({
+        title: 'Generating Context',
+        description: 'Analyzing element and generating context...',
+      });
+
+      console.log('Calling analyzeElementWithAI...');
+      // Call AI function
+      const response = await analyzeElementWithAI(prompt);
+      console.log('AI response received:', response);
+      
+      // Add response to debugResponses array for terminal display
+      addDebugResponse(prompt, response);
+      
+      // Show success toast and open terminal
+      toast({
+        title: 'Context Generated',
+        description: 'Context analysis completed. Check the terminal for results.',
+        variant: 'success',
+      });
+      
+      // Open terminal to show results
+      setShowTerminal(true);
+      
+    } catch (error) {
+      console.error('Context generation failed:', error);
+      toast({
+        title: 'Context Generation Failed',
+        description: error instanceof Error ? error.message : 'Failed to generate context',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // New function to generate context prompts based on mode
+  const generateContextPrompt = (mode: string, userInput: string, element: any): string => {
+    const baseElementInfo = `
+Element: <${element.tag}${element.id ? ` id="${element.id}"` : ''}${element.classes.length ? ` class="${element.classes.join(' ')}"` : ''}>
+Text: "${element.text}"
+Position: x:${cursorPosition.x}, y:${cursorPosition.y}
+`;
+
+    switch (mode) {
+      case 'layout':
+        return `${baseElementInfo}
+
+Please analyze the layout and positioning of this element:
+
+1. How is this element positioned in the layout?
+2. What CSS properties are affecting its layout?
+3. Are there any layout issues or improvements needed?
+4. How does it interact with surrounding elements?
+5. What responsive considerations should be made?
+
+${userInput ? `Additional context: ${userInput}` : ''}
+
+Provide specific, actionable insights about the layout and positioning.`;
+
+      case 'accessibility':
+        return `${baseElementInfo}
+
+Please analyze the accessibility of this element:
+
+1. What accessibility features does this element have?
+2. Are there any accessibility issues or missing attributes?
+3. How well does it work with screen readers?
+4. What ARIA attributes would improve accessibility?
+5. Are there any keyboard navigation concerns?
+
+${userInput ? `Additional context: ${userInput}` : ''}
+
+Provide specific, actionable accessibility improvements.`;
+
+      case 'performance':
+        return `${baseElementInfo}
+
+Please analyze the performance implications of this element:
+
+1. What performance impact does this element have?
+2. Are there any rendering or layout performance issues?
+3. How could this element be optimized?
+4. Are there any unnecessary re-renders or calculations?
+5. What performance best practices could be applied?
+
+${userInput ? `Additional context: ${userInput}` : ''}
+
+Provide specific, actionable performance optimizations.`;
+
+      case 'general':
+      default:
+        return `${baseElementInfo}
+
+Please provide a comprehensive analysis of this element:
+
+1. What is the purpose and function of this element?
+2. How is it currently implemented?
+3. What are its key characteristics and behaviors?
+4. Are there any issues or areas for improvement?
+5. What best practices could be applied?
+
+${userInput ? `Additional context: ${userInput}` : ''}
+
+Provide a detailed analysis with specific insights and recommendations.`;
+    }
+  };
+
   // Handle screenshot actions
   const handleScreenshotAction = (mode?: string) => {
     if (!mode) return;
 
     switch (mode) {
-      case 'element':
-        if (detectedElement) {
-          captureElement(detectedElement);
-        }
-        break;
       case 'rectangle':
         setActiveScreenshotOverlay('rectangle');
         break;
@@ -457,15 +579,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
             background: 'linear-gradient(135deg, #22c55e, #16a34a)',
           }}
         >
-                     <span style={{ 
-             fontSize: isMobile ? 24 : 32, 
-             display: 'flex', 
-             alignItems: 'center', 
-             justifyContent: 'center',
-             fontWeight: 'bold'
-           }}>
-             {'>_'}
-           </span>
+          <Terminal className="h-6 w-6" />
         </Button>
       )}
 

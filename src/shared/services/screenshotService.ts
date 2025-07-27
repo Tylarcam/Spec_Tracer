@@ -1,11 +1,9 @@
 import html2canvas from 'html2canvas';
-import { ElementInfo } from '@/shared/types';
 
-export type ScreenshotMode = 'element' | 'rectangle' | 'window' | 'fullscreen' | 'freeform';
+export type ScreenshotMode = 'rectangle' | 'window' | 'fullscreen' | 'freeform';
 
 export interface ScreenshotOptions {
   mode: ScreenshotMode;
-  element?: ElementInfo;
   coordinates?: {
     x: number;
     y: number;
@@ -35,11 +33,6 @@ class ScreenshotService {
       let filename = options.filename || `screenshot-${Date.now()}`;
 
       switch (options.mode) {
-        case 'element':
-          canvas = await this.captureElement(options.element!);
-          filename = `element-${filename}`;
-          break;
-        
         case 'rectangle':
           canvas = await this.captureRectangle(options.coordinates!);
           filename = `rectangle-${filename}`;
@@ -91,34 +84,7 @@ class ScreenshotService {
     }
   }
 
-  /**
-   * Capture a specific element
-   */
-  private async captureElement(elementInfo: ElementInfo): Promise<HTMLCanvasElement> {
-    if (!elementInfo.element) {
-      throw new Error('Element not found');
-    }
 
-    const element = elementInfo.element;
-    const rect = element.getBoundingClientRect();
-
-    // Capture the element with its computed styles
-    const canvas = await html2canvas(element, {
-      backgroundColor: null,
-      scale: 1,
-      useCORS: true,
-      allowTaint: true,
-      foreignObjectRendering: true,
-      removeContainer: true,
-      logging: false,
-      width: rect.width,
-      height: rect.height,
-      x: rect.left,
-      y: rect.top
-    });
-
-    return canvas;
-  }
 
   /**
    * Capture a rectangular area
