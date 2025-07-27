@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Camera, Sparkles, Bug, Eye, Copy } from 'lucide-react';
+import { Camera, Sparkles, Bug, Copy } from 'lucide-react';
 
 interface QuickActionPillProps {
   visible: boolean;
@@ -39,55 +39,98 @@ const QuickActionPill: React.FC<QuickActionPillProps> = ({ visible, x, y, onClos
   return (
     <div
       ref={pillRef}
-      style={{ position: 'absolute', left: x, top: y - 48, zIndex: 1000 }}
-      className="flex items-center bg-slate-900/95 border border-cyan-700 rounded-full shadow-lg px-2 py-1 gap-1 animate-fade-in"
+      className="flex items-center animate-fade-in"
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y - 48,
+        zIndex: 1000,
+        background: 'rgba(30, 41, 59, 0.95)',
+        border: '1px solid rgba(34, 211, 238, 0.6)',
+        borderRadius: '12px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 211, 238, 0.2)',
+        padding: '12px 16px',
+        gap: '8px',
+        backdropFilter: 'blur(8px)'
+      }}
       tabIndex={-1}
       data-quick-actions="true"
     >
       <button
         onClick={() => onAction('copy')}
-        className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-cyan-900 border border-transparent hover:border-cyan-400 text-cyan-100 font-semibold text-sm transition-colors focus:outline-none"
-        style={{ minWidth: 56 }}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700/80 hover:bg-cyan-900/60 border border-transparent hover:border-cyan-400/40 text-cyan-300 font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
+        style={{
+          minWidth: '64px',
+          background: 'rgba(51, 65, 85, 0.8)',
+          border: '1px solid transparent',
+          borderRadius: '8px',
+          color: '#67e8f9',
+          fontWeight: '500',
+          fontSize: '14px',
+          transition: 'all 0.2s ease',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+        }}
         type="button"
       >
-        <Copy className="h-4 w-4 text-cyan-300" />
+        <Copy className="h-4 w-4" style={{ color: '#67e8f9' }} />
         Copy
       </button>
       <button
-        onClick={() => onAction('details')}
-        className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-cyan-900 border border-transparent hover:border-cyan-400 text-cyan-100 font-semibold text-sm transition-colors focus:outline-none"
-        style={{ minWidth: 56 }}
+        onClick={() => onAction('screenshot')}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700/80 hover:bg-cyan-900/60 border border-transparent hover:border-cyan-400/40 text-cyan-300 font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
+        style={{
+          minWidth: '64px',
+          background: 'rgba(51, 65, 85, 0.8)',
+          border: '1px solid transparent',
+          borderRadius: '8px',
+          color: '#67e8f9',
+          fontWeight: '500',
+          fontSize: '14px',
+          transition: 'all 0.2s ease',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+        }}
         type="button"
       >
-        <Eye className="h-4 w-4 text-cyan-300" />
-        View
+        <Camera className="h-4 w-4" style={{ color: '#67e8f9' }} />
+        Shot
       </button>
       <button
         onClick={() => onAction('context')}
-        className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-cyan-900 border border-transparent hover:border-cyan-400 text-cyan-100 font-semibold text-sm transition-colors focus:outline-none"
-        style={{ minWidth: 56 }}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700/80 hover:bg-cyan-900/60 border border-transparent hover:border-cyan-400/40 text-cyan-300 font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
+        style={{
+          minWidth: '64px',
+          background: 'rgba(51, 65, 85, 0.8)',
+          border: '1px solid transparent',
+          borderRadius: '8px',
+          color: '#67e8f9',
+          fontWeight: '500',
+          fontSize: '14px',
+          transition: 'all 0.2s ease',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+        }}
         type="button"
       >
-        <Sparkles className="h-4 w-4 text-cyan-300" />
+        <Sparkles className="h-4 w-4" style={{ color: '#67e8f9' }} />
         Gen
       </button>
       <button
         onClick={() => onAction('debug')}
-        className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-cyan-900 border border-transparent hover:border-cyan-400 text-cyan-100 font-semibold text-sm transition-colors focus:outline-none"
-        style={{ minWidth: 56 }}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700/80 hover:bg-cyan-900/60 border border-transparent hover:border-cyan-400/40 text-cyan-300 font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
+        style={{
+          minWidth: '64px',
+          background: 'rgba(51, 65, 85, 0.8)',
+          border: '1px solid transparent',
+          borderRadius: '8px',
+          color: '#67e8f9',
+          fontWeight: '500',
+          fontSize: '14px',
+          transition: 'all 0.2s ease',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+        }}
         type="button"
       >
-        <Bug className="h-4 w-4 text-cyan-300" />
+        <Bug className="h-4 w-4" style={{ color: '#67e8f9' }} />
         Fix
-      </button>
-      <button
-        onClick={() => onAction('screenshot')}
-        className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-cyan-900 border border-transparent hover:border-cyan-400 text-cyan-100 font-semibold text-sm transition-colors focus:outline-none"
-        style={{ minWidth: 56 }}
-        type="button"
-      >
-        <Camera className="h-4 w-4 text-cyan-300" />
-        Shot
       </button>
     </div>
   );
