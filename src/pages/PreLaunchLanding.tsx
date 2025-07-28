@@ -248,7 +248,7 @@ const PreLaunchLanding = () => {
             </div>
             
             <h2 className="text-4xl font-bold mb-4">
-              Get SpecTracer Chrome Extension
+              Get SpecTracer Dev Tool Extension
             </h2>
             
             <p className="text-xl text-slate-300 mb-6 max-w-2xl mx-auto">
@@ -262,7 +262,7 @@ const PreLaunchLanding = () => {
                   <ul className="space-y-2 text-slate-300">
                     <li className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-orange-400" />
-                      Direct extension (zip file)
+                      Direct download (zip file)
                     </li>
                     <li className="flex items-center gap-2">
                       <Crown className="h-4 w-4 text-orange-400" />
