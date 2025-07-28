@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Trace Sight Debug View",
+  "name": "SpecTrace — Turn UI Actions into AI‑Readable Specs",
   "version": "1.0.17",
   "description": "Debug and trace logs with a React-based UI for any webpage.",
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Trace Sight Debug View"
+    "default_title": "SpecTrace — Turn UI Actions into AI‑Readable Specs"
   },
   "background": {
     "service_worker": "background.js"
@@ -19,11 +19,8 @@
   ],
   "permissions": [
     "storage", 
-    "scripting", 
-    "tabs", 
-    "activeTab",
-    "identity",
-    "downloads"
+    "scripting",  
+    "activeTab"
   ],
   "host_permissions": [
     "https://kepmuysqytngtqterosr.supabase.co/*",

@@ -10,12 +10,12 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
   console.log('❌ Chrome extension API not available');
 }
 
-// Test LogTracePopup class
+// Test SpecTracerPopup class
 try {
   // This would normally be tested in the popup context
-  console.log('✅ LogTracePopup class structure looks good');
+  console.log('✅ SpecTracerPopup class structure looks good');
 } catch (error) {
-  console.log('❌ LogTracePopup error:', error.message);
+  console.log('❌ SpecTracerPopup error:', error.message);
 }
 
 // Check required DOM elements for popup

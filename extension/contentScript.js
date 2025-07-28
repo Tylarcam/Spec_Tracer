@@ -1,5 +1,5 @@
-// Trace Sight Debug View - Content Script v1.0.0
-console.log('Trace Sight Content Script v1.0.0 loaded');
+// SpecTracer Debug View - Content Script v1.0.0
+console.log('SpecTracer Content Script v1.0.0 loaded');
 
 // Lucid Icons Utility - Consistent icon system
 const LucidIcons = {
@@ -58,7 +58,7 @@ const LucidIcons = {
 };
 
 // State management
-let isLogTraceActive = false;
+let isSpecTracerActive = false;
 let logTraceInstance = null;
 let apiKey = null;
 let currentElement = null;
@@ -95,7 +95,7 @@ let pinnedDetailsCount = 0;
     userIntent: ''
   };
 
-// --- LogTrace Activation State and Overlay Management ---
+// --- SpecTracer Activation State and Overlay Management ---
 let overlayListenersRegistered = false;
 
 // Inspector hover state management
@@ -109,7 +109,7 @@ function initializeContentScript() {
   
   // Check if already initialized
   if (document.getElementById('log-trace-overlay')) {
-    console.log('LogTrace already initialized');
+    console.log('SpecTracer already initialized');
     return;
   }
   
@@ -123,8 +123,8 @@ function initializeContentScript() {
   getExtensionSettings();
 }
 
-// Create the main LogTrace overlay
-function createLogTraceOverlay() {
+// Create the main SpecTracer overlay
+function createSpecTracerOverlay() {
   const overlay = document.createElement('div');
   overlay.id = 'log-trace-overlay';
   overlay.style.cssText = `
@@ -194,7 +194,7 @@ function createLogTraceOverlay() {
     white-space: nowrap;
     border: 1px solid #334155;
   `;
-  tooltip.textContent = 'LogTrace Inactive';
+  tooltip.textContent = 'SpecTracer Inactive';
   
   document.body.appendChild(floatingButton);
   document.body.appendChild(tooltip);
@@ -203,7 +203,7 @@ function createLogTraceOverlay() {
   floatingButton.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    toggleLogTraceFromButton();
+    toggleSpecTracerFromButton();
   });
   
   floatingButton.addEventListener('mouseenter', () => {
@@ -923,9 +923,9 @@ function handleExtensionMessage(request, sender, sendResponse) {
 }
 
 // Activate LogTrace
-function activateLogTrace() {
-  isLogTraceActive = true;
-  console.log('LogTrace activated');
+function activateSpecTracer() {
+      isSpecTracerActive = true;
+    console.log('SpecTracer activated');
   
   // Show overlay elements
   const overlay = document.getElementById('log-trace-overlay');
@@ -947,22 +947,22 @@ function activateLogTrace() {
     }
     const tooltip = document.getElementById('log-trace-tooltip');
     if (tooltip) {
-      tooltip.textContent = 'LogTrace Active';
+      tooltip.textContent = 'SpecTracer Active';
       tooltip.style.color = '#06b6d4';
       tooltip.style.borderColor = '#06b6d4';
     }
   }
   
   // Show status indicator
-      showNotification('LogTrace activated! Ctrl+S=start/stop, Ctrl+E=end, P=pause hover, Right-click=quick actions, Esc=exit');
+      showNotification('SpecTracer activated! Ctrl+S=start/stop, Ctrl+E=end, P=pause hover, Right-click=quick actions, Esc=exit');
   registerOverlayListeners();
   // Show overlays if needed
 }
 
 // Deactivate LogTrace
-function deactivateLogTrace() {
-  isLogTraceActive = false;
-  console.log('LogTrace deactivated');
+function deactivateSpecTracer() {
+      isSpecTracerActive = false;
+    console.log('SpecTracer deactivated');
   
   // Clear any pause states
   isHoverPaused = false;
@@ -1006,7 +1006,7 @@ function deactivateLogTrace() {
     }
     const tooltip = document.getElementById('log-trace-tooltip');
     if (tooltip) {
-      tooltip.textContent = 'LogTrace Inactive';
+      tooltip.textContent = 'SpecTracer Inactive';
       tooltip.style.color = '#e2e8f0';
       tooltip.style.borderColor = '#334155';
     }
@@ -1017,18 +1017,18 @@ function deactivateLogTrace() {
   if (modal) {
     modal.remove();
   }
-  showNotification('LogTrace deactivated');
+      showNotification('SpecTracer deactivated');
   unregisterOverlayListeners();
   // Hide overlays and highlights
   removeOverlayUI();
 }
 
 // Toggle LogTrace from floating button
-function toggleLogTraceFromButton() {
-  if (isLogTraceActive) {
-    deactivateLogTrace();
+function toggleSpecTracerFromButton() {
+  if (isSpecTracerActive) {
+    deactivateSpecTracer();
   } else {
-    activateLogTrace();
+    activateSpecTracer();
   }
   
   // Add click animation
@@ -2281,7 +2281,7 @@ function displayEnhancedAnalysisResult(data, originalPrompt) {
 }
 
 // Utility functions
-function isLogTraceElement(element) {
+function isSpecTracerElement(element) {
   if (!element) return false;
   
   const logTraceIds = [

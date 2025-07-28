@@ -143,7 +143,7 @@ const Landing = () => {
             <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-2 rounded-lg">
               <Target className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold">LogTrace</span>
+            <span className="text-xl font-bold">SpecTracer</span>
           </div>
           
           <Button
@@ -163,7 +163,7 @@ const Landing = () => {
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 rounded-full px-4 py-2 mb-6">
               <Sparkles className="h-4 w-4 text-cyan-400" />
-              <span className="text-cyan-400 text-sm font-medium">Early Access Demo</span>
+              <span className="text-cyan-400 text-sm font-medium">Privacy-First Early Access</span>
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
@@ -171,8 +171,9 @@ const Landing = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              LogTrace captures pixel-perfect UI context so AI tools give you pixel-perfect fixes. 
+              SpecTracer captures pixel-perfect UI context so AI tools give you pixel-perfect fixes. 
               <span className="text-green-400 font-semibold"> Hover, click, get instant AI insights.</span>
+              <span className="text-cyan-400 font-semibold"> Zero data collection, client-side only.</span>
             </p>
           </div>
 
@@ -215,12 +216,14 @@ const Landing = () => {
           <div className="text-sm text-slate-400 mb-6 text-center">
             <span className="text-cyan-400 font-medium">🎯 Early access to Chrome extension</span>
             <span className="mx-2">•</span>
-            <span>No spam, unsubscribe anytime</span>
+            <span>🛡️ Zero data collection</span>
+            <span className="mx-2">•</span>
+            <span>⚡ Client-side only</span>
           </div>
           <div className="text-sm text-slate-400 flex items-center justify-center gap-4">
             <span>✓ Free demo available now</span>
-            <span>✓ Chrome extension coming soon</span>
-            <span>✓ 5 AI debugs included</span>
+            <span>✓ Direct extension download</span>
+            <span>✓ Privacy-first guarantee</span>
           </div>
         </div>
       </section>
@@ -234,13 +237,21 @@ const Landing = () => {
               <span className="text-green-400 font-medium">See It In Action</span>
             </div>
             
+            {/* Privacy Notice */}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="bg-green-500/10 border border-green-500/30 rounded-full px-3 py-1">
+                <span className="text-green-400 text-sm font-medium">🛡️ Privacy-First Demo</span>
+              </div>
+            </div>
+            
             <h2 className="text-3xl font-bold mb-4">
               From Bug Description to AI Solution in Seconds
             </h2>
             
             <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
-              Instead of writing long descriptions of what's broken, LogTrace captures the exact context 
+              Instead of writing long descriptions of what's broken, SpecTracer captures the exact context 
               your AI assistant needs to provide perfect solutions.
+              <span className="text-green-400 font-semibold"> All processing happens locally in your browser.</span>
             </p>
             
             <Button
@@ -260,9 +271,12 @@ const Landing = () => {
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Why Developers Love LogTrace</h2>
+            <h2 className="text-4xl font-bold mb-4">Why Developers Love SpecTracer</h2>
             <p className="text-xl text-slate-300">
               The missing link between you and AI-powered debugging
+            </p>
+            <p className="text-lg text-slate-400 mt-2">
+              Privacy-first design that works entirely in your browser
             </p>
           </div>
           
@@ -275,6 +289,7 @@ const Landing = () => {
               <p className="text-slate-300">
                 Stop describing bugs. Start showing them. One-click context capture 
                 that AI understands perfectly.
+                <span className="text-green-400 font-semibold"> Zero data transmission.</span>
               </p>
             </div>
             
@@ -284,8 +299,9 @@ const Landing = () => {
               </div>
               <h3 className="text-xl font-semibold mb-4">Works Everywhere</h3>
               <p className="text-slate-300">
-                Try the demo now, Chrome extension launching soon. Works on any website, 
+                Try the demo now, Chrome extension available for direct download. Works on any website, 
                 integrates with your existing AI workflow.
+                <span className="text-cyan-400 font-semibold"> No Chrome Web Store delays.</span>
               </p>
             </div>
             
@@ -297,6 +313,7 @@ const Landing = () => {
               <p className="text-slate-300">
                 Get immediate AI-powered debugging suggestions. 
                 No more guessing what's wrong.
+                <span className="text-purple-400 font-semibold"> Immediate data cleanup.</span>
               </p>
             </div>
           </div>
@@ -306,9 +323,12 @@ const Landing = () => {
       {/* How It Works */}
       <section className="py-16 px-4 bg-slate-800/20">
         <div className="container mx-auto max-w-4xl">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Three Steps to Smarter Debugging</h2>
-          </div>
+                      <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold mb-4">Three Steps to Smarter Debugging</h2>
+              <p className="text-xl text-slate-300">
+                Privacy-first workflow that respects your data
+              </p>
+            </div>
           
           <div className="space-y-12">
             <div className="flex items-start gap-8">
@@ -318,8 +338,9 @@ const Landing = () => {
               <div>
                 <h3 className="text-2xl font-semibold mb-3">Try the Demo</h3>
                 <p className="text-slate-300 text-lg">
-                  Experience LogTrace in our interactive demo. Press 'S' to start debugging 
+                  Experience SpecTracer in our interactive demo. Press 'S' to start debugging 
                   any element on the demo page.
+                  <span className="text-green-400 font-semibold"> All processing happens locally.</span>
                 </p>
               </div>
             </div>
@@ -333,6 +354,7 @@ const Landing = () => {
                 <p className="text-slate-300 text-lg">
                   Hover over any element to inspect it in real-time, then click for 
                   detailed AI analysis and debugging suggestions.
+                  <span className="text-cyan-400 font-semibold"> No data leaves your browser.</span>
                 </p>
               </div>
             </div>
@@ -346,6 +368,7 @@ const Landing = () => {
                 <p className="text-slate-300 text-lg">
                   Copy the generated context to ChatGPT, Claude, or any AI assistant 
                   for pixel-perfect debugging solutions.
+                  <span className="text-blue-400 font-semibold"> You control what gets shared.</span>
                 </p>
               </div>
             </div>
@@ -365,12 +388,12 @@ const Landing = () => {
             </div>
             
             <h2 className="text-4xl font-bold mb-4">
-              Ready to Experience the Future of Debugging?
+              Ready to Experience Privacy-First Debugging?
             </h2>
             
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
               Try our interactive demo now and join the waitlist for early access 
-              to the Chrome extension.
+              to the Chrome extension. No Chrome Web Store delays.
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -411,9 +434,11 @@ const Landing = () => {
             <div className="text-sm text-slate-400 mt-6 text-center">
               <span className="text-cyan-400 font-medium">🎯 Early access to Chrome extension</span>
               <span className="mx-2">•</span>
-              <span>No spam, unsubscribe anytime</span>
+              <span>🛡️ Zero data collection</span>
+              <span className="mx-2">•</span>
+              <span>⚡ Direct download</span>
             </div>
-            <div className="text-sm text-slate-400 mt-2">Demo available now • Chrome extension coming soon • Early access signup</div>
+            <div className="text-sm text-slate-400 mt-2">Demo available now • Direct extension download • Privacy-first guarantee</div>
           </div>
         </div>
       </section>

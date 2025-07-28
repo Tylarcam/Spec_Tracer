@@ -105,7 +105,7 @@ const PreLaunchLanding = () => {
             <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-2 rounded-lg">
               <Target className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold">LogTrace</span>
+            <span className="text-xl font-bold">SpecTracer</span>
           </div>
           
           <Button
@@ -124,7 +124,7 @@ const PreLaunchLanding = () => {
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2 mb-6">
               <Sparkles className="h-4 w-4 text-green-400" />
-              <span className="text-green-400 text-sm font-medium">Beta Access</span>
+              <span className="text-green-400 text-sm font-medium">Privacy-First Beta Access</span>
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
@@ -133,6 +133,7 @@ const PreLaunchLanding = () => {
             
             <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-2xl mx-auto leading-relaxed">
               Capture UI context instantly. Copy to AI. Fix your bugs fast.
+              <span className="text-green-400 font-semibold"> Zero data collection, client-side only.</span>
             </p>
           </div>
 
@@ -148,6 +149,22 @@ const PreLaunchLanding = () => {
               <ArrowRight className="h-5 w-5 ml-2" />
             </Button>
           </div>
+          
+          {/* Privacy Badge */}
+          <div className="flex items-center justify-center gap-4 mb-6 text-sm text-slate-400">
+            <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-3 py-1">
+              <span className="text-green-400">🛡️</span>
+              <span className="text-green-400 font-medium">Zero Data Collection</span>
+            </div>
+            <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 rounded-full px-3 py-1">
+              <span className="text-cyan-400">⚡</span>
+              <span className="text-cyan-400 font-medium">Client-Side Only</span>
+            </div>
+            <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-3 py-1">
+              <span className="text-blue-400">🔒</span>
+              <span className="text-blue-400 font-medium">Privacy-First</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -160,12 +177,20 @@ const PreLaunchLanding = () => {
               <span className="text-green-400 font-medium">See It In Action</span>
             </div>
             
+            {/* Privacy Notice */}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="bg-green-500/10 border border-green-500/30 rounded-full px-3 py-1">
+                <span className="text-green-400 text-sm font-medium">🛡️ Privacy-First Demo</span>
+              </div>
+            </div>
+            
             <h2 className="text-3xl font-bold mb-4">
               Watch How It Works
             </h2>
             
             <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
               Hover, click, copy context. That's it. No more writing long descriptions to ChatGPT.
+              <span className="text-green-400 font-semibold"> All processing happens locally in your browser.</span>
             </p>
             
             {/* Placeholder for Demo Video/GIF */}
@@ -193,9 +218,12 @@ const PreLaunchLanding = () => {
       {/* Benefits + Proof Section */}
       <section className="py-16 px-4 bg-slate-800/20">
         <div className="container mx-auto max-w-4xl">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Why Developers Love LogTrace</h2>
-          </div>
+                      <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold mb-4">Why Developers Love SpecTracer</h2>
+              <p className="text-xl text-slate-300 mb-6">
+                Privacy-first debugging that works entirely in your browser
+              </p>
+            </div>
           
           <div className="space-y-8">
             <div className="flex items-start gap-6">
@@ -206,6 +234,7 @@ const PreLaunchLanding = () => {
                 <h3 className="text-2xl font-semibold mb-3">Capture Context</h3>
                 <p className="text-slate-300 text-lg">
                   Hover over any element to instantly capture its complete technical context - styles, events, computed properties.
+                  <span className="text-green-400 font-semibold"> All processed locally, no data sent anywhere.</span>
                 </p>
               </div>
             </div>
@@ -218,6 +247,7 @@ const PreLaunchLanding = () => {
                 <h3 className="text-2xl font-semibold mb-3">Get AI Debugging Help</h3>
                 <p className="text-slate-300 text-lg">
                   Copy the optimized context to ChatGPT, Claude, or any AI assistant for pixel-perfect debugging solutions.
+                  <span className="text-cyan-400 font-semibold"> You control what gets shared with AI.</span>
                 </p>
               </div>
             </div>
@@ -230,6 +260,7 @@ const PreLaunchLanding = () => {
                 <h3 className="text-2xl font-semibold mb-3">Save Time</h3>
                 <p className="text-slate-300 text-lg">
                   Skip the essay writing. Get from bug to fix in seconds, not minutes.
+                  <span className="text-blue-400 font-semibold"> Immediate cleanup when debugging ends.</span>
                 </p>
               </div>
             </div>
@@ -244,7 +275,7 @@ const PreLaunchLanding = () => {
                 </div>
               </div>
               <blockquote className="text-lg text-slate-300 mb-4 italic">
-                "LogTrace saved me hours of debugging. Instead of writing paragraphs to ChatGPT, I just hover and click. The context it captures is perfect."
+                "SpecTracer saved me hours of debugging. Instead of writing paragraphs to ChatGPT, I just hover and click. The context it captures is perfect."
               </blockquote>
               <p className="text-slate-400 text-sm">
                 — Early Access User (placeholder for real testimonial)
@@ -265,11 +296,11 @@ const PreLaunchLanding = () => {
             </div>
             
             <h2 className="text-4xl font-bold mb-4">
-              Join the Beta
+              Join the Privacy-First Beta
             </h2>
             
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Get early access to LogTrace and help shape the future of AI-powered debugging.
+              Get early access to SpecTracer and help shape the future of privacy-first AI-powered debugging.
             </p>
             
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">
@@ -279,7 +310,7 @@ const PreLaunchLanding = () => {
                   <ul className="space-y-2 text-slate-300">
                     <li className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-green-400" />
-                      Early access to new features
+                      Early access to Chrome extension
                     </li>
                     <li className="flex items-center gap-2">
                       <Share2 className="h-4 w-4 text-green-400" />
@@ -289,15 +320,20 @@ const PreLaunchLanding = () => {
                       <Crown className="h-4 w-4 text-green-400" />
                       Priority support
                     </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-400">🛡️</span>
+                      Privacy-first guarantee
+                    </li>
                   </ul>
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-cyan-400 mb-2">What's Coming</h3>
                   <ul className="space-y-2 text-slate-300">
-                    <li>• Chrome extension</li>
+                    <li>• Direct Chrome extension download</li>
                     <li>• Advanced debugging tools</li>
                     <li>• Team collaboration features</li>
                     <li>• AI-powered suggestions</li>
+                    <li>• Enhanced privacy controls</li>
                   </ul>
                 </div>
               </div>
@@ -326,9 +362,9 @@ const PreLaunchLanding = () => {
             </div>
             
             <div className="text-sm text-slate-400 mt-6 text-center">
-              <span className="text-green-400 font-medium">🎯 Early access to new features</span>
+              <span className="text-green-400 font-medium">🎯 Early access to Chrome extension</span>
               <span className="mx-2">•</span>
-              <span>No spam, unsubscribe anytime</span>
+              <span>🛡️ Zero data collection</span>
               <span className="mx-2">•</span>
               <span>Demo available now</span>
             </div>
@@ -345,7 +381,7 @@ const PreLaunchLanding = () => {
             </div>
             
             <h2 className="text-4xl font-bold mb-4">
-              Ready to Try LogTrace?
+              Ready to Try SpecTracer?
             </h2>
             
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">

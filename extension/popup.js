@@ -1,5 +1,5 @@
-// LogTrace Extension Popup with Authentication
-class LogTracePopup {
+// SpecTracer Extension Popup with Authentication
+class SpecTracerPopup {
   constructor() {
     this.isActive = false;
     this.terminalEnabled = false;
@@ -251,7 +251,7 @@ class LogTracePopup {
 
   async handleOpenMainApp() {
     try {
-      // Open the main LogTrace app in a new tab
+      // Open the main SpecTracer app in a new tab
       await chrome.tabs.create({
         url: 'https://trace-sight-debug-view.vercel.app/auth?return=extension'
       });
@@ -273,7 +273,7 @@ class LogTracePopup {
       root.innerHTML = `
         <div class="loading">
           <div class="loading-spinner"></div>
-          <p>Loading LogTrace...</p>
+          <p>Loading SpecTracer...</p>
         </div>
       `;
       return;
@@ -281,7 +281,7 @@ class LogTracePopup {
 
     root.innerHTML = `
       <div class="header">
-        <h1>🔍 LogTrace</h1>
+        <h1>🔍 SpecTracer</h1>
         <p>Capture Perfect Context</p>
       </div>
       
@@ -327,7 +327,7 @@ class LogTracePopup {
         
         <div class="status-indicator">
           <div class="status-dot ${this.isActive ? 'active' : ''}"></div>
-          <span>LogTrace is ${this.isActive ? 'Active' : 'Inactive'}</span>
+          <span>SpecTracer is ${this.isActive ? 'Active' : 'Inactive'}</span>
         </div>
       </div>
       
@@ -341,7 +341,7 @@ class LogTracePopup {
           </label>
         </div>
         <div class="setting-description">
-          Access the terminal panel through the LogTrace interface when enabled
+          Access the terminal panel through the SpecTracer interface when enabled
         </div>
       </div>
       
@@ -391,7 +391,7 @@ class LogTracePopup {
           <div class="auth-section">
             <div class="auth-header">
               <span class="auth-icon">🔐</span>
-              <span class="auth-title">Sign In to LogTrace</span>
+              <span class="auth-title">Sign In to SpecTracer</span>
             </div>
             
             <div class="auth-form">
@@ -435,7 +435,7 @@ class LogTracePopup {
               <span class="auth-title">Use Main App Session</span>
             </div>
             <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 12px;">
-              Already signed in on the main LogTrace app? Open it to sync your session.
+              Already signed in on the main SpecTracer app? Open it to sync your session.
             </p>
             <button class="btn btn-primary" data-action="openMainApp">
               Open Main App
@@ -556,10 +556,10 @@ class LogTracePopup {
     if (statusDot && statusText) {
       if (this.isActive) {
         statusDot.classList.add('active');
-        statusText.textContent = 'LogTrace is Active';
+        statusText.textContent = 'SpecTracer is Active';
       } else {
         statusDot.classList.remove('active');
-        statusText.textContent = 'LogTrace is Inactive';
+        statusText.textContent = 'SpecTracer is Inactive';
       }
     }
   }
@@ -578,20 +578,20 @@ class LogTracePopup {
 
     try {
       if (this.isActive) {
-        await this.sendToBackground('toggleLogTrace', {
+        await this.sendToBackground('toggleSpecTracer', {
           tabId: this.currentTab.id,
           activate: true,
           apiKey: this.apiKey
         });
       } else {
-        await this.sendToBackground('toggleLogTrace', {
+        await this.sendToBackground('toggleSpecTracer', {
           tabId: this.currentTab.id,
           activate: false
         });
       }
     } catch (error) {
       console.error('Failed to update tab status:', error);
-      this.showNotification('Failed to update LogTrace status', 'error');
+      this.showNotification('Failed to update SpecTracer status', 'error');
     }
   }
 
@@ -693,7 +693,7 @@ document.head.appendChild(style);
 // Initialize the popup when DOM is loaded
 let popup;
 document.addEventListener('DOMContentLoaded', () => {
-  popup = new LogTracePopup();
+  popup = new SpecTracerPopup();
 });
 
 // Handle messages from background script
