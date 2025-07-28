@@ -19,7 +19,7 @@ export const useAIDebugInterface = (
   const [isAIAnalyzing, setIsAIAnalyzing] = useState(false);
   const { error: notifyError } = useNotification();
 
-  const analyzeElementWithAI = async (prompt: string) => {
+  const analyzeElementWithAI = async (prompt: string, setGeneratedPrompt?: (prompt: string) => void) => {
     setIsAIAnalyzing(true);
     try {
       const MAX_RETRIES = 2;
@@ -62,6 +62,11 @@ export const useAIDebugInterface = (
           description: lastError.message || 'An unexpected error occurred'
         });
         throw lastError;
+      }
+
+      // Populate the Generated Prompt box if callback provided
+      if (setGeneratedPrompt && response) {
+        setGeneratedPrompt(sanitizeText(response));
       }
 
       // Record the successful AI response

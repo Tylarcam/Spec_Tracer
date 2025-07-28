@@ -24,7 +24,7 @@ interface DebugModalProps {
   currentElement: ElementInfo | null;
   mousePosition: { x: number; y: number };
   isAnalyzing: boolean;
-  analyzeWithAI: (prompt: string) => Promise<void>;
+  analyzeWithAI: (prompt: string, setGeneratedPrompt?: (prompt: string) => void) => Promise<void>;
   generateAdvancedPrompt: () => string;
   modalRef: React.RefObject<HTMLDivElement>;
   // Extension-specific props
@@ -310,7 +310,11 @@ const DebugModal: React.FC<DebugModalProps> = ({
     
     try {
       setErrorMessage(null);
-      await analyzeWithAI(prompt);
+      // Pass the setGeneratedPrompt callback to also populate the Generated Prompt box
+      await analyzeWithAI(prompt, setGeneratedPrompt);
+      
+      // Switch to the prompt tab to show the generated result
+      setActiveTab('prompt');
     } catch (error: any) {
       console.error('Debug analyze error:', error);
       const msg = error?.message || 'Error getting AI response';
