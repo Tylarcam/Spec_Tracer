@@ -30,9 +30,8 @@ function App() {
           <AuthProvider>
             <ErrorBoundary>
               <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/prelaunch" element={<PreLaunchLanding />} />
-                <Route path="/pre-launch-landing" element={<PreLaunchLanding />} />
+                <Route path="/" element={<PreLaunchLanding />} />
+                <Route path="/full-launch" element={<Landing />} />
                 <Route path="/debug" element={<Debug />} />
                 <Route path="/interactive-demo" element={<InteractiveDemo />} />
                 <Route path="/home" element={<Home />} />
