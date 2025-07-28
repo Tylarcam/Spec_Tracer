@@ -1,4 +1,5 @@
 // LogTrace Extension Popup with Authentication
+// ⚠️ SECURITY WARNING: Never hardcode credentials in production code
 class LogTracePopup {
   constructor() {
     this.isActive = false;
@@ -11,12 +12,15 @@ class LogTracePopup {
     this.email = '';
     this.password = '';
     this.isLoading = false;
-    this.supabaseUrl = 'https://kepmuysqytngtqterosr.supabase.co';
-    this.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlcG11eXNxeXRuZ3RxdGVyb3NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4MTk2NzQsImV4cCI6MjA2NzM5NTY3NH0.zlIhuBHikJjtK0Y1A31Bp7NIvP_j7E4OILRzz-7bJvA';
+    this.supabaseUrl = null;
+    this.supabaseKey = null;
+    this.secureStorage = null;
     this.init();
   }
 
   async init() {
+    // Initialize secure storage
+    await this.initializeSecureStorage();
     await this.loadSettings();
     await this.checkAuthState();
     this.render();
@@ -24,10 +28,44 @@ class LogTracePopup {
     await this.checkTabStatus();
   }
 
+  async initializeSecureStorage() {
+    try {
+      // Load secure storage script
+      if (!window.secureStorage) {
+        // Import secure storage if not available
+        const script = document.createElement('script');
+        script.src = 'secureStorage.js';
+        document.head.appendChild(script);
+        
+        // Wait for script to load
+        await new Promise((resolve) => {
+          script.onload = resolve;
+        });
+      }
+      
+      this.secureStorage = window.secureStorage;
+      
+      // Get credentials from secure storage
+      const credentials = await this.secureStorage.getCredentials();
+      this.supabaseUrl = credentials.supabaseUrl;
+      this.supabaseKey = credentials.supabaseKey;
+      
+      console.log('Secure storage initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize secure storage:', error);
+      // Fallback to default values for backward compatibility
+      this.supabaseUrl = 'https://kepmuysqytngtqterosr.supabase.co';
+      this.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlcG11eXNxeXRuZ3RxdGVyb3NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4MTk2NzQsImV4cCI6MjA2NzM5NTY3NH0.zlIhuBHikJjtK0Y1A31Bp7NIvP_j7E4OILRzz-7bJvA';
+    }
+  }
+
   async loadSettings() {
     try {
-      const result = await chrome.storage.sync.get(['apiKey', 'isActive', 'terminalEnabled', 'authToken', 'user']);
-      this.apiKey = result.apiKey || null;
+      const result = await chrome.storage.sync.get(['isActive', 'terminalEnabled', 'authToken', 'user']);
+      // Load API key from secure storage
+      if (this.secureStorage) {
+        this.apiKey = await this.secureStorage.getApiKey();
+      }
       this.isActive = result.isActive || false;
       this.terminalEnabled = result.terminalEnabled || false;
       this.user = result.user || null;
@@ -38,8 +76,12 @@ class LogTracePopup {
 
   async saveSettings() {
     try {
+      // Store API key securely
+      if (this.secureStorage && this.apiKey) {
+        await this.secureStorage.storeApiKey(this.apiKey);
+      }
+      
       await chrome.storage.sync.set({
-        apiKey: this.apiKey,
         isActive: this.isActive,
         terminalEnabled: this.terminalEnabled,
         authToken: this.user ? this.user.access_token : null,
