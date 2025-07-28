@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { enhancedValidation } from '@/utils/enhancedSanitization';
 import PrivacyFAQ from '@/components/PrivacyFAQ';
+import PaymentButton from '@/components/PaymentButton';
 
 const PreLaunchLanding = () => {
   const navigate = useNavigate();
@@ -281,6 +282,90 @@ const PreLaunchLanding = () => {
               <p className="text-slate-400 text-sm">
                 — Early Access User (placeholder for real testimonial)
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Founding User Access Section */}
+      <section className="py-16 px-4 bg-gradient-to-r from-orange-500/5 to-red-500/5">
+        <div className="container mx-auto max-w-4xl">
+          <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-400/30 rounded-2xl p-12 text-center">
+            <div className="flex justify-center mb-6">
+              <div className="bg-gradient-to-r from-orange-500 to-red-500 p-4 rounded-full">
+                <Crown className="h-16 w-16 text-white" />
+              </div>
+            </div>
+            
+            <div className="inline-flex items-center gap-2 bg-orange-500/20 border border-orange-500/50 rounded-full px-4 py-2 mb-6">
+              <span className="text-orange-400 text-sm font-bold">🔥 LIMITED TIME - FIRST 50 USERS</span>
+            </div>
+            
+            <h2 className="text-4xl font-bold mb-4">
+              Founding User Access
+            </h2>
+            
+            <p className="text-xl text-slate-300 mb-6 max-w-2xl mx-auto">
+              Get immediate access to the Chrome extension with priority support. Direct download, no waiting.
+            </p>
+            
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">
+              <div className="grid md:grid-cols-2 gap-6 text-left">
+                <div>
+                  <h3 className="text-lg font-semibold text-orange-400 mb-2">Founding User Benefits</h3>
+                  <ul className="space-y-2 text-slate-300">
+                    <li className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-orange-400" />
+                      Instant Chrome extension download
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Crown className="h-4 w-4 text-orange-400" />
+                      Priority support & bug fixes
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Share2 className="h-4 w-4 text-orange-400" />
+                      Direct line to development team
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-orange-400">🎯</span>
+                      Shape the product roadmap
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-red-400 mb-2">What You Get</h3>
+                  <ul className="space-y-2 text-slate-300">
+                    <li>• Complete Chrome extension (.crx file)</li>
+                    <li>• Installation instructions</li>
+                    <li>• Priority email support</li>
+                    <li>• Feature request influence</li>
+                    <li>• Founding user badge</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col items-center gap-4 mb-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white mb-2">$14.99</div>
+                <div className="text-slate-400 text-sm">One-time payment • First 50 users only</div>
+              </div>
+              
+              <PaymentButton 
+                email={email}
+                price={1499}
+                productName="SpecTracer - Founding User Access"
+                description="Direct Chrome extension download with priority support for first 50 users"
+                disabled={!email.trim()}
+              />
+            </div>
+            
+            <div className="text-sm text-slate-400 text-center">
+              <span className="text-orange-400 font-medium">⚡ Instant access</span>
+              <span className="mx-2">•</span>
+              <span>🛡️ Privacy-first guarantee</span>
+              <span className="mx-2">•</span>
+              <span>💰 30-day money-back guarantee</span>
             </div>
           </div>
         </div>

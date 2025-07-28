@@ -8,9 +8,18 @@ import { useToast } from '@/hooks/use-toast';
 interface PaymentButtonProps {
   email: string;
   disabled?: boolean;
+  price?: number;
+  productName?: string;
+  description?: string;
 }
 
-const PaymentButton: React.FC<PaymentButtonProps> = ({ email, disabled = false }) => {
+const PaymentButton: React.FC<PaymentButtonProps> = ({ 
+  email, 
+  disabled = false,
+  price = 900,
+  productName = "LogTrace Pro - Founding User Access",
+  description = "Lifetime Pro access with founding user benefits"
+}) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
@@ -28,7 +37,12 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({ email, disabled = false }
     
     try {
       const { data, error } = await supabase.functions.invoke('create-payment', {
-        body: { email: email.trim().toLowerCase() }
+        body: { 
+          email: email.trim().toLowerCase(),
+          price,
+          productName,
+          description
+        }
       });
 
       if (error) throw error;
@@ -58,7 +72,7 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({ email, disabled = false }
       className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto disabled:opacity-50"
     >
       <Crown className="h-5 w-5 mr-2" />
-      {isProcessing ? 'Processing...' : 'Get Pro Access - $9'}
+      {isProcessing ? 'Processing...' : `Get Pro Access - $${(price / 100).toFixed(2)}`}
       <CreditCard className="h-5 w-5 ml-2" />
     </Button>
   );

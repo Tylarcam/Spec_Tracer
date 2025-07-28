@@ -15,7 +15,12 @@ serve(async (req) => {
   }
 
   try {
-    const { email } = await req.json();
+    const { 
+      email, 
+      price = 900, 
+      productName = "LogTrace Pro - Founding User Access",
+      description = "Lifetime Pro access with founding user benefits"
+    } = await req.json();
     
     if (!email) {
       throw new Error("Email is required");
@@ -42,10 +47,10 @@ serve(async (req) => {
           price_data: {
             currency: "usd",
             product_data: { 
-              name: "LogTrace Pro - Founding User Access",
-              description: "Lifetime Pro access with founding user benefits"
+              name: productName,
+              description: description
             },
-            unit_amount: 900, // $9.00 in cents
+            unit_amount: price,
           },
           quantity: 1,
         },
