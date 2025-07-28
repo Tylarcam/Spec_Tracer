@@ -6,7 +6,7 @@ const InstructionsCard: React.FC = () => {
     <div className="bg-slate-800/40 rounded-xl border border-cyan-500/20 p-6 mb-6 max-w-4xl">
       <h2 className="text-cyan-400 font-bold text-xl mb-4 flex items-center gap-2">
         <MousePointer2 className="h-5 w-5" />
-        How to Use LogTrace
+        How to Use SpecTrace
       </h2>
       
       <div className="grid md:grid-cols-2 gap-6">
@@ -16,7 +16,7 @@ const InstructionsCard: React.FC = () => {
             <div className="flex items-start gap-2">
               <span className="text-cyan-400 font-mono">1.</span>
               <span className="text-gray-300">
-                <strong className="text-white">Toggle "Capture" ON</strong> in the top navigation bar to activate LogTrace
+                <strong className="text-white">Toggle "Capture" ON</strong> in the top navigation bar to activate SpecTrace
               </span>
             </div>
             <div className="flex items-start gap-2">
@@ -69,7 +69,7 @@ const InstructionsCard: React.FC = () => {
           Streamlined Workflow
         </h4>
         <p className="text-green-200 text-sm">
-          LogTrace now uses a simple toggle-to-start approach. Activate capture, inspect elements, 
+          SpecTrace now uses a simple toggle-to-start approach. Activate capture, inspect elements, 
           and use sticky panels that stay open until you explicitly close them. Perfect for detailed debugging sessions.
         </p>
       </div>
