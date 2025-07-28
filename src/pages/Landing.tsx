@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { enhancedValidation } from '@/utils/enhancedSanitization';
 import PricingSection from '@/components/PricingSection';
+import PrivacyFAQ from '@/components/PrivacyFAQ';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -375,6 +376,9 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* Privacy FAQ Section */}
+      <PrivacyFAQ />
 
       {/* Pricing Section */}
       <PricingSection onUpgrade={handleUpgrade} />

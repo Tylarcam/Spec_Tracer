@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { enhancedValidation } from '@/utils/enhancedSanitization';
+import PrivacyFAQ from '@/components/PrivacyFAQ';
 
 const PreLaunchLanding = () => {
   const navigate = useNavigate();
@@ -372,6 +373,9 @@ const PreLaunchLanding = () => {
         </div>
       </section>
 
+      {/* Privacy FAQ Section */}
+      <PrivacyFAQ />
+
       {/* Final CTA Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-4xl">
@@ -385,7 +389,7 @@ const PreLaunchLanding = () => {
             </h2>
             
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Experience the future of AI-powered debugging. Try the demo and join the beta to get early access.
+              Experience the future of privacy-first AI-powered debugging. Try the demo and join the beta to get early access.
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -425,7 +429,7 @@ const PreLaunchLanding = () => {
             <div className="text-sm text-slate-400 mt-6 text-center">
               <span className="text-green-400 font-medium">✨ Beta access available</span>
               <span className="mx-2">•</span>
-              <span>Help shape the product</span>
+              <span>🛡️ Privacy-first guarantee</span>
               <span className="mx-2">•</span>
               <span>Priority support included</span>
             </div>

@@ -1,5 +1,6 @@
 import { enhancedValidation } from '@/utils/enhancedSanitization';
 import { debugRateLimiter } from '@/utils/sanitization';
+import { SECURITY_CONFIG, SecurityValidators, apiRateLimiter } from '@/utils/securityConfig';
 import { ElementInfo } from './types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -16,8 +17,13 @@ export const callAIDebugFunction = async (
     throw new Error(promptValidation.error || 'Invalid prompt format');
   }
 
+  // Enhanced rate limiting
   if (!debugRateLimiter.isAllowed('debug-session')) {
     throw new Error('Too many requests. Please wait before trying again.');
+  }
+
+  if (!apiRateLimiter.isAllowed('api-debug', SECURITY_CONFIG.RATE_LIMITS.API_REQUESTS_PER_MINUTE, 60000)) {
+    throw new Error('API rate limit exceeded. Please wait before trying again.');
   }
 
   // Check if user is authenticated

@@ -130,6 +130,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_tylarcam_premium: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          is_premium: boolean
+          api_access: boolean
+          remaining_calls: number
+        }[]
+      }
+      comprehensive_user_verification: {
+        Args: { input_email?: string }
+        Returns: {
+          auth_user_id: string
+          auth_email: string
+          auth_role: string
+          auth_last_sign_in: string
+          is_subscriber: boolean
+          subscription_tier: string
+          subscription_start: string
+          subscription_end: string
+          stripe_customer_id: string
+          has_premium_access: boolean
+          access_validation_timestamp: string
+        }[]
+      }
       get_user_credits_status: {
         Args: { user_uuid: string }
         Returns: {
@@ -151,6 +175,17 @@ export type Database = {
       use_credit: {
         Args: { user_uuid: string }
         Returns: boolean
+      }
+      verify_premium_user: {
+        Args: { check_email: string }
+        Returns: {
+          auth_user_exists: boolean
+          subscriber_record_exists: boolean
+          is_subscribed: boolean
+          subscription_tier: string
+          subscription_end: string
+          user_id: string
+        }[]
       }
     }
     Enums: {
