@@ -7,7 +7,7 @@ import { ElementInfo, LogEvent, ExtendedActionType } from '@/shared/types';
 import ExtensionAuthModal from './components/ExtensionAuthModal';
 import { useExtensionAuth } from './hooks/useExtensionAuth';
 import { callAIDebugFunction } from '@/shared/api';
-import { Settings } from 'lucide-react';
+import { Settings, Terminal } from 'lucide-react';
 import SettingsDrawer from '@/components/LogTrace/SettingsDrawer';
 import ElementInspector from '@/components/LogTrace/ElementInspector';
 
@@ -31,6 +31,8 @@ export const LogTraceExtension: React.FC = () => {
   const [isHoverPaused, setIsHoverPaused] = useState(false);
   const [pausedElement, setPausedElement] = useState<ElementInfo | null>(null);
   const [pausedPosition, setPausedPosition] = useState<{ x: number; y: number } | null>(null);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [quickActionsPosition, setQuickActionsPosition] = useState({ x: 0, y: 0 });
 
   const {
     pinnedDetails,
@@ -63,9 +65,38 @@ export const LogTraceExtension: React.FC = () => {
     }
   };
 
-  // Event and debug response handlers (placeholder logic)
+  // Pause hover overlay
+  const pauseHoverOverlay = useCallback(() => {
+    setIsHoverPaused(true);
+    if (currentElement) {
+      setPausedElement(currentElement);
+      setPausedPosition(mousePosition);
+    }
+  }, [currentElement, mousePosition]);
+
+  // Resume hover overlay
+  const resumeHoverOverlay = useCallback(() => {
+    setIsHoverPaused(false);
+    setPausedElement(null);
+    setPausedPosition(null);
+    setShowQuickActions(false);
+  }, []);
+
+  // Handle right-click context menu
+  const handleRightClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Pause hover overlay
+    pauseHoverOverlay();
+    
+    // Show quick actions at cursor position
+    setQuickActionsPosition({ x: e.clientX, y: e.clientY });
+    setShowQuickActions(true);
+  }, [pauseHoverOverlay]);
+
+  // Event and debug response handlers
   const handleExportEvents = () => {
-    // Export events as JSON
     const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -79,14 +110,28 @@ export const LogTraceExtension: React.FC = () => {
 
   // Updated Quick Action handler with proper typing
   const handleQuickAction = useCallback(async (
-    action: ExtendedActionType,
+    action: string,
     element: ElementInfo | null = null
   ) => {
     const timestamp = new Date().toISOString();
 
-    // If this is a context gen action with user input
+    // Close quick actions
+    setShowQuickActions(false);
+
+    // Handle copy action
+    if (action === 'copy' && element) {
+      const elementText = `${element.tag}${element.id ? `#${element.id}` : ''}${element.classes?.length ? `.${element.classes.join('.')}` : ''} - ${element.text || 'No text'}`;
+      navigator.clipboard.writeText(elementText);
+      setLocalToast({
+        title: 'Copied!',
+        description: 'Element details copied to clipboard',
+        variant: 'success',
+      });
+      return;
+    }
+
+    // Handle context action if it's an object
     if (typeof action === 'object' && action.type === 'context') {
-      // Build a prompt based on mode and input
       const prompt = `Context Action: ${action.mode}\nUser Input: ${action.input}\nElement: ${element ? JSON.stringify(element) : 'none'}`;
       try {
         const aiResponse = await callAIDebugFunction(prompt, element, mousePosition);
@@ -119,15 +164,11 @@ export const LogTraceExtension: React.FC = () => {
       return;
     }
 
-    // Handle regular actions
-    const actionType = typeof action === 'string' ? action : 'debug';
-    
     // Map action to allowed LogEvent type
     let eventType: LogEvent['type'] = 'inspect';
-    if (actionType === 'debug' || actionType === 'context') eventType = 'debug';
-    else if (actionType === 'screenshot') eventType = 'click';
-    else if (actionType === 'details') eventType = 'inspect';
-    else if (actionType === 'copy') eventType = 'click';
+    if (action === 'debug' || action === 'context') eventType = 'debug';
+    else if (action === 'screenshot') eventType = 'click';
+    else if (action === 'details') eventType = 'inspect';
     
     // Log to events
     setEvents(prev => [
@@ -152,24 +193,31 @@ export const LogTraceExtension: React.FC = () => {
     // Log to console
     setConsoleLogs(prev => [
       ...prev,
-      `[${timestamp}] QuickAction: ${actionType} on ${element ? element.tag : 'unknown'}`
+      `[${timestamp}] QuickAction: ${action} on ${element ? element.tag : 'unknown'}`
     ]);
     
-    // Simulate AI response for debug/context
-    if (actionType === 'debug' || actionType === 'context') {
-      setTimeout(() => {
+    // Handle debug action
+    if (action === 'debug' && element) {
+      try {
+        const aiResponse = await callAIDebugFunction('Debug this element', element, mousePosition);
         setDebugResponses(prev => [
           ...prev,
-          {
-            response: `Simulated AI response for ${actionType} on ${element ? element.tag : 'unknown'}`,
-            timestamp,
-          },
+          { response: aiResponse, timestamp }
         ]);
-        setConsoleLogs(prev => [
-          ...prev,
-          `[${timestamp}] AI Response: Simulated response for ${actionType}`
-        ]);
-      }, 800);
+        setShowTerminal(true);
+        setActiveTerminalTab('debug');
+        setLocalToast({
+          title: 'Debug complete!',
+          description: 'Check the terminal for AI debug results.',
+          variant: 'success',
+        });
+      } catch (err) {
+        setLocalToast({
+          title: 'Debug failed',
+          description: err instanceof Error ? err.message : 'Unknown error occurred',
+          variant: 'destructive',
+        });
+      }
     }
   }, [mousePosition]);
 
@@ -215,8 +263,9 @@ export const LogTraceExtension: React.FC = () => {
       // Ctrl+D for debug/context
       if (e.ctrlKey && e.key.toLowerCase() === 'd') {
         e.preventDefault();
-        // You can trigger your debug/context action here if needed
-        // e.g., setShowElementInspector(true) or similar
+        if (currentElement) {
+          handleQuickAction('debug', currentElement);
+        }
       }
       
       // Ctrl+S for start/stop
@@ -228,10 +277,10 @@ export const LogTraceExtension: React.FC = () => {
       // Ctrl+P for pause/unpause
       if (e.ctrlKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
-        setIsHoverPaused(!isHoverPaused);
-        if (!isHoverPaused && currentElement) {
-          setPausedElement(currentElement);
-          setPausedPosition(mousePosition);
+        if (isHoverPaused) {
+          resumeHoverOverlay();
+        } else {
+          pauseHoverOverlay();
         }
       }
       
@@ -240,24 +289,29 @@ export const LogTraceExtension: React.FC = () => {
         e.preventDefault();
         setIsActive(false);
         setShowElementInspector(false);
-        setIsHoverPaused(false);
+        resumeHoverOverlay();
       }
       
-      // Ctrl+T for terminal
-      if (e.ctrlKey && e.key.toLowerCase() === 't') {
+      // Ctrl+Shift+T for terminal toggle
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 't') {
         e.preventDefault();
         setShowTerminal(!showTerminal);
       }
       
       // Escape for general close/cancel
       if (e.key === 'Escape') {
-        setShowElementInspector(false);
-        setIsHoverPaused(false);
+        if (showQuickActions) {
+          setShowQuickActions(false);
+          resumeHoverOverlay();
+        } else {
+          setShowElementInspector(false);
+          resumeHoverOverlay();
+        }
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, isHoverPaused, currentElement, mousePosition, showTerminal]);
+  }, [isActive, isHoverPaused, currentElement, mousePosition, showTerminal, showQuickActions, pauseHoverOverlay, resumeHoverOverlay, handleQuickAction]);
 
   // Mouse tracking logic
   useEffect(() => {
@@ -267,24 +321,24 @@ export const LogTraceExtension: React.FC = () => {
     }
   }, [isHoverPaused]);
 
-  // In ExtensionMouseOverlay, add a handler to open the inspector on element click
   const handleOverlayElementClick = () => {
     if (currentElement) {
       addPin(currentElement, mousePosition);
     }
     setShowElementInspector(true);
-    setIsHoverPaused(true);
-    setPausedElement(currentElement);
-    setPausedPosition(mousePosition);
+    pauseHoverOverlay();
   };
 
   const handleInspectorMouseEnter = () => {
     setIsInspectorHovered(true);
-    setIsHoverPaused(true);
+    pauseHoverOverlay();
   };
+  
   const handleInspectorMouseLeave = () => {
     setIsInspectorHovered(false);
-    setIsHoverPaused(false);
+    if (!showQuickActions) {
+      resumeHoverOverlay();
+    }
   };
 
   return (
@@ -297,6 +351,7 @@ export const LogTraceExtension: React.FC = () => {
           {localToast.description && <div className="text-sm mt-1">{localToast.description}</div>}
         </div>
       )}
+      
       {/* Settings Button - top right corner */}
       <button
         onClick={() => setShowSettingsDrawer(true)}
@@ -306,10 +361,82 @@ export const LogTraceExtension: React.FC = () => {
       >
         <Settings className="h-5 w-5 text-cyan-400" />
       </button>
+
+      {/* Terminal Toggle Button - bottom left corner */}
+      <button
+        onClick={() => setShowTerminal(!showTerminal)}
+        className="fixed bottom-4 left-4 z-[2147483650] bg-slate-900/80 border border-green-500/40 rounded-full p-2 shadow-lg hover:bg-green-900 transition-colors"
+        title="Toggle Terminal (Ctrl+Shift+T)"
+        style={{ pointerEvents: 'auto' }}
+      >
+        <Terminal className="h-5 w-5 text-green-400" />
+      </button>
+
+      {/* Quick Actions Menu */}
+      {showQuickActions && (
+        <div 
+          className="fixed z-[2147483650] bg-slate-900/95 border border-cyan-500/50 rounded-lg shadow-xl p-2 min-w-[150px]"
+          style={{ 
+            left: quickActionsPosition.x, 
+            top: quickActionsPosition.y,
+            pointerEvents: 'auto' 
+          }}
+        >
+          <div className="flex flex-col space-y-1">
+            <button
+              onClick={() => handleQuickAction('copy', currentElement)}
+              className="flex items-center space-x-2 px-3 py-2 text-sm text-cyan-400 hover:bg-cyan-500/10 rounded"
+            >
+              <span>📋</span>
+              <span>Copy Element</span>
+            </button>
+            <button
+              onClick={() => handleQuickAction('details', currentElement)}
+              className="flex items-center space-x-2 px-3 py-2 text-sm text-cyan-400 hover:bg-cyan-500/10 rounded"
+            >
+              <span>🔍</span>
+              <span>Element Details</span>
+            </button>
+            <button
+              onClick={() => handleQuickAction('debug', currentElement)}
+              className="flex items-center space-x-2 px-3 py-2 text-sm text-yellow-400 hover:bg-yellow-500/10 rounded"
+            >
+              <span>🤖</span>
+              <span>AI Debug</span>
+            </button>
+            <button
+              onClick={() => handleQuickAction('screenshot', currentElement)}
+              className="flex items-center space-x-2 px-3 py-2 text-sm text-green-400 hover:bg-green-500/10 rounded"
+            >
+              <span>📸</span>
+              <span>Screenshot</span>
+            </button>
+            <button
+              onClick={() => handleQuickAction('context', currentElement)}
+              className="flex items-center space-x-2 px-3 py-2 text-sm text-purple-400 hover:bg-purple-500/10 rounded"
+            >
+              <span>🧠</span>
+              <span>Context Analysis</span>
+            </button>
+            <button
+              onClick={() => {
+                setShowQuickActions(false);
+                resumeHoverOverlay();
+              }}
+              className="flex items-center space-x-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded border-t border-gray-600 mt-1"
+            >
+              <span>❌</span>
+              <span>Cancel</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       <SettingsDrawer
         isOpen={showSettingsDrawer}
         onClose={() => setShowSettingsDrawer(false)}
       />
+      
       <ExtensionMouseOverlay
         isActive={isActive}
         currentElement={isHoverPaused && pausedElement ? pausedElement : currentElement}
@@ -319,18 +446,20 @@ export const LogTraceExtension: React.FC = () => {
         onPin={handleOverlayPin}
         onQuickAction={handleQuickAction}
         onElementClick={handleOverlayElementClick}
+        onRightClick={handleRightClick}
+        isHoverPaused={isHoverPaused}
       />
+      
       <ElementInspector
         isVisible={showElementInspector}
         currentElement={isHoverPaused && pausedElement ? pausedElement : currentElement}
         mousePosition={isHoverPaused && pausedPosition ? pausedPosition : mousePosition}
         onDebug={() => {
-          // You can trigger the debug modal or quick action here
           handleQuickAction('debug', currentElement);
         }}
         onClose={() => {
           setShowElementInspector(false);
-          setIsHoverPaused(false);
+          resumeHoverOverlay();
         }}
         panelRef={elementInspectorRef}
         isExtensionMode={true}
@@ -340,11 +469,12 @@ export const LogTraceExtension: React.FC = () => {
         onShowMoreDetails={() => {}}
         currentDebugCount={guestDebugCount}
         maxDebugCount={5}
-        // Pause hover when mouse is over inspector
         onMouseEnter={handleInspectorMouseEnter}
         onMouseLeave={handleInspectorMouseLeave}
       />
+      
       <PinnedDetails pins={pinnedDetails} onRemove={removePin} />
+      
       <ExtensionTerminalWrapper
         showTerminal={showTerminal}
         onToggleTerminal={() => setShowTerminal(v => !v)}
@@ -357,6 +487,7 @@ export const LogTraceExtension: React.FC = () => {
         activeTab={activeTerminalTab}
         setActiveTab={setActiveTerminalTab}
       />
+      
       {showAuthModal && (
         <ExtensionAuthModal
           isOpen={showAuthModal}
