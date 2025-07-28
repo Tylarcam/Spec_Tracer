@@ -126,7 +126,7 @@ const PreLaunchLanding = () => {
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2 mb-6">
               <Sparkles className="h-4 w-4 text-green-400" />
-              <span className="text-green-400 text-sm font-medium">Privacy-First Chrome Extension</span>
+              <span className="text-green-400 text-sm font-medium">Privacy-First Dev Tool</span>
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
@@ -301,8 +301,8 @@ const PreLaunchLanding = () => {
               <PaymentButton 
                 email={email}
                 price={1499}
-                productName="SpecTracer - Chrome Extension"
-                description="Direct Chrome extension download with lifetime access and priority support"
+                productName="SpecTracer - Dev Tool Extension"
+                description="Direct extension download with lifetime access and priority support"
                 disabled={!email.trim()}
               />
             </div>
@@ -333,7 +333,7 @@ const PreLaunchLanding = () => {
             </h2>
             
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Get immediate access to the Chrome extension with priority support. Direct download, no waiting.
+              Get immediate access to the extension with priority support. Direct download, no waiting.
             </p>
             
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">

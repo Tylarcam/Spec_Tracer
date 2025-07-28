@@ -14,7 +14,7 @@ const faqItems: FAQItem[] = [
     icon: <Shield className="h-5 w-5 text-green-400" />
   },
   {
-    question: "Why does the Chrome extension need host permissions?",
+    question: "Why does the extension need host permissions?",
     answer: "Host permissions are required for DOM inspection during active debugging sessions only. The extension only accesses page content when you explicitly activate debugging mode. No background monitoring occurs.",
     icon: <Eye className="h-5 w-5 text-cyan-400" />
   },
@@ -29,8 +29,8 @@ const faqItems: FAQItem[] = [
     icon: <Zap className="h-5 w-5 text-purple-400" />
   },
   {
-    question: "Can I use SpecTracer without the Chrome extension?",
-    answer: "Yes! Try our interactive demo now. The Chrome extension will be available for direct download (bypassing Chrome Web Store delays) for enhanced functionality.",
+    question: "Can I use SpecTracer without the extension?",
+    answer: "Yes! Try our interactive demo now. The extension will be available for direct download for enhanced functionality.",
     icon: <Shield className="h-5 w-5 text-green-400" />
   }
 ];
