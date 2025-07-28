@@ -202,6 +202,12 @@ const PreLaunchLanding = () => {
                    className="w-full rounded-lg shadow-lg"
                    controls
                    preload="metadata"
+                   muted
+                   onLoadedMetadata={(e) => {
+                     const video = e.target as HTMLVideoElement;
+                     video.playbackRate = 1.5;
+                     video.muted = true;
+                   }}
                  >
                    <source src="/videos/Demo_2025_Video.mp4" type="video/mp4" />
                    <p className="text-slate-400 text-center p-8">
