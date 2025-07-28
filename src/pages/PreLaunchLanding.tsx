@@ -195,12 +195,17 @@ const PreLaunchLanding = () => {
               <span className="text-green-400 font-semibold"> All processing happens locally in your browser.</span>
             </p>
             
-            {/* Placeholder for Demo Video/GIF */}
-            <div className="bg-slate-700/50 border-2 border-dashed border-slate-600 rounded-lg p-12 mb-8">
-              <div className="text-center">
-                <Play className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-400 text-lg font-medium">Demo Video Placeholder</p>
-                <p className="text-slate-500 text-sm">Animated GIF or Loom demo showing hover → click → copy flow</p>
+            {/* Demo Video */}
+            <div className="mb-8">
+              <div style={{ position: 'relative', paddingBottom: '53.125%', height: 0 }}>
+                <iframe 
+                  src="https://www.loom.com/embed/bc10a927a1d34c2f81086ba45991a346?sid=a00ff0a1-8080-44c1-b6f6-7c889f989a56" 
+                  frameBorder="0" 
+                  webkitallowfullscreen 
+                  mozallowfullscreen 
+                  allowFullScreen 
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                />
               </div>
             </div>
             
