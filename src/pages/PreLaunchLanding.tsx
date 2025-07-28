@@ -363,9 +363,9 @@ const PreLaunchLanding = () => {
             <div className="text-sm text-slate-400 text-center">
               <span className="text-orange-400 font-medium">⚡ Instant access</span>
               <span className="mx-2">•</span>
-              <span>🛡️ Privacy-first guarantee</span>
+                              <span>👨‍💻 Built for devs. Backed by humans.</span>
               <span className="mx-2">•</span>
-              <span>💰 30-day money-back guarantee</span>
+                              <span>🚀 Try it free. Upgrade anytime.</span>
             </div>
           </div>
         </div>
@@ -408,7 +408,7 @@ const PreLaunchLanding = () => {
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-green-400">🛡️</span>
-                      Privacy-first guarantee
+                      Built for devs. Backed by humans.
                     </li>
                   </ul>
                 </div>

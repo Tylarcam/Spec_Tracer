@@ -98,7 +98,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, remainingU
           {/* Trust indicators */}
           <div className="text-center text-xs text-gray-500 mt-4 space-y-1">
             <p>🔒 Secure payment powered by Stripe</p>
-            <p>💳 30-day money-back guarantee</p>
+            <p>🚀 Try it free. Upgrade anytime.</p>
           </div>
         </div>
       </div>

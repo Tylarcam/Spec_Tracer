@@ -108,7 +108,7 @@ const PricingSection: React.FC<PricingSectionProps> = ({ onUpgrade }) => {
             </Button>
 
             <div className="text-center text-xs text-gray-500 mt-4">
-              🔒 30-day money-back guarantee
+                              🚀 Try it free. Upgrade anytime.
             </div>
           </div>
         </div>

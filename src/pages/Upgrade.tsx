@@ -103,7 +103,7 @@ const Upgrade: React.FC = () => {
             {/* Trust indicators */}
             <div className="text-center text-sm text-gray-500 space-y-2 pt-4 border-t border-gray-700">
               <p>🔒 Secure payment powered by Stripe</p>
-              <p>💳 30-day money-back guarantee</p>
+              <p>🚀 Try it free. Upgrade anytime.</p>
               <p>🛡️ Your data is always protected</p>
             </div>
           </CardContent>
