@@ -17,6 +17,7 @@ import ContextTransform from "./pages/ContextTransform";
 import Debug from "./pages/Debug";
 import InteractiveDemo from "./pages/InteractiveDemo";
 import Support from "./pages/Support";
+import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ function App() {
                 <Route path="/upgrade" element={<Upgrade />} />
                 <Route path="/context-transform" element={<ContextTransform />} />
                 <Route path="/support" element={<Support />} />
+                <Route path="/privacy" element={<Privacy />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </ErrorBoundary>
