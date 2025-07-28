@@ -262,7 +262,7 @@ const PreLaunchLanding = () => {
                   <ul className="space-y-2 text-slate-300">
                     <li className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-orange-400" />
-                      Complete Chrome extension (.crx file)
+                      Direct extension (zip file)
                     </li>
                     <li className="flex items-center gap-2">
                       <Crown className="h-4 w-4 text-orange-400" />
