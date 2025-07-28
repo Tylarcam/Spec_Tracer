@@ -120,13 +120,13 @@ const PreLaunchLanding = () => {
         </div>
       </header>
 
-      {/* Hero Section - Simplified */}
+      {/* Hero Section */}
       <section className="pt-24 pb-12 px-4">
         <div className="container mx-auto text-center max-w-4xl">
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2 mb-6">
               <Sparkles className="h-4 w-4 text-green-400" />
-              <span className="text-green-400 text-sm font-medium">Privacy-First Beta Access</span>
+              <span className="text-green-400 text-sm font-medium">Privacy-First Chrome Extension</span>
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
@@ -135,7 +135,7 @@ const PreLaunchLanding = () => {
             
             <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-2xl mx-auto leading-relaxed">
               Capture UI context instantly. Copy to AI. Fix your bugs fast.
-              <span className="text-green-400 font-semibold"> Zero data collection, client-side only.</span>
+              <span className="text-green-400 font-semibold"> Zero data collection.</span>
             </p>
           </div>
 
@@ -170,7 +170,7 @@ const PreLaunchLanding = () => {
         </div>
       </section>
 
-      {/* Demo → Waitlist Flow Section */}
+      {/* How It Works Section with Video */}
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className="bg-slate-800/50 border border-green-500/20 rounded-2xl p-8 text-center">
@@ -198,25 +198,25 @@ const PreLaunchLanding = () => {
             {/* Demo Video */}
             <div className="mb-8">
               <div className="relative w-full max-w-4xl mx-auto">
-                                 <video 
-                   className="w-full rounded-lg shadow-lg"
-                   controls
-                   preload="metadata"
-                   muted
-                   onLoadedMetadata={(e) => {
-                     const video = e.target as HTMLVideoElement;
-                     video.playbackRate = 1.5;
-                     video.muted = true;
-                   }}
-                 >
-                   <source src="/videos/Demo_2025_Video.mp4" type="video/mp4" />
-                   <p className="text-slate-400 text-center p-8">
-                     Your browser doesn't support video playback. 
-                     <a href="/videos/Demo_2025_Video.mp4" className="text-cyan-400 hover:underline ml-1">
-                       Download the video
-                     </a>
-                   </p>
-                 </video>
+                <video 
+                  className="w-full rounded-lg shadow-lg"
+                  controls
+                  preload="metadata"
+                  muted
+                  onLoadedMetadata={(e) => {
+                    const video = e.target as HTMLVideoElement;
+                    video.playbackRate = 1.5;
+                    video.muted = true;
+                  }}
+                >
+                  <source src="/videos/Demo_2025_Video.mp4" type="video/mp4" />
+                  <p className="text-slate-400 text-center p-8">
+                    Your browser doesn't support video playback. 
+                    <a href="/videos/Demo_2025_Video.mp4" className="text-cyan-400 hover:underline ml-1">
+                      Download the video
+                    </a>
+                  </p>
+                </video>
               </div>
             </div>
             
@@ -233,77 +233,7 @@ const PreLaunchLanding = () => {
         </div>
       </section>
 
-      {/* Benefits + Proof Section */}
-      <section className="py-16 px-4 bg-slate-800/20">
-        <div className="container mx-auto max-w-4xl">
-                      <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold mb-4">Why Developers Love SpecTracer</h2>
-              <p className="text-xl text-slate-300 mb-6">
-                Privacy-first debugging that works entirely in your browser
-              </p>
-            </div>
-          
-          <div className="space-y-8">
-            <div className="flex items-start gap-6">
-              <div className="bg-gradient-to-r from-green-500 to-cyan-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
-                1
-              </div>
-              <div>
-                <h3 className="text-2xl font-semibold mb-3">Capture Context</h3>
-                <p className="text-slate-300 text-lg">
-                  Hover over any element to instantly capture its complete technical context - styles, events, computed properties.
-                  <span className="text-green-400 font-semibold"> All processed locally, no data sent anywhere.</span>
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-6">
-              <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
-                2
-              </div>
-              <div>
-                <h3 className="text-2xl font-semibold mb-3">Get AI Debugging Help</h3>
-                <p className="text-slate-300 text-lg">
-                  Copy the optimized context to ChatGPT, Claude, or any AI assistant for pixel-perfect debugging solutions.
-                  <span className="text-cyan-400 font-semibold"> You control what gets shared with AI.</span>
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-6">
-              <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
-                3
-              </div>
-              <div>
-                <h3 className="text-2xl font-semibold mb-3">Save Time</h3>
-                <p className="text-slate-300 text-lg">
-                  Skip the essay writing. Get from bug to fix in seconds, not minutes.
-                  <span className="text-blue-400 font-semibold"> Immediate cleanup when debugging ends.</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Testimonial Placeholder */}
-          <div className="mt-16 bg-slate-800/50 border border-slate-700 rounded-xl p-8">
-            <div className="text-center">
-              <div className="flex justify-center mb-4">
-                <div className="bg-green-500/20 p-3 rounded-full">
-                  <Users className="h-8 w-8 text-green-400" />
-                </div>
-              </div>
-              <blockquote className="text-lg text-slate-300 mb-4 italic">
-                "SpecTracer saved me hours of debugging. Instead of writing paragraphs to ChatGPT, I just hover and click. The context it captures is perfect."
-              </blockquote>
-              <p className="text-slate-400 text-sm">
-                — Early Access User (placeholder for real testimonial)
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Founding User Access Section */}
+      {/* What You Get With Pro Section */}
       <section className="py-16 px-4 bg-gradient-to-r from-orange-500/5 to-red-500/5">
         <div className="container mx-auto max-w-4xl">
           <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-400/30 rounded-2xl p-12 text-center">
@@ -318,21 +248,21 @@ const PreLaunchLanding = () => {
             </div>
             
             <h2 className="text-4xl font-bold mb-4">
-              Founding User Access
+              Get SpecTracer Chrome Extension
             </h2>
             
             <p className="text-xl text-slate-300 mb-6 max-w-2xl mx-auto">
-              Get immediate access to the Chrome extension with priority support. Direct download, no waiting.
+              One-time payment. Lifetime access. Direct download with priority support.
             </p>
             
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">
               <div className="grid md:grid-cols-2 gap-6 text-left">
                 <div>
-                  <h3 className="text-lg font-semibold text-orange-400 mb-2">Founding User Benefits</h3>
+                  <h3 className="text-lg font-semibold text-orange-400 mb-2">What You Get</h3>
                   <ul className="space-y-2 text-slate-300">
                     <li className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-orange-400" />
-                      Instant Chrome extension download
+                      Complete Chrome extension (.crx file)
                     </li>
                     <li className="flex items-center gap-2">
                       <Crown className="h-4 w-4 text-orange-400" />
@@ -349,13 +279,14 @@ const PreLaunchLanding = () => {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-red-400 mb-2">What You Get</h3>
+                  <h3 className="text-lg font-semibold text-red-400 mb-2">Lifetime Benefits</h3>
                   <ul className="space-y-2 text-slate-300">
-                    <li>• Complete Chrome extension (.crx file)</li>
+                    <li>• Instant Chrome extension download</li>
                     <li>• Installation instructions</li>
                     <li>• Priority email support</li>
                     <li>• Feature request influence</li>
                     <li>• Founding user badge</li>
+                    <li>• All future updates included</li>
                   </ul>
                 </div>
               </div>
@@ -364,14 +295,14 @@ const PreLaunchLanding = () => {
             <div className="flex flex-col items-center gap-4 mb-6">
               <div className="text-center">
                 <div className="text-3xl font-bold text-white mb-2">$14.99</div>
-                <div className="text-slate-400 text-sm">One-time payment • First 50 users only</div>
+                <div className="text-slate-400 text-sm">One-time payment • Lifetime access</div>
               </div>
               
               <PaymentButton 
                 email={email}
                 price={1499}
-                productName="SpecTracer - Founding User Access"
-                description="Direct Chrome extension download with priority support for first 50 users"
+                productName="SpecTracer - Chrome Extension"
+                description="Direct Chrome extension download with lifetime access and priority support"
                 disabled={!email.trim()}
               />
             </div>
@@ -379,48 +310,48 @@ const PreLaunchLanding = () => {
             <div className="text-sm text-slate-400 text-center">
               <span className="text-orange-400 font-medium">⚡ Instant access</span>
               <span className="mx-2">•</span>
-                              <span>👨‍💻 Built for devs. Backed by humans.</span>
+              <span>👨‍💻 Built for devs. Backed by humans.</span>
               <span className="mx-2">•</span>
-                              <span>🚀 Try it free. Upgrade anytime.</span>
+              <span>🚀 Try it free. Upgrade anytime.</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Beta Access CTA Section */}
+      {/* Support + Delivery Section */}
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-400/30 rounded-2xl p-12 text-center">
             <div className="flex justify-center mb-6">
               <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-4 rounded-full">
-                <Crown className="h-16 w-16 text-white" />
+                <Users className="h-16 w-16 text-white" />
               </div>
             </div>
             
             <h2 className="text-4xl font-bold mb-4">
-              Join the Privacy-First Beta
+              Support & Delivery
             </h2>
             
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Get early access to SpecTracer and help shape the future of privacy-first AI-powered debugging.
+              Get immediate access to the Chrome extension with priority support. Direct download, no waiting.
             </p>
             
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">
               <div className="grid md:grid-cols-2 gap-6 text-left">
                 <div>
-                  <h3 className="text-lg font-semibold text-green-400 mb-2">Beta Benefits</h3>
+                  <h3 className="text-lg font-semibold text-green-400 mb-2">Instant Delivery</h3>
                   <ul className="space-y-2 text-slate-300">
                     <li className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-green-400" />
-                      Early access to Chrome extension
+                      Immediate download link
                     </li>
                     <li className="flex items-center gap-2">
                       <Share2 className="h-4 w-4 text-green-400" />
-                      Direct feedback to the team
+                      Step-by-step installation guide
                     </li>
                     <li className="flex items-center gap-2">
                       <Crown className="h-4 w-4 text-green-400" />
-                      Priority support
+                      Priority email support
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-green-400">🛡️</span>
@@ -429,13 +360,14 @@ const PreLaunchLanding = () => {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-cyan-400 mb-2">What's Coming</h3>
+                  <h3 className="text-lg font-semibold text-cyan-400 mb-2">Support Included</h3>
                   <ul className="space-y-2 text-slate-300">
-                    <li>• Direct Chrome extension download</li>
-                    <li>• Advanced debugging tools</li>
-                    <li>• Team collaboration features</li>
-                    <li>• AI-powered suggestions</li>
-                    <li>• Enhanced privacy controls</li>
+                    <li>• Direct email support</li>
+                    <li>• Installation troubleshooting</li>
+                    <li>• Feature requests</li>
+                    <li>• Bug reporting priority</li>
+                    <li>• Usage guidance</li>
+                    <li>• Community access</li>
                   </ul>
                 </div>
               </div>
@@ -458,13 +390,13 @@ const PreLaunchLanding = () => {
                   className="bg-green-500 hover:bg-green-600 text-black font-bold px-6 py-4 text-lg h-auto whitespace-nowrap disabled:opacity-50"
                 >
                   <Mail className="h-5 w-5 mr-2" />
-                  {isJoiningWaitlist ? 'Joining...' : 'Join Beta'}
+                  {isJoiningWaitlist ? 'Joining...' : 'Get Extension'}
                 </Button>
               </div>
             </div>
             
             <div className="text-sm text-slate-400 mt-6 text-center">
-              <span className="text-green-400 font-medium">🎯 Early access to Chrome extension</span>
+              <span className="text-green-400 font-medium">🎯 Free demo available now</span>
               <span className="mx-2">•</span>
               <span>🛡️ Zero data collection</span>
               <span className="mx-2">•</span>
@@ -477,66 +409,17 @@ const PreLaunchLanding = () => {
       {/* Privacy FAQ Section */}
       <PrivacyFAQ />
 
-      {/* Final CTA Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-12 text-center">
-            <div className="flex justify-center mb-6">
-              <Sparkles className="h-16 w-16 text-green-400" />
-            </div>
-            
-            <h2 className="text-4xl font-bold mb-4">
-              Ready to Try SpecTracer?
-            </h2>
-            
-            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Experience the future of privacy-first AI-powered debugging. Try the demo and join the beta to get early access.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Button
-                onClick={handleTryDemo}
-                size="lg"
-                className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto w-full sm:w-auto"
-              >
-                <Play className="h-5 w-5 mr-2" />
-                Try Demo First
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
-              
-              <div className="flex gap-2 w-full sm:w-auto">
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={handleEmailChange}
-                  onKeyPress={handleEmailKeyPress}
-                  className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 flex-1 min-w-0"
-                  disabled={isJoiningWaitlist}
-                />
-                <Button
-                  onClick={handleJoinWaitlist}
-                  disabled={!email.trim() || isJoiningWaitlist}
-                  variant="outline"
-                  size="lg"
-                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-6 py-4 text-lg h-auto whitespace-nowrap disabled:opacity-50"
-                >
-                  <Users className="h-5 w-5 mr-2" />
-                  {isJoiningWaitlist ? 'Joining...' : 'Join Beta'}
-                </Button>
-              </div>
-            </div>
-            
-            <div className="text-sm text-slate-400 mt-6 text-center">
-              <span className="text-green-400 font-medium">✨ Beta access available</span>
-              <span className="mx-2">•</span>
-              <span>🛡️ Privacy-first guarantee</span>
-              <span className="mx-2">•</span>
-              <span>Priority support included</span>
-            </div>
+      {/* Footer */}
+      <footer className="py-12 px-4 border-t border-slate-700">
+        <div className="container mx-auto max-w-4xl text-center">
+          <div className="text-slate-400 text-sm mb-4">
+            built by Nobrainerco 2025
+          </div>
+          <div className="text-slate-400 text-sm">
+            Need help or have questions? → <a href="mailto:tylar@nobrainerco.com" className="text-green-400 hover:text-green-300 underline">tylar@nobrainerco.com</a>
           </div>
         </div>
-      </section>
+      </footer>
     </div>
   );
 };
