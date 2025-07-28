@@ -227,22 +227,14 @@ export const LogTraceExtension: React.FC = () => {
         return; // Do not fire shortcut if user is typing
       }
       
-      // Ctrl+D for debug/context
-      if (e.ctrlKey && e.key.toLowerCase() === 'd') {
-        e.preventDefault();
-        if (currentElement) {
-          handleQuickAction('debug', currentElement);
-        }
-      }
-      
       // Ctrl+S for start/stop
       if (e.ctrlKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
         setIsActive(!isActive);
       }
       
-      // Ctrl+P for pause/unpause
-      if (e.ctrlKey && e.key.toLowerCase() === 'p') {
+      // P for pause/unpause (single key, no modifier)
+      if (e.key.toLowerCase() === 'p' && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         if (isHoverPaused) {
           resumeHoverOverlay();

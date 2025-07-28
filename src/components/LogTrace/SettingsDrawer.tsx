@@ -46,9 +46,9 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
     { key: 'Ctrl+S', description: 'Start/Stop tracing', icon: Zap },
     { key: 'Ctrl+E', description: 'End tracing session', icon: X },
     { key: 'Click', description: 'Open element details', icon: MousePointer },
-    { key: 'Ctrl+T', description: 'Toggle terminal panel', icon: Terminal },
-    { key: 'Ctrl+D', description: 'Trigger AI debug', icon: MousePointer },
-    { key: 'Ctrl+P', description: 'Pause/Resume hover tracking', icon: Eye },
+    { key: 'P', description: 'Pause/Resume hover tracking', icon: Eye },
+    { key: 'Right-click', description: 'Quick actions menu', icon: MousePointer },
+    { key: 'Esc', description: 'Close panels/modals', icon: X },
   ];
 
   const handleUpgrade = onUpgradeClick || onUpgrade || (async () => {

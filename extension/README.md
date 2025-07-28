@@ -55,10 +55,8 @@ A powerful Chrome extension that brings AI-powered debugging capabilities to any
 ### Keyboard Shortcuts
 - **Ctrl+S**: Start/Stop tracing
 - **Ctrl+E**: End tracing session
-- **Ctrl+T**: Toggle terminal panel
-- **Ctrl+D**: Trigger AI debug
-- **Ctrl+P**: Pause/Resume hover tracking
-- **Q**: Quick actions menu
+- **P**: Pause/Resume hover tracking
+- **Right-click**: Quick actions menu
 - **Esc**: Close panels/modals
 
 ## 🎯 Use Cases

@@ -262,7 +262,7 @@ const InteractivePanel: React.FC<InteractivePanelProps> = ({
 
           {/* Quick Actions Tip */}
           <div className="mt-2 text-xs text-gray-500 text-center">
-            Ctrl+D for quick debug • Click sections to expand
+            Right-click for quick actions • Click sections to expand
           </div>
         </div>
       </Card>
