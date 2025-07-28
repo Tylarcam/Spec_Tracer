@@ -21,6 +21,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       handleAnalyzeElement(request, sendResponse);
       return true; // Keep message channel open for async response
       
+    case 'takeScreenshot':
+      handleTakeScreenshot(request, sendResponse);
+      return true; // Keep message channel open for async response
+      
     case 'getSettings':
       handleGetSettings(sendResponse);
       return true;
@@ -50,6 +54,53 @@ async function handleAnalyzeElement(request, sendResponse) {
     sendResponse({ success: true, data: result });
   } catch (error) {
     console.error('Error analyzing element:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+// Handle screenshot capture
+async function handleTakeScreenshot(request, sendResponse) {
+  try {
+    const { type, tabId, area } = request;
+    
+    // Capture screenshot using Chrome's API
+    const dataUrl = await chrome.tabs.captureVisibleTab(null, {
+      format: 'png',
+      quality: 100
+    });
+    
+    // Generate filename based on type and timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `screenshot-${type}-${timestamp}.png`;
+    
+    // For area screenshots, we'll send the data URL back to content script for cropping
+    if (type === 'area' && area) {
+      sendResponse({ 
+        success: true, 
+        dataUrl: dataUrl, 
+        area: area, 
+        filename: filename,
+        needsCropping: true 
+      });
+    } else {
+      // For full screenshots (window, fullscreen, element), download directly
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      await chrome.downloads.download({
+        url: url,
+        filename: filename,
+        saveAs: true
+      });
+      
+      // Clean up the URL
+      URL.revokeObjectURL(url);
+      
+      sendResponse({ success: true, filename: filename });
+    }
+  } catch (error) {
+    console.error('Error taking screenshot:', error);
     sendResponse({ success: false, error: error.message });
   }
 }

@@ -340,7 +340,7 @@ class LogTracePopup {
                 <li><strong>Ctrl+E</strong> - End tracing session</li>
                 <li><strong>Ctrl+Shift+T</strong> - Toggle terminal panel</li>
                 <li><strong>Ctrl+D</strong> - Trigger AI debug</li>
-                <li><strong>Ctrl+P</strong> - Pause/Resume hover tracking</li>
+                <li><strong>P</strong> - Pause/Resume hover tracking</li>
                 <li><strong>Right-click</strong> - Quick actions menu</li>
                 <li><strong>Esc</strong> - Close panels/modals</li>
               </ul>

@@ -46,6 +46,7 @@ const LucidIcons = {
   // Utility
   download: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
   upload: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+  search: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',
   refreshCw: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>',
   
   // Get icon with optional size and color
@@ -506,11 +507,14 @@ function handleMouseMove(e) {
   
   mousePosition = { x: e.clientX, y: e.clientY };
   
-  const mouseIndicator = document.getElementById('mouse-indicator');
-  if (mouseIndicator) {
-    mouseIndicator.style.left = e.clientX + 'px';
-    mouseIndicator.style.top = e.clientY + 'px';
-    mouseIndicator.style.display = 'block';
+  // Don't update mouse indicator if hover is paused
+  if (!isHoverPaused) {
+    const mouseIndicator = document.getElementById('mouse-indicator');
+    if (mouseIndicator) {
+      mouseIndicator.style.left = e.clientX + 'px';
+      mouseIndicator.style.top = e.clientY + 'px';
+      mouseIndicator.style.display = 'block';
+    }
   }
 }
 
@@ -536,6 +540,14 @@ function handleMouseOver(e) {
   if (!isLogTraceActive || isHoverPaused) return;
   
   const element = e.target;
+  
+  // Global check: if quick actions are visible, completely disable hover overlay
+  if (quickActionsVisible || document.querySelector('.quick-actions-pill')) {
+    if (!isHoverPaused) {
+      pauseHoverOverlay();
+    }
+    return;
+  }
   
   // Check if mouse is over inspector panel
   if (element && isInspectorElement(element)) {
@@ -574,14 +586,20 @@ function handleMouseOver(e) {
   }
   
   if (element && !isLogTraceElement(element)) {
-    highlightElement(element);
-    currentElement = element;
-    showHoverOverlay(element, e.clientX, e.clientY);
+    // Only update highlighting and overlay if not paused
+    if (!isHoverPaused) {
+      highlightElement(element);
+      currentElement = element;
+      showHoverOverlay(element, e.clientX, e.clientY);
+    }
   }
 }
 
 // Remove hover overlay on mouse out
 function handleMouseOut(e) {
+  // Don't remove overlay if hover is paused
+  if (isHoverPaused) return;
+  
   const overlay = document.getElementById('log-trace-hover-overlay');
   if (!overlay) return;
   // Only remove if the new target is not the overlay or its children
@@ -592,6 +610,9 @@ function handleMouseOut(e) {
 document.addEventListener('mouseout', handleMouseOut, true);
 
 function showHoverOverlay(element, mouseX, mouseY) {
+  // Don't show new hover overlay if paused
+  if (isHoverPaused) return;
+  
   // Remove existing hover overlay
   const existingOverlay = document.getElementById('log-trace-hover-overlay');
   if (existingOverlay) existingOverlay.remove();
@@ -608,7 +629,7 @@ function showHoverOverlay(element, mouseX, mouseY) {
   overlay.id = 'log-trace-hover-overlay';
   overlay.style.cssText = `
     position: fixed;
-    z-index: 10002;
+    z-index: 9999;
     pointer-events: none;
     transform: translate(-50%, -100%);
   `;
@@ -771,9 +792,19 @@ function isInInputField(element) {
     element.classList.contains('input') ||
     element.classList.contains('textarea') ||
     element.classList.contains('editor') ||
+    element.classList.contains('ql-editor') || // Quill editor
+    element.classList.contains('ProseMirror') || // ProseMirror editor
+    element.classList.contains('DraftEditor-root') || // Draft.js editor
+    element.classList.contains('public-DraftEditor-content') || // Draft.js content
+    element.classList.contains('tox-edit-area') || // TinyMCE editor
+    element.classList.contains('cke_editable') || // CKEditor
+    element.classList.contains('wysiwyg-editor') || // Generic WYSIWYG
+    element.classList.contains('rich-text-editor') || // Generic rich text
     // Check if element has input-related attributes
     element.hasAttribute('data-input') ||
-    element.hasAttribute('data-editor')
+    element.hasAttribute('data-editor') ||
+    element.hasAttribute('aria-label') && element.getAttribute('aria-label').toLowerCase().includes('input') ||
+    element.hasAttribute('aria-label') && element.getAttribute('aria-label').toLowerCase().includes('editor')
   );
 }
 
@@ -820,8 +851,8 @@ function handleKeyDown(e) {
     return;
   }
   
-  // Ctrl+P: Pause/Resume hover tracking
-  if (e.ctrlKey && e.key.toLowerCase() === 'p') {
+  // P: Pause/Resume hover tracking (single key, no modifier)
+  if (e.key.toLowerCase() === 'p' && !e.ctrlKey && !e.altKey && !e.metaKey) {
     e.preventDefault();
     toggleHoverPause();
     return;
@@ -837,9 +868,15 @@ function handleKeyDown(e) {
     return;
   }
   
-  // Escape: Close panels/modals
+  // Escape: Close panels/modals or unpause
   if (e.key === 'Escape') {
     if (isLogTraceActive) {
+      // If user is paused, unpause first
+      if (isUserPaused) {
+        toggleHoverPause();
+        return;
+      }
+      
       // Close any open modals first
       const terminalModal = document.getElementById('log-trace-terminal-modal');
       if (terminalModal) {
@@ -921,7 +958,7 @@ function activateLogTrace() {
   }
   
   // Show status indicator
-  showNotification('LogTrace activated! S=start, E=end, D=pause hover, Ctrl+D=debug, T=terminal info, Esc=exit');
+      showNotification('LogTrace activated! S=start, E=end, P=pause hover, Ctrl+D=debug, T=terminal info, Esc=exit');
   registerOverlayListeners();
   // Show overlays if needed
 }
@@ -930,6 +967,13 @@ function activateLogTrace() {
 function deactivateLogTrace() {
   isLogTraceActive = false;
   console.log('LogTrace deactivated');
+  
+  // Clear any pause states
+  isHoverPaused = false;
+  isUserPaused = false;
+  isSystemPaused = false;
+  pausedElement = null;
+  pausedPosition = null;
   
   // Hide overlay elements
   const overlay = document.getElementById('log-trace-overlay');
@@ -1001,17 +1045,67 @@ function toggleLogTraceFromButton() {
   }
 }
 
-// Toggle hover pause
+// Toggle hover pause (user-initiated)
 function toggleHoverPause() {
   isHoverPaused = !isHoverPaused;
-  const status = isHoverPaused ? 'paused' : 'resumed';
-  showNotification(`Hover details ${status}`);
+  
+  if (isHoverPaused) {
+    // User pause: Keep current element highlighted and show paused state
+    isUserPaused = true;
+    isSystemPaused = false; // Clear any system pause
+    pausedElement = currentElement;
+    pausedPosition = { ...mousePosition };
+    
+    // Show paused notification
+    showNotification(`Mouse overlay paused - press P to resume or Esc to exit`);
+    
+    // Keep the current overlay visible but mark as paused
+    const overlay = document.getElementById('log-trace-hover-overlay');
+    if (overlay) {
+      overlay.style.opacity = '0.8';
+      overlay.style.border = '2px solid #22c55e'; // Green border to indicate paused state
+    }
+    
+    // Keep element highlighted with green halo
+    if (currentElement) {
+      highlightElement(currentElement);
+      const highlighter = document.getElementById('element-highlighter');
+      if (highlighter) {
+        highlighter.style.border = '2px solid #22c55e'; // Green border for paused state
+      }
+    }
+  } else {
+    // User resume: Clear paused state and resume normal operation
+    isUserPaused = false;
+    pausedElement = null;
+    pausedPosition = null;
+    
+    // Show resumed notification
+    showNotification(`Mouse overlay resumed`);
+    
+    // Remove paused overlay and let normal hover take over
+    const overlay = document.getElementById('log-trace-hover-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
+    
+    // Reset highlighter to normal state
+    const highlighter = document.getElementById('element-highlighter');
+    if (highlighter) {
+      highlighter.style.border = '2px solid #06b6d4'; // Reset to normal blue border
+    }
+  }
 }
+
+// Global pause state tracking
+let isUserPaused = false; // User-initiated pause (P key)
+let isSystemPaused = false; // System-initiated pause (inspector, quick actions)
 
 // Pause hover overlay (for inspector or quick actions)
 function pauseHoverOverlay() {
   if (!isHoverPaused) {
     isHoverPaused = true;
+    isSystemPaused = true; // Mark as system pause
     pausedElement = currentElement;
     pausedPosition = { ...mousePosition };
     
@@ -1023,10 +1117,12 @@ function pauseHoverOverlay() {
   }
 }
 
-// Resume hover overlay
+// Resume hover overlay (only for system pauses, not user pauses)
 function resumeHoverOverlay() {
-  if (isHoverPaused && !isInspectorHovered) {
+  // Only resume if it's a system pause, not a user pause
+  if (isHoverPaused && isSystemPaused && !isInspectorHovered) {
     isHoverPaused = false;
+    isSystemPaused = false;
     pausedElement = null;
     pausedPosition = { x: 0, y: 0 };
     
@@ -1817,29 +1913,42 @@ async function analyzeElementWithAI(element, prompt) {
     return;
   }
 
+  // Check if debug modal is open
+  const debugModal = document.querySelector('.debug-modal');
   const quickBtn = document.getElementById('quick-debug-btn');
   const advancedBtn = document.getElementById('advanced-debug-btn');
   const resultDiv = document.getElementById('analysis-result');
+  
+  // If debug modal is not open, open it first
+  if (!debugModal) {
+    openDebugModal(element);
+    // Wait a moment for modal to open
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
   
   // Show loading state
   const isQuickDebug = document.activeElement?.id === 'quick-debug-input' || 
                       document.querySelector('#quick-debug-input')?.value === prompt;
   
   const activeBtn = isQuickDebug ? quickBtn : advancedBtn;
-  const originalText = activeBtn.textContent;
+  const originalText = activeBtn?.textContent || 'Analyze';
   
-  activeBtn.disabled = true;
-  activeBtn.textContent = 'Analyzing...';
-  activeBtn.classList.add('loading');
+  if (activeBtn) {
+    activeBtn.disabled = true;
+    activeBtn.textContent = 'Analyzing...';
+    activeBtn.classList.add('loading');
+  }
   
   // Show loading in results
-  resultDiv.innerHTML = `
-    <div class="analysis-loading">
-      <div class="loading-spinner"></div>
-      <div class="loading-text">🤖 Analyzing element...</div>
-    </div>
-  `;
-  resultDiv.style.display = 'block';
+  if (resultDiv) {
+    resultDiv.innerHTML = `
+      <div class="analysis-loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">🤖 Analyzing element...</div>
+      </div>
+    `;
+    resultDiv.style.display = 'block';
+  }
   
   try {
     // Gather comprehensive element context
@@ -1889,9 +1998,11 @@ async function analyzeElementWithAI(element, prompt) {
     `;
   } finally {
     // Restore button state
-    activeBtn.disabled = false;
-    activeBtn.textContent = originalText;
-    activeBtn.classList.remove('loading');
+    if (activeBtn) {
+      activeBtn.disabled = false;
+      activeBtn.textContent = originalText;
+      activeBtn.classList.remove('loading');
+    }
   }
 }
 
@@ -2831,6 +2942,67 @@ function sanitizeText(text, maxLength = 500) {
     .slice(0, maxLength);
 }
 
+// Format element data for copy (matching web app format)
+function formatElementDataForCopy(element) {
+  const parts = [];
+  
+  // Basic element info
+  parts.push(`Element: <${element.tagName}>`);
+  
+  // ID if present
+  if (element.id && element.id.trim()) {
+    parts.push(`ID: #${sanitizeText(element.id)}`);
+  }
+  
+  // Classes if present
+  if (element.className && element.className.trim()) {
+    const classes = element.className.split(' ').filter(c => c.trim());
+    if (classes.length > 0) {
+      parts.push(`Classes: .${classes.map(c => sanitizeText(c)).join('.')}`);
+    }
+  }
+  
+  // Text content if present
+  if (element.textContent && element.textContent.trim()) {
+    const sanitizedText = sanitizeText(element.textContent.trim(), 200);
+    parts.push(`Text: "${sanitizedText}"`);
+  }
+  
+  // Parent path if present
+  const parentPath = getElementPath(element);
+  if (parentPath) {
+    parts.push(`Path: ${sanitizeText(parentPath)}`);
+  }
+  
+  // Size if present
+  const rect = element.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) {
+    parts.push(`Size: ${Math.round(rect.width)}×${Math.round(rect.height)}px`);
+  }
+  
+  // Position if available
+  if (mousePosition.x > 0 && mousePosition.y > 0) {
+    parts.push(`Position: (${Math.round(mousePosition.x)}, ${Math.round(mousePosition.y)})`);
+  }
+  
+  // Key attributes (data-*, aria-*, role, etc.)
+  const keyAttributes = [];
+  for (let i = 0; i < element.attributes.length; i++) {
+    const attr = element.attributes[i];
+    if (attr.name.startsWith('data-') || 
+        attr.name.startsWith('aria-') || 
+        ['role', 'type', 'name', 'value', 'href', 'src', 'alt', 'title'].includes(attr.name)) {
+      keyAttributes.push(`${attr.name}="${sanitizeText(attr.value, 100)}"`);
+    }
+  }
+  
+  if (keyAttributes.length > 0) {
+    parts.push(`Attributes: ${keyAttributes.join(', ')}`);
+  }
+  
+  return parts.join('\n');
+}
+
 // Utility to extract up to 3 unique colors from computed styles (matching web UI)
 function extractColorsFromElement(element) {
   if (!element) return [];
@@ -2890,7 +3062,7 @@ function showQuickActions(x, y, element) {
     position: fixed;
     left: ${x}px;
     top: ${y - 48}px;
-    z-index: 1000;
+    z-index: 10003;
     background: rgba(30, 41, 59, 0.95);
     border: 1px solid rgba(34, 211, 238, 0.6);
     border-radius: 12px;
@@ -2957,6 +3129,7 @@ function showQuickActions(x, y, element) {
 
   // Add main action buttons
   pill.appendChild(createActionButton(LucidIcons.get('copy', 16, '#67e8f9'), 'Copy', 'copy'));
+  pill.appendChild(createActionButton(LucidIcons.get('search', 16, '#67e8f9'), 'Details', 'details'));
   pill.appendChild(createActionButton(LucidIcons.get('camera', 16, '#67e8f9'), 'Shot', 'screenshot', true));
   pill.appendChild(createActionButton(LucidIcons.get('sparkles', 16, '#67e8f9'), 'Gen', 'context', true));
   pill.appendChild(createActionButton(LucidIcons.get('bug', 16, '#67e8f9'), 'Fix', 'debug', true));
@@ -2973,7 +3146,18 @@ function showQuickActions(x, y, element) {
       quickActionsElement = null;
       expandedQuickAction = null;
       document.removeEventListener('click', closeOnOutsideClick);
-      resumeHoverOverlay();
+      document.removeEventListener('keydown', closeOnEscape);
+      
+      // Force cleanup of any remaining hover overlay
+      const existingOverlay = document.getElementById('log-trace-hover-overlay');
+      if (existingOverlay) {
+        existingOverlay.remove();
+      }
+      
+      // Resume hover overlay with a small delay to ensure proper state
+      setTimeout(() => {
+        resumeHoverOverlay();
+      }, 50);
     }
   };
   
@@ -2991,7 +3175,18 @@ function showQuickActions(x, y, element) {
         quickActionsVisible = false;
         quickActionsElement = null;
         document.removeEventListener('keydown', closeOnEscape);
-        resumeHoverOverlay();
+        document.removeEventListener('click', closeOnOutsideClick);
+        
+        // Force cleanup of any remaining hover overlay
+        const existingOverlay = document.getElementById('log-trace-hover-overlay');
+        if (existingOverlay) {
+          existingOverlay.remove();
+        }
+        
+        // Resume hover overlay with a small delay to ensure proper state
+        setTimeout(() => {
+          resumeHoverOverlay();
+        }, 50);
       }
     }
   };
@@ -3201,10 +3396,14 @@ function getActionTitle(action) {
 function handleQuickAction(action, element) {
   switch (action) {
     case 'copy':
-      // Copy element selector
-      const selector = generateSelector(element);
-      navigator.clipboard.writeText(selector);
-      showNotification('Element selector copied to clipboard');
+      // Copy detailed element information (matching web app format)
+      const elementData = formatElementDataForCopy(element);
+      navigator.clipboard.writeText(elementData);
+      showNotification('Element details copied to clipboard');
+      break;
+    case 'details':
+      // Show detailed element information
+      showElementDetails(element);
       break;
     case 'debug':
       // Open AI debug modal
@@ -3262,20 +3461,28 @@ function handleContextAction(mode, element, customInput) {
   if (!prompt) {
     switch (mode) {
       case 'layout':
-        prompt = 'Analyze the layout and positioning';
+        prompt = 'Analyze the layout and positioning of this element. Focus on CSS layout properties, positioning, flexbox/grid usage, and responsive design considerations.';
         break;
       case 'accessibility':
-        prompt = 'Check accessibility features and issues';
+        prompt = 'Check accessibility features and issues for this element. Focus on ARIA attributes, semantic HTML, keyboard navigation, screen reader compatibility, and WCAG compliance.';
         break;
       case 'performance':
-        prompt = 'Review performance implications';
+        prompt = 'Review performance implications of this element. Focus on rendering performance, memory usage, network requests, and optimization opportunities.';
         break;
       default:
-        prompt = 'Provide general analysis';
+        prompt = 'Provide a comprehensive analysis of this element including its structure, styling, behavior, and potential improvements.';
     }
   }
   
-  analyzeElementWithAI(element, prompt);
+  // Show loading notification
+  showNotification('🤖 Analyzing element context...');
+  
+  // Call AI analysis with context mode
+  analyzeElementWithAI(element, prompt).then(() => {
+    showNotification('✅ Context analysis completed');
+  }).catch((error) => {
+    showNotification(`❌ Analysis failed: ${error.message}`, 'error');
+  });
 }
 
 function handleDebugAction(mode, element, customInput) {
@@ -3284,20 +3491,28 @@ function handleDebugAction(mode, element, customInput) {
   if (!prompt) {
     switch (mode) {
       case 'why-not-working':
-        prompt = 'Why might this element not be behaving as expected?';
+        prompt = 'Why might this element not be behaving as expected? Analyze potential issues with functionality, styling, or user interaction.';
         break;
       case 'css-issues':
-        prompt = 'Are there any CSS properties preventing interaction?';
+        prompt = 'Are there any CSS properties preventing interaction? Check for display, visibility, pointer-events, z-index, and other CSS issues that might affect functionality.';
         break;
       case 'event-problems':
-        prompt = 'What event handling issues might exist?';
+        prompt = 'What event handling issues might exist? Analyze event listeners, event propagation, and potential conflicts or missing handlers.';
         break;
       default:
-        prompt = 'Debug this element';
+        prompt = 'Debug this element comprehensively, identifying any issues with functionality, styling, accessibility, or user experience.';
     }
   }
   
-  analyzeElementWithAI(element, prompt);
+  // Show loading notification
+  showNotification('🔧 Debugging element...');
+  
+  // Call AI analysis with debug mode
+  analyzeElementWithAI(element, prompt).then(() => {
+    showNotification('✅ Debug analysis completed');
+  }).catch((error) => {
+    showNotification(`❌ Debug failed: ${error.message}`, 'error');
+  });
 }
 
 // Show detailed element information
@@ -3332,8 +3547,28 @@ function showElementDetails(element) {
 
 // Take screenshot of element
 function takeElementScreenshot(element) {
-  // This would require additional implementation for screenshot functionality
-  showNotification('Screenshot feature coming soon!', 'info');
+  // Capture the specific element by highlighting it and taking a screenshot
+  if (element) {
+    // Highlight the element temporarily
+    const originalOutline = element.style.outline;
+    element.style.outline = '2px solid #06b6d4';
+    
+    // Take screenshot after a brief delay to show the highlight
+    setTimeout(() => {
+      chrome.runtime.sendMessage({ action: 'takeScreenshot', type: 'element' }, (response) => {
+        // Remove highlight
+        element.style.outline = originalOutline;
+        
+        if (response && response.success) {
+          showNotification(`Element screenshot saved as ${response.filename}`);
+        } else {
+          showNotification('Failed to capture element screenshot', 'error');
+        }
+      });
+    }, 100);
+  } else {
+    showNotification('No element selected for screenshot', 'error');
+  }
 }
 
 function startRectangleScreenshot() {
@@ -3497,11 +3732,53 @@ function captureScreenshotArea(rect) {
     }
   }, (response) => {
     if (response && response.success) {
-      showNotification('Area screenshot captured');
+      if (response.needsCropping) {
+        // Crop the screenshot in the content script
+        cropAndDownloadScreenshot(response.dataUrl, response.area, response.filename);
+      } else {
+        showNotification('Area screenshot captured');
+      }
     } else {
       showNotification('Failed to capture area screenshot', 'error');
     }
   });
+}
+
+function cropAndDownloadScreenshot(dataUrl, area, filename) {
+  // Create a canvas to crop the image
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Set canvas size to the cropped area
+  canvas.width = area.width;
+  canvas.height = area.height;
+  
+  // Create an image from the data URL
+  const img = new Image();
+  img.onload = () => {
+    // Draw the cropped area
+    ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, area.width, area.height);
+    
+    // Convert canvas to blob and download
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      
+      // Create a download link
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+      
+      showNotification(`Area screenshot saved as ${filename}`);
+    }, 'image/png');
+  };
+  
+  img.src = dataUrl;
 }
 
 function captureFreeformScreenshot(points) {

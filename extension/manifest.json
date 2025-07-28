@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Trace Sight Debug View",
-  "version": "1.0.9",
+  "version": "1.0.17",
   "description": "Debug and trace logs with a React-based UI for any webpage.",
   "action": {
     "default_popup": "popup.html",
@@ -22,7 +22,8 @@
     "scripting", 
     "tabs", 
     "activeTab",
-    "identity"
+    "identity",
+    "downloads"
   ],
   "host_permissions": [
     "https://kepmuysqytngtqterosr.supabase.co/*",
