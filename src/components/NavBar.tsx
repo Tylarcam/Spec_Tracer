@@ -66,7 +66,7 @@ const NavBar: React.FC<NavBarProps> = ({
               <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-2 rounded-lg">
                 <Target className="h-6 w-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-green-400">LogTrace</span>
+              <span className="text-xl font-bold text-green-400">SpecTrace</span>
             </div>
 
             {/* Center Controls - Universal Control Panel */}

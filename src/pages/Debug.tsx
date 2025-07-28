@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import LogTrace from '@/components/LogTrace';
+import SpecTrace from '@/components/LogTrace';
 import NavBar from '@/components/NavBar';
 
 const Debug: React.FC = () => {
@@ -24,7 +24,7 @@ const Debug: React.FC = () => {
         eventCount={0}
         showTerminal={false}
       />
-      <LogTrace 
+      <SpecTrace 
         captureActive={isTracing}
         onCaptureToggle={handleCaptureToggle}
       />
