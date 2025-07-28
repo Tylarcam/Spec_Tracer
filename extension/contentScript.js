@@ -287,6 +287,12 @@ function createInfoPanel() {
         </div>
       </div>
       <div style="display: flex; gap: 4px;">
+        <button id="terminal-button" style="background: none; border: none; color: #22c55e; cursor: pointer; font-size: 16px; display: flex; align-items: center; padding: 4px; border-radius: 4px; transition: all 0.2s;" title="Open Terminal" id="terminal-button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 17l6-6-6-6"></path>
+            <path d="M12 19h8"></path>
+          </svg>
+        </button>
         <button id="pin-panel" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px; display: flex; align-items: center; padding: 4px; border-radius: 4px; transition: all 0.2s;" title="Pin panel">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
@@ -481,6 +487,17 @@ function createInfoPanel() {
     if (currentElement) {
       openDebugModal(currentElement);
     }
+  });
+  
+  document.getElementById('terminal-button').addEventListener('click', () => {
+    // Check if terminal is enabled in settings
+    chrome.storage.sync.get(['terminalEnabled'], (result) => {
+      if (result.terminalEnabled) {
+        toggleTerminal();
+      } else {
+        showNotification('Terminal is disabled. Enable it in the extension settings.', 'warning');
+      }
+    });
   });
 }
 
@@ -835,36 +852,10 @@ function handleKeyDown(e) {
     return;
   }
   
-  // Ctrl+T: Toggle terminal panel
-  if (e.ctrlKey && e.key.toLowerCase() === 't') {
-    e.preventDefault();
-    toggleTerminal();
-    return;
-  }
-  
-  // Ctrl+D: Trigger AI debug
-  if (e.ctrlKey && e.key.toLowerCase() === 'd') {
-    e.preventDefault();
-    if (currentElement) {
-      openDebugModal(currentElement);
-    }
-    return;
-  }
-  
   // P: Pause/Resume hover tracking (single key, no modifier)
   if (e.key.toLowerCase() === 'p' && !e.ctrlKey && !e.altKey && !e.metaKey) {
     e.preventDefault();
     toggleHoverPause();
-    return;
-  }
-  
-  // Q: Quick actions (show context menu)
-  if (e.key.toLowerCase() === 'q' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-    e.preventDefault();
-    if (isLogTraceActive && currentElement) {
-      // Show quick actions menu at current mouse position
-      showQuickActionsMenu(currentElement, mousePosition.x, mousePosition.y);
-    }
     return;
   }
   
@@ -921,6 +912,11 @@ function handleExtensionMessage(request, sender, sendResponse) {
       sendResponse({ active: isLogTraceActive });
       break;
       
+    case 'updateTerminalSetting':
+      // Terminal setting is handled by the button click event
+      sendResponse({ success: true });
+      break;
+      
     default:
       sendResponse({ error: 'Unknown action' });
   }
@@ -958,7 +954,7 @@ function activateLogTrace() {
   }
   
   // Show status indicator
-      showNotification('LogTrace activated! S=start, E=end, P=pause hover, Ctrl+D=debug, T=terminal info, Esc=exit');
+      showNotification('LogTrace activated! Ctrl+S=start/stop, Ctrl+E=end, P=pause hover, Right-click=quick actions, Esc=exit');
   registerOverlayListeners();
   // Show overlays if needed
 }

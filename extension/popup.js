@@ -2,6 +2,7 @@
 class LogTracePopup {
   constructor() {
     this.isActive = false;
+    this.terminalEnabled = false;
     this.currentTab = null;
     this.apiKey = null;
     this.currentTabName = 'general';
@@ -25,9 +26,10 @@ class LogTracePopup {
 
   async loadSettings() {
     try {
-      const result = await chrome.storage.sync.get(['apiKey', 'isActive', 'authToken', 'user']);
+      const result = await chrome.storage.sync.get(['apiKey', 'isActive', 'terminalEnabled', 'authToken', 'user']);
       this.apiKey = result.apiKey || null;
       this.isActive = result.isActive || false;
+      this.terminalEnabled = result.terminalEnabled || false;
       this.user = result.user || null;
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -39,6 +41,7 @@ class LogTracePopup {
       await chrome.storage.sync.set({
         apiKey: this.apiKey,
         isActive: this.isActive,
+        terminalEnabled: this.terminalEnabled,
         authToken: this.user ? this.user.access_token : null,
         user: this.user
       });
@@ -329,6 +332,20 @@ class LogTracePopup {
       </div>
       
       <div class="section">
+        <div class="section-title">Terminal</div>
+        <div class="switch-container">
+          <span class="switch-label">Enable Terminal Panel</span>
+          <label class="switch">
+            <input type="checkbox" id="terminalToggle" ${this.terminalEnabled ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-description">
+          Access the terminal panel through the LogTrace interface when enabled
+        </div>
+      </div>
+      
+      <div class="section">
         <div class="section-title">Quick Start Guide</div>
         <div class="instructions">
           <ol>
@@ -338,8 +355,6 @@ class LogTracePopup {
               <ul>
                 <li><strong>Ctrl+S</strong> - Start/Stop tracing</li>
                 <li><strong>Ctrl+E</strong> - End tracing session</li>
-                <li><strong>Ctrl+Shift+T</strong> - Toggle terminal panel</li>
-                <li><strong>Ctrl+D</strong> - Trigger AI debug</li>
                 <li><strong>P</strong> - Pause/Resume hover tracking</li>
                 <li><strong>Right-click</strong> - Quick actions menu</li>
                 <li><strong>Esc</strong> - Close panels/modals</li>
@@ -445,7 +460,18 @@ class LogTracePopup {
       });
     }
 
-
+    // Toggle terminal state
+    const terminalToggle = document.getElementById('terminalToggle');
+    if (terminalToggle) {
+      terminalToggle.addEventListener('change', async (e) => {
+        this.terminalEnabled = e.target.checked;
+        await this.saveSettings();
+        // Send message to content script to update terminal availability
+        await this.sendToBackground('updateTerminalSetting', {
+          terminalEnabled: this.terminalEnabled
+        });
+      });
+    }
 
     // Auth form inputs
     const authEmail = document.getElementById('authEmail');
