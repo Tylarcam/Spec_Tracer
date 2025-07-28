@@ -343,10 +343,10 @@ class LogTracePopup {
               <ul>
                 <li><strong>Ctrl+S</strong> - Start/Stop tracing</li>
                 <li><strong>Ctrl+E</strong> - End tracing session</li>
-                <li><strong>Ctrl+T</strong> - Toggle terminal panel</li>
+                <li><strong>Ctrl+Shift+T</strong> - Toggle terminal panel</li>
                 <li><strong>Ctrl+D</strong> - Trigger AI debug</li>
                 <li><strong>Ctrl+P</strong> - Pause/Resume hover tracking</li>
-                <li><strong>Q</strong> - Quick actions menu</li>
+                <li><strong>Right-click</strong> - Quick actions menu</li>
                 <li><strong>Esc</strong> - Close panels/modals</li>
               </ul>
             </li>
@@ -727,4 +727,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'updateStatus') {
     sendResponse({ status: 'updated' });
   }
-}); 
+});

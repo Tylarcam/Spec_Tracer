@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { DebugContext } from '../types';
 import { storage, STORAGE_KEYS } from '../storage';
@@ -90,6 +89,33 @@ export const useLogTraceOrchestrator = () => {
   useEffect(() => {
     saveCapturedEvents();
   }, [saveCapturedEvents]);
+
+  // Add robust global shortcut handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      if (
+        activeElement &&
+        (
+          activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          (activeElement as HTMLElement).isContentEditable ||
+          (activeElement.getAttribute && activeElement.getAttribute('role') === 'textbox')
+        )
+      ) {
+        return; // Do not fire shortcut if user is typing
+      }
+      
+      // Ctrl+Shift+T for terminal toggle
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setShowTerminalPanel(!showTerminalPanel);
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showTerminalPanel]);
 
   // Memoized debug context to prevent unnecessary re-renders
   const debugContext: DebugContext = useMemo(() => ({
