@@ -130,39 +130,6 @@ export const LogTraceExtension: React.FC = () => {
       return;
     }
 
-    // Handle context action if it's an object
-    if (typeof action === 'object' && action.type === 'context') {
-      const prompt = `Context Action: ${action.mode}\nUser Input: ${action.input}\nElement: ${element ? JSON.stringify(element) : 'none'}`;
-      try {
-        const aiResponse = await callAIDebugFunction(prompt, element, mousePosition);
-        setDebugResponses(prev => [
-          ...prev,
-          { response: aiResponse, timestamp }
-        ]);
-        setConsoleLogs(prev => [
-          ...prev,
-          `[${timestamp}] AI Response: ${aiResponse}`
-        ]);
-        setShowTerminal(true);
-        setActiveTerminalTab('debug');
-        setLocalToast({
-          title: 'Request sent!',
-          description: 'Your AI debug results are now in the terminal.',
-          variant: 'success',
-        });
-      } catch (err) {
-        setConsoleLogs(prev => [
-          ...prev,
-          `[${timestamp}] AI Error: ${err instanceof Error ? err.message : String(err)}`
-        ]);
-        setLocalToast({
-          title: 'AI Generation Failed',
-          description: err instanceof Error ? err.message : 'Unknown error occurred',
-          variant: 'destructive',
-        });
-      }
-      return;
-    }
 
     // Map action to allowed LogEvent type
     let eventType: LogEvent['type'] = 'inspect';
