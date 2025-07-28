@@ -9,8 +9,6 @@ A powerful Chrome extension that brings AI-powered debugging capabilities to any
 - **⌨️ Keyboard Shortcuts**: Quick access to debugging features
 - **📱 Modern UI**: Clean, responsive interface with dark theme
 - **🔄 Real-time Analysis**: Instant feedback on element properties and issues
-- **📋 Code Snippets**: Get actionable CSS, JavaScript, and HTML solutions
-- **🎨 Visual Highlighting**: Clear element boundaries and hover states
 
 ## 🚀 Installation
 

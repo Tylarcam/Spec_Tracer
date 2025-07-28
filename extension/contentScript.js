@@ -546,6 +546,27 @@ function handleMouseOver(e) {
     return;
   }
   
+  // Enhanced check for quick actions pill and all its interactive elements
+  if (element && (
+    element.classList.contains('quick-actions-pill') || 
+    element.closest('.quick-actions-pill') ||
+    element.closest('[data-quick-action]') ||
+    element.closest('[data-action]')
+  )) {
+    if (!isHoverPaused) {
+      pauseHoverOverlay();
+    }
+    return;
+  }
+  
+  // Additional check for any button elements within quick actions
+  if (element && element.tagName === 'BUTTON' && element.closest('.quick-actions-pill')) {
+    if (!isHoverPaused) {
+      pauseHoverOverlay();
+    }
+    return;
+  }
+  
   // Resume hover if leaving inspector
   if (isInspectorHovered) {
     isInspectorHovered = false;
@@ -931,7 +952,7 @@ function deactivateLogTrace() {
     panel.style.display = 'none';
   }
   
-  // Update floating button status
+  // Update floating button status and ensure it's visible
   const floatingButton = document.getElementById('log-trace-toggle-button');
   if (floatingButton) {
     floatingButton.style.backgroundColor = '#475569';
@@ -950,13 +971,12 @@ function deactivateLogTrace() {
       tooltip.style.borderColor = '#334155';
     }
   }
-  
+  ensureToggleButtonVisible();
   // Close debug modal if open
   const modal = document.getElementById('claude-debug-modal');
   if (modal) {
     modal.remove();
   }
-  
   showNotification('LogTrace deactivated');
   unregisterOverlayListeners();
   // Hide overlays and highlights
@@ -2169,14 +2189,39 @@ function isLogTraceElement(element) {
     'log-trace-signin-modal'
   ];
   
-  return logTraceIds.includes(element.id) || 
-         element.closest('#log-trace-overlay') ||
-         element.closest('#log-trace-info-panel') ||
-         element.closest('#claude-debug-modal') ||
-         element.closest('#log-trace-toggle-button') ||
-         element.closest('#log-trace-tooltip') ||
-         element.closest('#log-trace-terminal') ||
-         element.closest('#log-trace-signin-modal');
+  // Check for LogTrace IDs
+  if (logTraceIds.includes(element.id)) return true;
+  
+  // Check for LogTrace containers
+  if (element.closest('#log-trace-overlay') ||
+      element.closest('#log-trace-info-panel') ||
+      element.closest('#claude-debug-modal') ||
+      element.closest('#log-trace-toggle-button') ||
+      element.closest('#log-trace-tooltip') ||
+      element.closest('#log-trace-terminal') ||
+      element.closest('#log-trace-signin-modal')) {
+    return true;
+  }
+  
+  // Enhanced quick actions detection
+  if (element.classList.contains('quick-actions-pill') ||
+      element.closest('.quick-actions-pill') ||
+      element.closest('[data-quick-action]') ||
+      element.closest('[data-action]')) {
+    return true;
+  }
+  
+  // Check for any interactive elements within quick actions
+  if (element.tagName === 'BUTTON' && element.closest('.quick-actions-pill')) {
+    return true;
+  }
+  
+  // Check for input elements within quick actions
+  if (element.tagName === 'INPUT' && element.closest('.quick-actions-pill')) {
+    return true;
+  }
+  
+  return false;
 }
 
 function generateSelector(element) {
@@ -2762,6 +2807,18 @@ function removeOverlayUI() {
   if (highlighter) highlighter.style.display = 'none';
 }
 
+// Ensure toggle button is always visible
+function ensureToggleButtonVisible() {
+  const floatingButton = document.getElementById('log-trace-toggle-button');
+  if (floatingButton) {
+    floatingButton.style.display = 'flex';
+    floatingButton.style.position = 'fixed';
+    floatingButton.style.bottom = '20px';
+    floatingButton.style.right = '20px';
+    floatingButton.style.zIndex = '10003';
+  }
+}
+
 // Sanitization utility (matching web app)
 function sanitizeText(text, maxLength = 500) {
   if (!text || typeof text !== 'string') return '';
@@ -2845,6 +2902,7 @@ function showQuickActions(x, y, element) {
     align-items: center;
     min-width: auto;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    pointer-events: auto;
   `;
 
   // Create main action buttons
@@ -2870,6 +2928,8 @@ function showQuickActions(x, y, element) {
       padding: 8px 16px;
       cursor: pointer;
       outline: none;
+      pointer-events: auto;
+      user-select: none;
     `;
     
     button.addEventListener('mouseenter', () => {

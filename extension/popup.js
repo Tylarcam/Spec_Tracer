@@ -290,9 +290,6 @@ class LogTracePopup {
           <button class="tab-btn ${this.currentTabName === 'account' ? 'active' : ''}" data-tab="account">
             Account
           </button>
-          <button class="tab-btn ${this.currentTabName === 'api' ? 'active' : ''}" data-tab="api">
-            API
-          </button>
         </div>
         
         <div class="tab-content scrollbar">
@@ -308,8 +305,6 @@ class LogTracePopup {
         return this.renderGeneralTab();
       case 'account':
         return this.renderAccountTab();
-      case 'api':
-        return this.renderApiTab();
       default:
         return this.renderGeneralTab();
     }
@@ -436,23 +431,7 @@ class LogTracePopup {
     }
   }
 
-  renderApiTab() {
-    return `
-      <div class="section">
-        <div class="section-title">API Configuration</div>
-        <div class="api-config">
-          <h3>🔑 OpenAI API Key</h3>
-          <input 
-            type="password" 
-            id="apiKeyInput" 
-            placeholder="Enter your OpenAI API Key"
-            value="${this.apiKey || ''}"
-          >
-          <button id="saveApiKey">Save API Key</button>
-        </div>
-      </div>
-    `;
-  }
+
 
   bindEvents() {
     // Toggle active state
@@ -466,38 +445,7 @@ class LogTracePopup {
       });
     }
 
-    // Save API key
-    const saveApiKeyBtn = document.getElementById('saveApiKey');
-    if (saveApiKeyBtn) {
-      saveApiKeyBtn.addEventListener('click', async () => {
-        const apiKeyInput = document.getElementById('apiKeyInput');
-        this.apiKey = apiKeyInput.value.trim();
-        
-        if (this.apiKey) {
-          await this.saveSettings();
-          this.showNotification('API key saved successfully!', 'success');
-        } else {
-          this.showNotification('Please enter a valid API key', 'error');
-        }
-      });
-    }
 
-    // API key input validation
-    const apiKeyInput = document.getElementById('apiKeyInput');
-    if (apiKeyInput) {
-      apiKeyInput.addEventListener('input', (e) => {
-        const value = e.target.value.trim();
-        const saveBtn = document.getElementById('saveApiKey');
-        
-        if (value.length > 0) {
-          saveBtn.style.opacity = '1';
-          saveBtn.disabled = false;
-        } else {
-          saveBtn.style.opacity = '0.5';
-          saveBtn.disabled = true;
-        }
-      });
-    }
 
     // Auth form inputs
     const authEmail = document.getElementById('authEmail');
