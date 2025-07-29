@@ -121,30 +121,30 @@ const PreLaunchLanding = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-24 pb-12 px-4">
+      <section className="pt-20 sm:pt-24 pb-8 sm:pb-12 px-4">
         <div className="container mx-auto text-center max-w-4xl">
-          <div className="mb-8">
-            <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2 mb-6">
+          <div className="mb-6 sm:mb-8">
+            <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-3 sm:px-4 py-2 mb-4 sm:mb-6">
               <Sparkles className="h-4 w-4 text-green-400" />
-              <span className="text-green-400 text-sm font-medium">Early Access Demo</span>
+              <span className="text-green-400 text-xs sm:text-sm font-medium">Early Access Demo</span>
             </div>
             
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent leading-tight">
               Stop AI from Changing Things You Didn't Ask For
             </h1>
             
-            <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg sm:text-xl md:text-2xl text-slate-300 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2">
               Give AI the exact context it needs. No more unwanted changes, no more back-and-forth.
               <span className="text-green-400 font-semibold"> Save time and frustration.</span>
             </p>
           </div>
 
           {/* Primary CTA */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mb-6 sm:mb-8 px-2">
             <Button
               onClick={handleTryDemo}
               size="lg"
-              className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-4 text-lg h-auto w-full sm:w-auto"
+              className="bg-green-500 hover:bg-green-600 text-black font-bold px-6 sm:px-8 py-4 text-base sm:text-lg h-auto w-full sm:w-auto min-h-[48px]"
             >
               <Play className="h-5 w-5 mr-2" />
               Try Interactive Demo
@@ -152,17 +152,17 @@ const PreLaunchLanding = () => {
             </Button>
           </div>
           
-          {/* Privacy Badge */}
-          <div className="flex items-center justify-center gap-4 mb-6 text-sm text-slate-400">
-            <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-3 py-1">
+          {/* Privacy Badge - Mobile Stack */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mb-6 text-xs sm:text-sm text-slate-400 px-2">
+            <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-2 sm:px-3 py-1">
               <span className="text-green-400">🎯</span>
               <span className="text-green-400 font-medium">Focused Context Only</span>
             </div>
-            <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 rounded-full px-3 py-1">
+            <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 rounded-full px-2 sm:px-3 py-1">
               <span className="text-cyan-400">⚡</span>
               <span className="text-cyan-400 font-medium">No Unwanted Changes</span>
             </div>
-            <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-3 py-1">
+            <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-2 sm:px-3 py-1">
               <span className="text-blue-400">🔒</span>
               <span className="text-blue-400 font-medium">Private by Design</span>
             </div>
@@ -171,9 +171,9 @@ const PreLaunchLanding = () => {
       </section>
 
       {/* How It Works Section with Video */}
-      <section className="py-16 px-4">
+      <section className="py-8 sm:py-12 lg:py-16 px-4">
         <div className="container mx-auto max-w-4xl">
-          <div className="bg-slate-800/50 border border-green-500/20 rounded-2xl p-8 text-center">
+          <div className="bg-slate-800/50 border border-green-500/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 text-center">
             <div className="flex items-center justify-center gap-2 mb-6">
               <Play className="h-5 w-5 text-green-400" />
               <span className="text-green-400 font-medium">See It In Action</span>
@@ -186,19 +186,19 @@ const PreLaunchLanding = () => {
               </div>
             </div>
             
-            <h2 className="text-3xl font-bold mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 px-2">
               See How It Solves the AI Agent Problem
             </h2>
             
-            <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
+            <p className="text-slate-300 mb-6 sm:mb-8 max-w-2xl mx-auto px-2 text-sm sm:text-base">
               Hover any element, get focused context. No more AI changing 10 things when you asked for 1.
               <span className="text-green-400 font-semibold"> Everything stays on your machine.</span>
             </p>
             
             {/* Concrete Example */}
-            <div className="bg-slate-800/30 border border-slate-600 rounded-xl p-6 mb-8 text-left">
-              <h3 className="text-lg font-semibold text-green-400 mb-4">Here's What AI Sees When You Click an Element:</h3>
-              <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 font-mono text-sm">
+            <div className="bg-slate-800/30 border border-slate-600 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 mb-6 sm:mb-8 text-left">
+              <h3 className="text-base sm:text-lg font-semibold text-green-400 mb-3 sm:mb-4">Here's What AI Sees When You Click an Element:</h3>
+              <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 sm:p-4 font-mono text-xs sm:text-sm overflow-x-auto">
                 <div className="text-cyan-400">// Before SpecTracer (you write this manually):</div>
                 <div className="text-slate-400 mb-4">"There's a button on the signup page that says 'Join Beta' and it's not working when I click it"</div>
                 
@@ -213,13 +213,13 @@ const PreLaunchLanding = () => {
                   <div>{'}'}</div>
                 </div>
               </div>
-              <p className="text-slate-300 text-sm mt-4">
+              <p className="text-slate-300 text-xs sm:text-sm mt-3 sm:mt-4">
                 <span className="text-green-400 font-semibold">Result:</span> AI fixes exactly what you asked for, not 10 other things.
               </p>
             </div>
             
             {/* Demo Video */}
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <div className="relative w-full max-w-4xl mx-auto">
                 <video 
                   className="w-full rounded-lg shadow-lg"
@@ -247,7 +247,7 @@ const PreLaunchLanding = () => {
               onClick={handleTryDemo}
               size="lg"
               variant="outline"
-              className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4"
+              className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-6 sm:px-8 py-4 min-h-[48px] w-full sm:w-auto"
             >
               Try Interactive Demo
               <ArrowRight className="h-5 w-5 ml-2" />
@@ -257,9 +257,9 @@ const PreLaunchLanding = () => {
       </section>
 
       {/* What You Get With Pro Section */}
-      <section className="py-16 px-4 bg-gradient-to-r from-orange-500/5 to-red-500/5">
+      <section className="py-8 sm:py-12 lg:py-16 px-4 bg-gradient-to-r from-orange-500/5 to-red-500/5">
         <div className="container mx-auto max-w-4xl">
-          <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-400/30 rounded-2xl p-12 text-center">
+          <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-400/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-12 text-center">
             <div className="flex justify-center mb-6">
               <div className="bg-gradient-to-r from-orange-500 to-red-500 p-4 rounded-full">
                 <Crown className="h-16 w-16 text-white" />
@@ -270,19 +270,19 @@ const PreLaunchLanding = () => {
               <span className="text-orange-400 text-sm font-bold">🔥 LAUNCH WEEK ONLY - FIRST 50 USERS</span>
             </div>
             
-            <h2 className="text-4xl font-bold mb-4">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 px-2">
               Get the AI Agent Fix You've Been Waiting For
             </h2>
             
-            <p className="text-xl text-slate-300 mb-6 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-slate-300 mb-4 sm:mb-6 max-w-2xl mx-auto px-2">
               One-time payment. Lifetime access. Stop wasting time on AI back-and-forth forever.
             </p>
             
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">
-              <div className="grid md:grid-cols-2 gap-6 text-left">
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg sm:rounded-xl p-4 sm:p-6 mb-6 sm:mb-8">
+              <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 text-left">
                 <div>
-                  <h3 className="text-lg font-semibold text-orange-400 mb-2">What You Get</h3>
-                  <ul className="space-y-2 text-slate-300">
+                  <h3 className="text-base sm:text-lg font-semibold text-orange-400 mb-2">What You Get</h3>
+                  <ul className="space-y-2 text-sm sm:text-base text-slate-300">
                     <li className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-orange-400" />
                       Direct download (zip file)
@@ -302,8 +302,8 @@ const PreLaunchLanding = () => {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-red-400 mb-2">Lifetime Benefits</h3>
-                  <ul className="space-y-2 text-slate-300">
+                  <h3 className="text-base sm:text-lg font-semibold text-red-400 mb-2">Lifetime Benefits</h3>
+                  <ul className="space-y-2 text-sm sm:text-base text-slate-300">
                     <li>• Instant Chrome extension download</li>
                     <li>• Installation instructions</li>
                     <li>• Priority email support</li>
@@ -315,26 +315,28 @@ const PreLaunchLanding = () => {
               </div>
             </div>
             
-            <div className="flex flex-col items-center gap-4 mb-6">
+            <div className="flex flex-col items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-white mb-2">$14.99</div>
-                <div className="text-slate-400 text-sm">One-time payment • Save $120+ annually vs. other AI tools</div>
+                <div className="text-2xl sm:text-3xl font-bold text-white mb-2">$14.99</div>
+                <div className="text-slate-400 text-xs sm:text-sm px-2">One-time payment • Save $120+ annually vs. other AI tools</div>
               </div>
               
-              <PaymentButton 
-                email={email}
-                price={1499}
-                productName="SpecTracer - Dev Tool Extension"
-                description="Direct extension download with lifetime access and priority support"
-                disabled={!email.trim()}
-              />
+              <div className="w-full max-w-sm mx-auto">
+                <PaymentButton 
+                  email={email}
+                  price={1499}
+                  productName="SpecTracer - Dev Tool Extension"
+                  description="Direct extension download with lifetime access and priority support"
+                  disabled={!email.trim()}
+                />
+              </div>
             </div>
             
-            <div className="text-sm text-slate-400 text-center">
+            <div className="text-xs sm:text-sm text-slate-400 text-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2">
               <span className="text-orange-400 font-medium">⚡ Instant access</span>
-              <span className="mx-2">•</span>
+              <span className="hidden sm:inline mx-2">•</span>
               <span>👨‍💻 Built for devs. Backed by humans.</span>
-              <span className="mx-2">•</span>
+              <span className="hidden sm:inline mx-2">•</span>
               <span>🚀 Try it free. Upgrade anytime.</span>
             </div>
             
@@ -350,28 +352,28 @@ const PreLaunchLanding = () => {
       </section>
 
       {/* Support + Delivery Section */}
-      <section className="py-16 px-4">
+      <section className="py-8 sm:py-12 lg:py-16 px-4">
         <div className="container mx-auto max-w-4xl">
-          <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-400/30 rounded-2xl p-12 text-center">
+          <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-400/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-12 text-center">
             <div className="flex justify-center mb-6">
               <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-4 rounded-full">
                 <Users className="h-16 w-16 text-white" />
               </div>
             </div>
             
-            <h2 className="text-4xl font-bold mb-4">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 px-2">
               Support & Delivery
             </h2>
             
-            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-slate-300 mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
               Get immediate access to the extension with priority support. Direct download, no waiting.
             </p>
             
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">
-              <div className="grid md:grid-cols-2 gap-6 text-left">
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg sm:rounded-xl p-4 sm:p-6 mb-6 sm:mb-8">
+              <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 text-left">
                 <div>
-                  <h3 className="text-lg font-semibold text-green-400 mb-2">Instant Delivery</h3>
-                  <ul className="space-y-2 text-slate-300">
+                  <h3 className="text-base sm:text-lg font-semibold text-green-400 mb-2">Instant Delivery</h3>
+                  <ul className="space-y-2 text-sm sm:text-base text-slate-300">
                     <li className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-green-400" />
                       Immediate download link
@@ -391,8 +393,8 @@ const PreLaunchLanding = () => {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-cyan-400 mb-2">Support Included</h3>
-                  <ul className="space-y-2 text-slate-300">
+                  <h3 className="text-base sm:text-lg font-semibold text-cyan-400 mb-2">Support Included</h3>
+                  <ul className="space-y-2 text-sm sm:text-base text-slate-300">
                     <li>• Direct email support</li>
                     <li>• Installation troubleshooting</li>
                     <li>• Feature requests</li>
@@ -404,33 +406,31 @@ const PreLaunchLanding = () => {
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <div className="flex gap-2 w-full sm:w-auto">
-                <input
-                  type="email"
-                  placeholder="you@devmail.com"
-                  value={email}
-                  onChange={handleEmailChange}
-                  onKeyPress={handleEmailKeyPress}
-                  className="px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400/20 flex-1 min-w-0"
-                  disabled={isJoiningWaitlist}
-                />
-                <Button
-                  onClick={handleJoinWaitlist}
-                  disabled={!email.trim() || isJoiningWaitlist}
-                  className="bg-green-500 hover:bg-green-600 text-black font-bold px-6 py-4 text-lg h-auto whitespace-nowrap disabled:opacity-50"
-                >
-                  <Mail className="h-5 w-5 mr-2" />
-                  {isJoiningWaitlist ? 'Processing...' : 'Get Lifetime Access'}
-                </Button>
-              </div>
+            <div className="flex flex-col gap-3 sm:gap-4 max-w-md mx-auto">
+              <input
+                type="email"
+                placeholder="you@devmail.com"
+                value={email}
+                onChange={handleEmailChange}
+                onKeyPress={handleEmailKeyPress}
+                className="w-full px-4 py-4 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400/20 text-base min-h-[48px]"
+                disabled={isJoiningWaitlist}
+              />
+              <Button
+                onClick={handleJoinWaitlist}
+                disabled={!email.trim() || isJoiningWaitlist}
+                className="w-full bg-green-500 hover:bg-green-600 text-black font-bold px-6 py-4 text-base sm:text-lg h-auto min-h-[48px] disabled:opacity-50"
+              >
+                <Mail className="h-5 w-5 mr-2" />
+                {isJoiningWaitlist ? 'Processing...' : 'Get Lifetime Access'}
+              </Button>
             </div>
             
-            <div className="text-sm text-slate-400 mt-6 text-center">
+            <div className="text-xs sm:text-sm text-slate-400 mt-4 sm:mt-6 text-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2">
               <span className="text-green-400 font-medium">🎯 Free demo available now</span>
-              <span className="mx-2">•</span>
+              <span className="hidden sm:inline mx-2">•</span>
               <span>⚡ No more AI back-and-forth</span>
-              <span className="mx-2">•</span>
+              <span className="hidden sm:inline mx-2">•</span>
               <span>🔒 Private by design</span>
             </div>
           </div>
@@ -441,10 +441,10 @@ const PreLaunchLanding = () => {
       <PrivacyFAQ />
 
       {/* Footer */}
-      <footer className="py-16 px-4 border-t border-slate-700 bg-slate-900/50">
+      <footer className="py-8 sm:py-12 lg:py-16 px-4 border-t border-slate-700 bg-slate-900/50">
         <div className="container mx-auto max-w-6xl">
           {/* Main Footer Content */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-12">
             {/* Company Info */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
@@ -542,17 +542,17 @@ const PreLaunchLanding = () => {
           </div>
 
           {/* Bottom Bar */}
-          <div className="pt-8 border-t border-slate-700">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-6 text-xs text-slate-500">
+          <div className="pt-6 sm:pt-8 border-t border-slate-700">
+            <div className="flex flex-col gap-4 items-center text-center">
+              <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 text-xs text-slate-500">
                 <span>Focused AI Context</span>
-                <span>•</span>
+                <span className="hidden sm:inline">•</span>
                 <span>No Unwanted Changes</span>
-                <span>•</span>
+                <span className="hidden sm:inline">•</span>
                 <span>Private by Design</span>
               </div>
               
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
                 <a 
                   href="mailto:tylar@nobrainerco.com" 
                   className="text-slate-400 hover:text-white text-sm transition-colors flex items-center gap-2"
@@ -560,7 +560,7 @@ const PreLaunchLanding = () => {
                   <Mail className="h-4 w-4" />
                   Get Support
                 </a>
-                <span className="text-slate-500 text-xs">•</span>
+                <span className="text-slate-500 text-xs hidden sm:inline">•</span>
                 <span className="text-slate-400 text-xs">Lifetime updates included</span>
               </div>
             </div>
