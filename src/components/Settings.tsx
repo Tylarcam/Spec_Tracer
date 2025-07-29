@@ -1,68 +1,48 @@
 
-import React, { useState } from 'react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { useNotification } from '@/hooks/useNotification';
-import Spinner from './ui/spinner';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Shield, AlertTriangle } from "lucide-react";
 
 const Settings: React.FC = () => {
-  const [apiKey, setApiKey] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { success, error } = useNotification();
-
-  const handleSaveApiKey = async () => {
-    if (!apiKey.trim()) {
-      error({ title: 'Invalid', description: 'Please enter a valid API key' });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Store API key in localStorage for now
-      localStorage.setItem('openai_api_key', apiKey);
-      success({ title: 'API key saved', description: 'Your API key has been stored' });
-      setApiKey('');
-    } catch (error) {
-      error({ title: 'Save failed', description: 'Failed to save API key' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <Card className="p-6 max-w-md mx-auto relative">
-      {(isLoading) && (
-        <div className="absolute inset-0 bg-slate-900/80 flex items-center justify-center z-10 rounded">
-          <Spinner size={32} />
-        </div>
-      )}
-      <h2 className="text-xl font-bold mb-4">Settings</h2>
-      <div className={`space-y-4 ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
-        <div>
-          <Label htmlFor="api-key">OpenAI API Key</Label>
-          <Input
-            id="api-key"
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="sk-..."
-            className="mt-1"
-          />
-          <p className="text-sm text-gray-500 mt-1">
-            Required for AI debugging features
-          </p>
-        </div>
-        <Button 
-          onClick={handleSaveApiKey}
-          disabled={isLoading}
-          className="w-full"
-        >
-          {isLoading ? 'Saving...' : 'Save API Key'}
-        </Button>
-      </div>
-    </Card>
+    <div className="container mx-auto p-6 space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Security Settings
+          </CardTitle>
+          <CardDescription>
+            Your application uses secure server-side API management
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <Shield className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Secure Configuration:</strong> All API keys and sensitive data are managed 
+              securely on the server side. No sensitive information is stored in your browser.
+            </AlertDescription>
+          </Alert>
+          
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Security Notice:</strong> For your protection, API keys are not configurable 
+              from the client side. All external API communications go through secure Edge Functions.
+            </AlertDescription>
+          </Alert>
+          
+          <div className="text-sm text-muted-foreground">
+            <p>✅ Secure server-side API management</p>
+            <p>✅ No sensitive data in browser storage</p>
+            <p>✅ Rate limiting and input validation</p>
+            <p>✅ Encrypted data transmission</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

@@ -7,13 +7,16 @@ export const secureStorage = {
       'openai_api_key',
       'api_key',
       'secret_key',
-      'private_key'
+      'private_key',
+      'openai-api-key' // Additional format
     ];
     
     keysToRemove.forEach(key => {
       localStorage.removeItem(key);
       sessionStorage.removeItem(key);
     });
+    
+    console.warn('🔒 Security: Cleared sensitive data from local storage');
   },
 
   // Secure way to store non-sensitive user preferences

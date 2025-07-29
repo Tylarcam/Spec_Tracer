@@ -14,6 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
+      credit_change_logs: {
+        Row: {
+          change_amount: number
+          change_reason: string
+          changed_at: string
+          id: number
+          user_id: string | null
+        }
+        Insert: {
+          change_amount: number
+          change_reason: string
+          changed_at?: string
+          id?: number
+          user_id?: string | null
+        }
+        Update: {
+          change_amount?: number
+          change_reason?: string
+          changed_at?: string
+          id?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      pro_users: {
+        Row: {
+          email: string
+          granted_at: string
+          id: string
+          is_unlimited: boolean | null
+          pro_order_number: number
+          stripe_payment_intent_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          email: string
+          granted_at?: string
+          id?: string
+          is_unlimited?: boolean | null
+          pro_order_number: number
+          stripe_payment_intent_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          email?: string
+          granted_at?: string
+          id?: string
+          is_unlimited?: boolean | null
+          pro_order_number?: number
+          stripe_payment_intent_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          credits_awarded: number | null
+          id: string
+          referral_code: string | null
+          referred_email: string
+          referred_user_id: string | null
+          referrer_email: string
+          referrer_user_id: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits_awarded?: number | null
+          id?: string
+          referral_code?: string | null
+          referred_email: string
+          referred_user_id?: string | null
+          referrer_email: string
+          referrer_user_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits_awarded?: number | null
+          id?: string
+          referral_code?: string | null
+          referred_email?: string
+          referred_user_id?: string | null
+          referrer_email?: string
+          referrer_user_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscribers: {
         Row: {
           created_at: string
@@ -154,6 +247,14 @@ export type Database = {
           access_validation_timestamp: string
         }[]
       }
+      create_referral: {
+        Args: {
+          referrer_uuid: string
+          referred_email_param: string
+          referral_code_param?: string
+        }
+        Returns: string
+      }
       get_user_credits_status: {
         Args: { user_uuid: string }
         Returns: {
@@ -171,6 +272,18 @@ export type Database = {
       grant_waitlist_credits: {
         Args: { user_uuid: string; user_email: string }
         Returns: boolean
+      }
+      is_valid_email: {
+        Args: { email: string }
+        Returns: boolean
+      }
+      log_credit_change: {
+        Args: {
+          user_uuid: string
+          change_amount: number
+          change_reason: string
+        }
+        Returns: undefined
       }
       use_credit: {
         Args: { user_uuid: string }

@@ -3,6 +3,7 @@ import { debugRateLimiter } from '@/utils/sanitization';
 import { SECURITY_CONFIG, SecurityValidators, apiRateLimiter } from '@/utils/securityConfig';
 import { ElementInfo } from './types';
 import { supabase } from '@/integrations/supabase/client';
+import { auditLogger, apiEvents, securityEvents } from '@/utils/auditLogger';
 
 export const callAIDebugFunction = async (
   prompt: string,
@@ -14,24 +15,43 @@ export const callAIDebugFunction = async (
   // Enhanced validation for user input
   const promptValidation = enhancedValidation.validateUserInput(prompt);
   if (!promptValidation.isValid) {
+    auditLogger.logSecurity(securityEvents.INVALID_INPUT, 'medium', {
+      prompt: prompt.substring(0, 100) + '...',
+      error: promptValidation.error
+    });
     throw new Error(promptValidation.error || 'Invalid prompt format');
   }
 
   // Enhanced rate limiting
   if (!debugRateLimiter.isAllowed('debug-session')) {
+    auditLogger.logSecurity(securityEvents.RATE_LIMIT_EXCEEDED, 'medium', {
+      type: 'debug-session'
+    });
     throw new Error('Too many requests. Please wait before trying again.');
   }
 
   if (!apiRateLimiter.isAllowed('api-debug', SECURITY_CONFIG.RATE_LIMITS.API_REQUESTS_PER_MINUTE, 60000)) {
+    auditLogger.logSecurity(securityEvents.RATE_LIMIT_EXCEEDED, 'high', {
+      type: 'api-debug'
+    });
     throw new Error('API rate limit exceeded. Please wait before trying again.');
   }
 
   // Check if user is authenticated
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
+    auditLogger.logSecurity(securityEvents.UNAUTHORIZED_ACCESS, 'high', {
+      action: 'ai-debug-request',
+      error: authError?.message
+    });
     console.error('Authentication error:', authError);
     throw new Error('Authentication required for AI debugging features. Please sign in to continue.');
   }
+
+  auditLogger.logAPI(apiEvents.AI_DEBUG_REQUEST, user.id, 'low', {
+    elementTag: currentElement?.tag,
+    promptLength: prompt.length
+  });
 
   console.log('User authenticated:', user.email);
 
@@ -48,6 +68,10 @@ export const callAIDebugFunction = async (
         } : null,
         position: mousePosition,
       },
+      headers: {
+        'X-Content-Type-Options': 'nosniff',
+        'X-XSS-Protection': '1; mode=block'
+      }
     });
 
     console.log('Edge function response:', { data, error });
@@ -110,6 +134,10 @@ export const transformContextRequest = async (rawRequest: string) => {
       body: {
         rawRequest: rawRequest, // Don't over-sanitize generated context
       },
+      headers: {
+        'X-Content-Type-Options': 'nosniff',
+        'X-XSS-Protection': '1; mode=block'
+      }
     });
 
     console.log('Context transform response:', { data, error });
