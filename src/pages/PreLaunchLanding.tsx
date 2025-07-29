@@ -135,7 +135,7 @@ const PreLaunchLanding = () => {
             
             <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-2xl mx-auto leading-relaxed">
               Give AI the exact context it needs. No more unwanted changes, no more back-and-forth.
-              <span className="text-green-400 font-semibold"> Your data stays private.</span>
+              <span className="text-green-400 font-semibold"> Save time and frustration.</span>
             </p>
           </div>
 
