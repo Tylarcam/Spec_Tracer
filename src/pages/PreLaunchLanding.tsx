@@ -410,13 +410,127 @@ const PreLaunchLanding = () => {
       <PrivacyFAQ />
 
       {/* Footer */}
-      <footer className="py-12 px-4 border-t border-slate-700">
-        <div className="container mx-auto max-w-4xl text-center">
-          <div className="text-slate-400 text-sm mb-4">
-            built by Nobrainerco 2025
+      <footer className="py-16 px-4 border-t border-slate-700 bg-slate-900/50">
+        <div className="container mx-auto max-w-6xl">
+          {/* Main Footer Content */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+            {/* Company Info */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="bg-gradient-to-r from-green-500 to-cyan-500 p-2 rounded-lg">
+                  <Target className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-lg font-bold">SpecTracer</span>
+              </div>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Privacy-first developer tools that help you debug faster without compromising your data.
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 text-xs text-slate-500">
+                  <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                  Zero Data Collection
+                </div>
+                <div className="flex items-center gap-1 text-xs text-slate-500">
+                  <span className="w-2 h-2 bg-cyan-400 rounded-full"></span>
+                  Client-Side Only
+                </div>
+              </div>
+            </div>
+
+            {/* Product */}
+            <div className="space-y-4">
+              <h3 className="text-white font-semibold text-sm uppercase tracking-wide">Product</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link to="/debug" className="text-slate-400 hover:text-white text-sm transition-colors">
+                    Interactive Demo
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/debug?onboarding=true" className="text-slate-400 hover:text-white text-sm transition-colors">
+                    Try Demo
+                  </Link>
+                </li>
+                <li>
+                  <a href="#features" className="text-slate-400 hover:text-white text-sm transition-colors">
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <a href="#pricing" className="text-slate-400 hover:text-white text-sm transition-colors">
+                    Pricing
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Support */}
+            <div className="space-y-4">
+              <h3 className="text-white font-semibold text-sm uppercase tracking-wide">Support</h3>
+              <ul className="space-y-2">
+                <li>
+                  <a href="mailto:tylar@nobrainerco.com" className="text-slate-400 hover:text-white text-sm transition-colors">
+                    Contact Support
+                  </a>
+                </li>
+                <li>
+                  <Link to="/privacy" className="text-slate-400 hover:text-white text-sm transition-colors">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/support" className="text-slate-400 hover:text-white text-sm transition-colors">
+                    Help Center
+                  </Link>
+                </li>
+                <li>
+                  <a href="#faq" className="text-slate-400 hover:text-white text-sm transition-colors">
+                    FAQ
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Company */}
+            <div className="space-y-4">
+              <h3 className="text-white font-semibold text-sm uppercase tracking-wide">Company</h3>
+              <ul className="space-y-2">
+                <li>
+                  <a href="mailto:tylar@nobrainerco.com" className="text-slate-400 hover:text-white text-sm transition-colors">
+                    Contact Us
+                  </a>
+                </li>
+                <li>
+                  <span className="text-slate-400 text-sm">Built by Nobrainerco</span>
+                </li>
+                <li>
+                  <span className="text-slate-400 text-sm">© 2025 All rights reserved</span>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div className="text-slate-400 text-sm">
-            Need help or have questions? → <a href="mailto:tylar@nobrainerco.com" className="text-green-400 hover:text-green-300 underline">tylar@nobrainerco.com</a>
+
+          {/* Bottom Bar */}
+          <div className="pt-8 border-t border-slate-700">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-6 text-xs text-slate-500">
+                <span>Privacy-First Development</span>
+                <span>•</span>
+                <span>Client-Side Processing</span>
+                <span>•</span>
+                <span>Zero Data Collection</span>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <a 
+                  href="mailto:tylar@nobrainerco.com" 
+                  className="text-slate-400 hover:text-white text-sm transition-colors flex items-center gap-2"
+                >
+                  <Mail className="h-4 w-4" />
+                  Get Support
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </footer>
