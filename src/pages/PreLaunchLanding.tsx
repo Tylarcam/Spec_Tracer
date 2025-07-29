@@ -130,12 +130,12 @@ const PreLaunchLanding = () => {
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
-              Stop Writing Essays to ChatGPT
+              Stop AI from Changing Things You Didn't Ask For
             </h1>
             
             <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-              Capture UI context instantly. Copy to AI. Fix your bugs fast.
-              <span className="text-green-400 font-semibold"> Zero data collection.</span>
+              Give AI the exact context it needs. No more unwanted changes, no more back-and-forth.
+              <span className="text-green-400 font-semibold"> Your data stays private.</span>
             </p>
           </div>
 
@@ -155,16 +155,16 @@ const PreLaunchLanding = () => {
           {/* Privacy Badge */}
           <div className="flex items-center justify-center gap-4 mb-6 text-sm text-slate-400">
             <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-3 py-1">
-              <span className="text-green-400">🛡️</span>
-              <span className="text-green-400 font-medium">Zero Data Collection</span>
+              <span className="text-green-400">🎯</span>
+              <span className="text-green-400 font-medium">Focused Context Only</span>
             </div>
             <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 rounded-full px-3 py-1">
               <span className="text-cyan-400">⚡</span>
-              <span className="text-cyan-400 font-medium">Client-Side Only</span>
+              <span className="text-cyan-400 font-medium">No Unwanted Changes</span>
             </div>
             <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-3 py-1">
               <span className="text-blue-400">🔒</span>
-              <span className="text-blue-400 font-medium">Privacy-First</span>
+              <span className="text-blue-400 font-medium">Private by Design</span>
             </div>
           </div>
         </div>
@@ -187,13 +187,36 @@ const PreLaunchLanding = () => {
             </div>
             
             <h2 className="text-3xl font-bold mb-4">
-              Watch How It Works
+              See How It Solves the AI Agent Problem
             </h2>
             
             <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
-              Hover, click, copy context. That's it. No more writing long descriptions to ChatGPT.
-              <span className="text-green-400 font-semibold"> All processing happens locally in your browser.</span>
+              Hover any element, get focused context. No more AI changing 10 things when you asked for 1.
+              <span className="text-green-400 font-semibold"> Everything stays on your machine.</span>
             </p>
+            
+            {/* Concrete Example */}
+            <div className="bg-slate-800/30 border border-slate-600 rounded-xl p-6 mb-8 text-left">
+              <h3 className="text-lg font-semibold text-green-400 mb-4">Here's What AI Sees When You Click an Element:</h3>
+              <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 font-mono text-sm">
+                <div className="text-cyan-400">// Before SpecTracer (you write this manually):</div>
+                <div className="text-slate-400 mb-4">"There's a button on the signup page that says 'Join Beta' and it's not working when I click it"</div>
+                
+                <div className="text-green-400">// With SpecTracer (automatic):</div>
+                <div className="text-white">
+                  <div>SignUpButton {'{'}</div>
+                  <div className="ml-4">label: 'Join Beta',</div>
+                  <div className="ml-4">page: 'Landing {'>'} Hero',</div>
+                  <div className="ml-4">status: 'active',</div>
+                  <div className="ml-4">position: {'{x: 245, y: 180}'},</div>
+                  <div className="ml-4">classes: ['btn', 'btn-primary']</div>
+                  <div>{'}'}</div>
+                </div>
+              </div>
+              <p className="text-slate-300 text-sm mt-4">
+                <span className="text-green-400 font-semibold">Result:</span> AI fixes exactly what you asked for, not 10 other things.
+              </p>
+            </div>
             
             {/* Demo Video */}
             <div className="mb-8">
@@ -244,15 +267,15 @@ const PreLaunchLanding = () => {
             </div>
             
             <div className="inline-flex items-center gap-2 bg-orange-500/20 border border-orange-500/50 rounded-full px-4 py-2 mb-6">
-              <span className="text-orange-400 text-sm font-bold">🔥 LIMITED TIME - FIRST 50 USERS</span>
+              <span className="text-orange-400 text-sm font-bold">🔥 LAUNCH WEEK ONLY - FIRST 50 USERS</span>
             </div>
             
             <h2 className="text-4xl font-bold mb-4">
-              Get SpecTracer Dev Tool Extension
+              Get the AI Agent Fix You've Been Waiting For
             </h2>
             
             <p className="text-xl text-slate-300 mb-6 max-w-2xl mx-auto">
-              One-time payment. Lifetime access. Direct download with priority support.
+              One-time payment. Lifetime access. Stop wasting time on AI back-and-forth forever.
             </p>
             
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">
@@ -295,7 +318,7 @@ const PreLaunchLanding = () => {
             <div className="flex flex-col items-center gap-4 mb-6">
               <div className="text-center">
                 <div className="text-3xl font-bold text-white mb-2">$14.99</div>
-                <div className="text-slate-400 text-sm">One-time payment • Lifetime access</div>
+                <div className="text-slate-400 text-sm">One-time payment • Save $120+ annually vs. other AI tools</div>
               </div>
               
               <PaymentButton 
@@ -313,6 +336,14 @@ const PreLaunchLanding = () => {
               <span>👨‍💻 Built for devs. Backed by humans.</span>
               <span className="mx-2">•</span>
               <span>🚀 Try it free. Upgrade anytime.</span>
+            </div>
+            
+            {/* Support Reassurance */}
+            <div className="mt-6 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <div className="flex items-center justify-center gap-2 text-green-400 font-medium">
+                <span>🛡️</span>
+                <span>Ongoing support + upgrades included — you're not on your own.</span>
+              </div>
             </div>
           </div>
         </div>
@@ -377,7 +408,7 @@ const PreLaunchLanding = () => {
               <div className="flex gap-2 w-full sm:w-auto">
                 <input
                   type="email"
-                  placeholder="your@email.com"
+                  placeholder="you@devmail.com"
                   value={email}
                   onChange={handleEmailChange}
                   onKeyPress={handleEmailKeyPress}
@@ -390,7 +421,7 @@ const PreLaunchLanding = () => {
                   className="bg-green-500 hover:bg-green-600 text-black font-bold px-6 py-4 text-lg h-auto whitespace-nowrap disabled:opacity-50"
                 >
                   <Mail className="h-5 w-5 mr-2" />
-                  {isJoiningWaitlist ? 'Joining...' : 'Get Extension'}
+                  {isJoiningWaitlist ? 'Processing...' : 'Get Lifetime Access'}
                 </Button>
               </div>
             </div>
@@ -398,9 +429,9 @@ const PreLaunchLanding = () => {
             <div className="text-sm text-slate-400 mt-6 text-center">
               <span className="text-green-400 font-medium">🎯 Free demo available now</span>
               <span className="mx-2">•</span>
-              <span>🛡️ Zero data collection</span>
+              <span>⚡ No more AI back-and-forth</span>
               <span className="mx-2">•</span>
-              <span>Demo available now</span>
+              <span>🔒 Private by design</span>
             </div>
           </div>
         </div>
@@ -423,16 +454,16 @@ const PreLaunchLanding = () => {
                 <span className="text-lg font-bold">SpecTracer</span>
               </div>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Privacy-first developer tools that help you debug faster without compromising your data.
+                The AI agent fix that gives you focused context without unwanted changes. Built for developers who value precision.
               </p>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1 text-xs text-slate-500">
                   <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                  Zero Data Collection
+                  Focused Context Only
                 </div>
                 <div className="flex items-center gap-1 text-xs text-slate-500">
                   <span className="w-2 h-2 bg-cyan-400 rounded-full"></span>
-                  Client-Side Only
+                  No Unwanted Changes
                 </div>
               </div>
             </div>
@@ -514,11 +545,11 @@ const PreLaunchLanding = () => {
           <div className="pt-8 border-t border-slate-700">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-6 text-xs text-slate-500">
-                <span>Privacy-First Development</span>
+                <span>Focused AI Context</span>
                 <span>•</span>
-                <span>Client-Side Processing</span>
+                <span>No Unwanted Changes</span>
                 <span>•</span>
-                <span>Zero Data Collection</span>
+                <span>Private by Design</span>
               </div>
               
               <div className="flex items-center gap-4">
@@ -529,6 +560,8 @@ const PreLaunchLanding = () => {
                   <Mail className="h-4 w-4" />
                   Get Support
                 </a>
+                <span className="text-slate-500 text-xs">•</span>
+                <span className="text-slate-400 text-xs">Lifetime updates included</span>
               </div>
             </div>
           </div>
