@@ -126,7 +126,7 @@ const PreLaunchLanding = () => {
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2 mb-6">
               <Sparkles className="h-4 w-4 text-green-400" />
-              <span className="text-green-400 text-sm font-medium">Privacy-First Dev Tool</span>
+              <span className="text-green-400 text-sm font-medium">Early Access Demo</span>
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
