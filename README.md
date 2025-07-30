@@ -50,23 +50,23 @@ AI coding agents are revolutionizing development, but they have a critical flaw:
 ## 📸 Screenshots
 
 ### Main Interface
-![SpecTracer Main Interface](./Screenshot(1).png)
+![SpecTracer Main Interface](./screenshots/Screenshot(1).png)
 *Getting started guide with element inspection popup showing focused context capture*
 
 ### Element Inspector
-![Element Inspector Panel](./Screenshot(2).png)
+![Element Inspector Panel](./screenshots/Screenshot(2).png)
 *Detailed inspector panel showing element hierarchy, classes, and positioning data*
 
 ### AI Debug Assistant
-![AI Debug Assistant](./Screenshot(3).png)
+![AI Debug Assistant](./screenshots/Screenshot(3).png)
 *AI-powered analysis interface with structured context data*
 
 ### Quick Actions Menu
-![Quick Actions Menu](./Screenshot(4).png)
+![Quick Actions Menu](./screenshots/Screenshot(4).png)
 *Context menu with debugging options and element information*
 
 ### Event Tracking
-![Event Tracking](./Screenshot(5).png)
+![Event Tracking](./screenshots/Screenshot(5).png)
 *Real-time event capture and debugging interface*
 
 ## 🏗️ Technical Architecture
