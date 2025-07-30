@@ -63,6 +63,7 @@ AI coding agents are revolutionizing development, but they have a critical flaw:
 
 ### Quick Actions Menu
 ![Quick Actions Menu](./screenshots/Screenshot(4).png)
+
 *Context menu with debugging options and element information*
 
 ### Event Tracking
