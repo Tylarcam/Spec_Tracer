@@ -1,4 +1,4 @@
-# SpecTracer - AI Agent Context Tool
+# SpecTrace - AI Agent Context Tool
 
 > **The AI agent fix that gives you focused context without unwanted changes**
 
@@ -18,12 +18,12 @@ AI coding agents are revolutionizing development, but they have a critical flaw:
 
 ## 💡 The Solution
 
-**SpecTracer** captures precise UI element context and provides structured data to AI agents. Instead of developers writing long descriptions, SpecTracer automatically generates focused context that gives AI the exact information it needs.
+**SpecTrace** captures precise UI element context and provides structured data to AI agents. Instead of developers writing long descriptions, SpecTrace automatically generates focused context that gives AI the exact information it needs.
 
-### What SpecTracer Provides:
+### What SpecTrace Provides:
 ```javascript
 // Instead of: "There's a button that's not working"
-// SpecTracer gives AI:
+// SpecTrace gives AI:
 {
   element: "SignUpButton",
   label: "Join Beta", 
@@ -37,20 +37,18 @@ AI coding agents are revolutionizing development, but they have a critical flaw:
 
 ## 🎥 Demo
 
-[![SpecTracer Demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+**📹 Demo Video:** [`Demo_2025_Video.mp4`](./public/videos/Demo_2025_Video.mp4)
 
-**Watch the full demo to see SpecTracer in action:**
+**Watch the full demo to see SpecTrace in action:**
 - Real-time element inspection
 - Context capture and formatting
 - AI integration workflow
 - Privacy-first design demonstration
 
-**📹 Demo Video:** [`Demo_2025_Video.mp4`](./public/videos/Demo_2025_Video.mp4)
-
 ## 📸 Screenshots
 
 ### Main Interface
-![SpecTracer Main Interface](./screenshots/Screenshot(1).png)
+![SpecTrace Main Interface](./screenshots/Screenshot(1).png)
 *Getting started guide with element inspection popup showing focused context capture*
 
 ### Element Inspector
@@ -205,7 +203,7 @@ This is a **commercial software product** designed to solve real developer probl
 This is a commercial project, but I'm always interested in:
 - **Feedback**: User experience and feature suggestions
 - **Bug Reports**: Technical issues and edge cases
-- **Integration Ideas**: How SpecTracer could work with other tools
+- **Integration Ideas**: How SpecTrace could work with other tools
 
 ## 📄 License
 
