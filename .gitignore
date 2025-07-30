@@ -25,3 +25,33 @@ dist-ssr
 
 # OAuth configuration (contains sensitive data)
 .oauth-config.json
+
+# Environment variables and secrets
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Supabase sensitive files
+supabase/.temp/
+supabase/config.toml
+
+# API keys and secrets
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Build artifacts
+build/
+out/
+
+# Temporary files
+tmp/
+temp/
