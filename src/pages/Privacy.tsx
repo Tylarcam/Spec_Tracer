@@ -125,7 +125,7 @@ const Privacy = () => {
             <div>
               <h2 className="text-2xl font-bold text-green-400 mb-4">8. Contact Us</h2>
               <p className="mb-2">If you have questions about this Privacy Policy or your data, contact us at:</p>
-              <p className="text-cyan-400">📧 support@spectrace.app</p>
+                              <p className="text-cyan-400">📧 support@nobrainerco.com</p>
             </div>
 
             <div className="bg-slate-700/50 p-6 rounded-lg border border-green-500/30">
