@@ -3,8 +3,8 @@
 > **The AI agent fix that gives you focused context without unwanted changes**
 
 [![Demo Video](https://img.shields.io/badge/Demo-Watch%20Video-blue?style=for-the-badge&logo=youtube)](./public/videos/Demo_2025_Video.mp4)
-[![Website](https://img.shields.io/badge/Website-Live%20Demo-green?style=for-the-badge)](https://your-website.com)
-[![Privacy](https://img.shields.io/badge/Privacy-Client%20Side%20Only-brightgreen?style=for-the-badge)](https://your-privacy-policy.com)
+[![Website](https://img.shields.io/badge/Website-Live%20Demo-green?style=for-the-badge)](spec-tracer.lovable.app)
+[![Privacy](https://img.shields.io/badge/Privacy-Client%20Side%20Only-brightgreen?style=for-the-badge)](https://preview--spec-tracer.lovable.app/privacy)
 
 ## 🎯 The Problem
 
