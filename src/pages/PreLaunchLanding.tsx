@@ -192,7 +192,8 @@ const PreLaunchLanding = () => {
             
             <p className="text-slate-300 mb-6 sm:mb-8 max-w-2xl mx-auto px-2 text-sm sm:text-base">
               Hover any element, get focused context. No more AI changing 10 things when you asked for 1.
-              <span className="text-green-400 font-semibold"> Everything stays on your machine.</span>
+              <br />
+              <span className="text-green-400 font-semibold">Everything stays on your machine.</span>
             </p>
             
             {/* Concrete Example */}
