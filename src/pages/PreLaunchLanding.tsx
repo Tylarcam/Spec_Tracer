@@ -113,8 +113,7 @@ const PreLaunchLanding = () => {
           <div className="flex items-center gap-2">
             <Button
               onClick={() => navigate('/explore')}
-              variant="outline"
-              className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black font-semibold px-4 py-2"
+              className="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-4 py-2"
             >
               <Globe className="h-4 w-4 mr-2" />
               Explore
