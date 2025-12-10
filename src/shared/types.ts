@@ -41,6 +41,7 @@ export interface LogTraceSettings {
   theme: 'dark' | 'light';
   apiKey?: string;
   debugMode: boolean;
+  learningAssistantMode: boolean;
 }
 
 export interface DebugContext {

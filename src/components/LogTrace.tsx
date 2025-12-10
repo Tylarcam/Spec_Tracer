@@ -8,11 +8,13 @@ import { Terminal } from 'lucide-react';
 import NavBar from './NavBar';
 import InstructionsCard from './LogTrace/InstructionsCard';
 import MouseOverlay from './LogTrace/MouseOverlay';
+import LearningAssistantBubble from './LogTrace/LearningAssistantBubble';
 import ElementInspector from './LogTrace/ElementInspector';
 import DebugModal from './LogTrace/DebugModal';
 import TabbedTerminal from './LogTrace/TabbedTerminal';
 import InteractivePanel from './LogTrace/InteractivePanel';
 import QuickActionPill from './LogTrace/QuickActionPill';
+import SettingsDrawer from './LogTrace/SettingsDrawer';
 import { useDebugResponses } from '@/shared/hooks/useDebugResponses';
 import { formatElementDataForCopy } from '@/utils/elementDataFormatter';
 import { useScreenshot } from '@/shared/hooks/useScreenshot';
@@ -41,6 +43,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const [terminalHeight, setTerminalHeight] = useState(384);
   const [terminalActiveTab, setTerminalActiveTab] = useState<'events' | 'debug' | 'console'>('events');
   const [activeScreenshotOverlay, setActiveScreenshotOverlay] = useState<'rectangle' | 'freeform' | null>(null);
+  const [learningAssistantMode, setLearningAssistantMode] = useState(false);
   
   // State to pause cursor movement when quick actions are visible
   const [isHoverPaused, setIsHoverPaused] = useState(false);
@@ -688,13 +691,22 @@ Will-change: ${styles.willChange}`;
         <InstructionsCard />
       </div>
 
-      {/* Mouse Overlay for element detection */}
-      <MouseOverlay 
-        isActive={isTraceActive}
+      {/* Mouse Overlay for element detection (hidden when Learning Assistant is active) */}
+      {!learningAssistantMode && (
+        <MouseOverlay 
+          isActive={isTraceActive}
+          currentElement={detectedElement}
+          mousePosition={cursorPosition}
+          overlayRef={overlayRef}
+          inspectorCount={inspectors.length}
+        />
+      )}
+
+      {/* Learning Assistant Bubble (Demo Feature) */}
+      <LearningAssistantBubble
+        isActive={isTraceActive && learningAssistantMode}
         currentElement={detectedElement}
         mousePosition={cursorPosition}
-        overlayRef={overlayRef}
-        inspectorCount={inspectors.length}
       />
 
       {/* Quick Action Pill */}
@@ -780,6 +792,14 @@ Will-change: ${styles.willChange}`;
       {activeScreenshotOverlay === 'freeform' && (
         <FreeformScreenshotOverlay onComplete={handleScreenshotOverlayComplete} onCancel={handleScreenshotOverlayCancel} />
       )}
+
+      {/* Settings Drawer */}
+      <SettingsDrawer
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        learningAssistantMode={learningAssistantMode}
+        onLearningAssistantToggle={setLearningAssistantMode}
+      />
     </div>
   );
 };
