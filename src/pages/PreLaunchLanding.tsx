@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Target, Sparkles, Play, Users, Mail, Zap, Crown, Share2 } from 'lucide-react';
+import { ArrowRight, Target, Sparkles, Play, Users, Mail, Zap, Crown, Share2, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -110,13 +110,23 @@ const PreLaunchLanding = () => {
             <span className="text-xl font-bold">SpecTracer</span>
           </div>
           
-          <Button
-            onClick={handleTryDemo}
-            className="bg-green-500 hover:bg-green-600 text-black font-semibold px-4 py-2"
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Try Demo
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => navigate('/explore')}
+              variant="outline"
+              className="border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black font-semibold px-4 py-2"
+            >
+              <Globe className="h-4 w-4 mr-2" />
+              Explore
+            </Button>
+            <Button
+              onClick={handleTryDemo}
+              className="bg-green-500 hover:bg-green-600 text-black font-semibold px-4 py-2"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Try Demo
+            </Button>
+          </div>
         </div>
       </header>
 
