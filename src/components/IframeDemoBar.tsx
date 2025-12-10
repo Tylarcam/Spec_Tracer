@@ -24,13 +24,13 @@ const IframeDemoBar: React.FC = () => {
         formattedUrl = 'https://' + formattedUrl;
       }
       const encodedUrl = encodeURIComponent(formattedUrl);
-      navigate(`/interactive-demo?site=${encodedUrl}`);
+      navigate(`/explore?site=${encodedUrl}`);
     }
   };
 
   const handlePopularSite = (siteUrl: string) => {
     const encodedUrl = encodeURIComponent(siteUrl);
-    navigate(`/interactive-demo?site=${encodedUrl}`);
+    navigate(`/explore?site=${encodedUrl}`);
   };
 
   return (

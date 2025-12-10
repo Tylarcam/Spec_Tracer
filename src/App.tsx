@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import ContextTransform from "./pages/ContextTransform";
 import Debug from "./pages/Debug";
 import InteractiveDemo from "./pages/InteractiveDemo";
+import WebExplorer from "./pages/WebExplorer";
 import Support from "./pages/Support";
 import Privacy from "./pages/Privacy";
 
@@ -33,6 +34,7 @@ function App() {
                 <Route path="/" element={<PreLaunchLanding />} />
                 <Route path="/full-launch" element={<Landing />} />
                 <Route path="/debug" element={<Debug />} />
+                <Route path="/explore" element={<WebExplorer />} />
                 <Route path="/interactive-demo" element={<InteractiveDemo />} />
                 <Route path="/home" element={<Home />} />
                 <Route path="/auth" element={<Auth />} />
