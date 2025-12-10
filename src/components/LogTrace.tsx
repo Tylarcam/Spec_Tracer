@@ -43,7 +43,7 @@ const LogTrace: React.FC<LogTraceProps> = ({
   const [terminalHeight, setTerminalHeight] = useState(384);
   const [terminalActiveTab, setTerminalActiveTab] = useState<'events' | 'debug' | 'console'>('events');
   const [activeScreenshotOverlay, setActiveScreenshotOverlay] = useState<'rectangle' | 'freeform' | null>(null);
-  const [learningAssistantMode, setLearningAssistantMode] = useState(false);
+  const [learningAssistantMode, setLearningAssistantMode] = useState(true);
   
   // State to pause cursor movement when quick actions are visible
   const [isHoverPaused, setIsHoverPaused] = useState(false);
