@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Settings, Keyboard, Zap, Eye, Terminal, MousePointer, Bell, Palette, Share2, Crown, User, Mail, Shield, Download, Trash2, LogOut, EyeOff, CheckCircle } from 'lucide-react';
+import { X, Settings, Keyboard, Zap, Eye, Terminal, MousePointer, Bell, Palette, Share2, Crown, User, Mail, Shield, Download, Trash2, LogOut, EyeOff, CheckCircle, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,9 +19,11 @@ interface SettingsDrawerProps {
   onClose: () => void;
   onUpgrade?: () => void;
   onUpgradeClick?: () => void;
+  learningAssistantMode?: boolean;
+  onLearningAssistantToggle?: (enabled: boolean) => void;
 }
 
-const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgrade, onUpgradeClick }) => {
+const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgrade, onUpgradeClick, learningAssistantMode = false, onLearningAssistantToggle }) => {
   const { user, signOut } = useAuth();
   const { success, error } = useNotification();
   const { creditStatus, awardShareCredits, refreshCredits } = useEnhancedCredits();
@@ -334,7 +336,34 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, onUpgr
                 </CardContent>
               </Card>
 
-              {/* Keyboard Shortcuts */}
+              {/* Learning Assistant Mode */}
+              <Card className="bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-400/30">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5 text-violet-400" />
+                    <CardTitle className="text-white">Learning Assistant</CardTitle>
+                  </div>
+                  <CardDescription className="text-slate-400">
+                    Demo feature for student learners
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-white">Enable Learning Mode</Label>
+                      <p className="text-sm text-slate-400">Shows educational tips about HTML/CSS elements</p>
+                    </div>
+                    <Switch
+                      checked={learningAssistantMode}
+                      onCheckedChange={(checked) => onLearningAssistantToggle?.(checked)}
+                    />
+                  </div>
+                  <p className="text-xs text-violet-300 mt-3">
+                    🎓 Perfect for beginners learning frontend development!
+                  </p>
+                </CardContent>
+              </Card>
+
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
                   <div className="flex items-center gap-2">

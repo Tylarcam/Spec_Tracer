@@ -7,10 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -224,79 +224,70 @@ export type Database = {
     }
     Functions: {
       check_tylarcam_premium: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
-          is_premium: boolean
           api_access: boolean
+          is_premium: boolean
           remaining_calls: number
         }[]
       }
       comprehensive_user_verification: {
         Args: { input_email?: string }
         Returns: {
-          auth_user_id: string
-          auth_email: string
-          auth_role: string
-          auth_last_sign_in: string
-          is_subscriber: boolean
-          subscription_tier: string
-          subscription_start: string
-          subscription_end: string
-          stripe_customer_id: string
-          has_premium_access: boolean
           access_validation_timestamp: string
+          auth_email: string
+          auth_last_sign_in: string
+          auth_role: string
+          auth_user_id: string
+          has_premium_access: boolean
+          is_subscriber: boolean
+          stripe_customer_id: string
+          subscription_end: string
+          subscription_start: string
+          subscription_tier: string
         }[]
       }
       create_referral: {
         Args: {
-          referrer_uuid: string
-          referred_email_param: string
           referral_code_param?: string
+          referred_email_param: string
+          referrer_uuid: string
         }
         Returns: string
       }
       get_user_credits_status: {
         Args: { user_uuid: string }
         Returns: {
-          credits_remaining: number
           credits_limit: number
-          reset_time: string
+          credits_remaining: number
           is_premium: boolean
+          reset_time: string
           waitlist_bonus_remaining: number
         }[]
       }
-      get_waitlist_position: {
-        Args: { user_email: string }
-        Returns: number
-      }
+      get_waitlist_position: { Args: { user_email: string }; Returns: number }
       grant_waitlist_credits: {
-        Args: { user_uuid: string; user_email: string }
+        Args: { user_email: string; user_uuid: string }
         Returns: boolean
       }
-      is_valid_email: {
-        Args: { email: string }
-        Returns: boolean
-      }
+      is_valid_email: { Args: { email: string }; Returns: boolean }
       log_credit_change: {
         Args: {
-          user_uuid: string
           change_amount: number
           change_reason: string
+          user_uuid: string
         }
         Returns: undefined
       }
-      use_credit: {
-        Args: { user_uuid: string }
-        Returns: boolean
-      }
+      use_credit: { Args: { user_uuid: string }; Returns: boolean }
       verify_premium_user: {
         Args: { check_email: string }
         Returns: {
           auth_user_exists: boolean
-          subscriber_record_exists: boolean
           is_subscribed: boolean
-          subscription_tier: string
+          subscriber_record_exists: boolean
           subscription_end: string
+          subscription_tier: string
           user_id: string
         }[]
       }
