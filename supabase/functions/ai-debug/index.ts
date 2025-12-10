@@ -185,8 +185,7 @@ serve(async (req) => {
             content: contextualPrompt
           }
         ],
-        max_tokens: 500,
-        temperature: 0.7,
+        max_completion_tokens: 500,
       }),
     });
 
