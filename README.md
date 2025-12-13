@@ -1,6 +1,11 @@
 # SpecTracer - AI Agent Context Tool
 
 > **The AI agent fix that gives you focused context without unwanted changes**
+> **Stop wasting time explaining code to AI.** Spec_Tracer automatically captures your UI context and delivers it perfectly formatted to any AI assistant.
+
+[**📥 Get Spec_Tracer Free** → Install from Chrome Web Store](https://chromewebstore.google.com/detail/spec-tracer/nokhgfoeaemgglcelmnopnloccnnlapa?hl=en-US&authuser=1&utm_source=ext_sidebar)
+>
+> [![Download from Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Spec%20Tracer-blue?style=for-the-badge&logo=googlechrome)](https://chromewebstore.google.com/detail/spec-tracer/nokhgfoeaemgglcelmnopnloccnnlapa?hl=en-US&authuser=1&utm_source=ext_sidebar)
 
 [![Demo Video](https://img.shields.io/badge/Demo-Watch%20Video-blue?style=for-the-badge&logo=youtube)](./public/videos/Demo_2025_Video.mp4)
 [![Website](https://img.shields.io/badge/Website-Live%20Demo-green?style=for-the-badge)](spec-tracer.lovable.app)
@@ -34,6 +39,28 @@ AI coding agents are revolutionizing development, but they have a critical flaw:
   hierarchy: "body > main > .hero > .cta-section > button"
 }
 ```
+## 🚀 Getting Started
+
+### Installation
+
+1. **Open Chrome Web Store**: Visit [Spec_Tracer on Chrome Web Store](https://chromewebstore.google.com/detail/spec-tracer/nokhgfoeaemgglcelmnopnloccnnlapa?hl=en-US&authuser=1&utm_source=ext_sidebar)
+
+2. **Click "Add to Chrome"**: Install the extension to your browser
+
+3. **Open any web application**: Navigate to any website with interactive UI elements
+
+4. **Click the Spec_Tracer icon**: Use the extension icon in your Chrome toolbar to activate it
+
+5. **Inspect elements**: Click on any element to capture its context
+
+### Quick Start Guide
+
+- **Real-time Inspection**: Hover over or click elements to see their complete context
+- **Copy Context**: Automatically copy captured context to your clipboard
+- **Privacy First**: All data stays local — nothing is sent to servers
+- **Works with AI**: Use captured context with ChatGPT, Claude, or any AI assistant
+
+
 
 ## 🎥 Demo
 
