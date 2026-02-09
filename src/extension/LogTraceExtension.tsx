@@ -14,7 +14,7 @@ import ElementInspector from '@/components/LogTrace/ElementInspector';
 export const LogTraceExtension: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [isActive, setIsActive] = useState(true);
+  const [isActive, setIsActive] = useState(false);
   const [currentElement, setCurrentElement] = useState<ElementInfo | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [showElementInspector, setShowElementInspector] = useState(false);
