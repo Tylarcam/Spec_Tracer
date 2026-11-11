@@ -1,11 +1,26 @@
 {
   "manifest_version": 3,
   "name": "Trace Sight Debug View",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Debug and trace logs with a React-based UI.",
   "action": {
     "default_popup": "index.html",
     "default_title": "Trace Sight Debug View"
   },
-  "permissions": []
-} 
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "send-to-odysseus": {
+      "suggested_key": { "default": "Alt+Shift+O" },
+      "description": "Send the selection (or page) to Odysseus"
+    }
+  },
+  "permissions": ["storage", "contextMenus", "scripting", "activeTab", "offscreen"],
+  "host_permissions": ["http://127.0.0.1:7000/*", "http://localhost:7000/*"]
+}
