@@ -10,6 +10,8 @@ import { callAIDebugFunction } from '@/shared/api';
 import { Settings, Terminal } from 'lucide-react';
 import SettingsDrawer from '@/components/LogTrace/SettingsDrawer';
 import ElementInspector from '@/components/LogTrace/ElementInspector';
+import { sendCaptureToOdysseus } from './odysseusExport';
+import { formatElementDataForCopy } from '@/utils/elementDataFormatter';
 
 export const LogTraceExtension: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -117,6 +119,15 @@ export const LogTraceExtension: React.FC = () => {
 
     // Close quick actions
     setShowQuickActions(false);
+
+    // Send to Odysseus (falls back to the clipboard on failure)
+    if (action === 'odysseus' && element) {
+      const result = await sendCaptureToOdysseus({ spec: formatElementDataForCopy(element, mousePosition) });
+      setLocalToast(result.ok
+        ? { title: 'Sent to Odysseus', description: result.id ? `Note ${result.id}` : 'Capture saved in Odysseus Notes', variant: 'success' }
+        : { title: 'Odysseus send failed', description: `${result.error}${result.copied ? ' (copied to clipboard instead)' : ''}`, variant: 'destructive' });
+      return;
+    }
 
     // Handle copy action
     if (action === 'copy' && element) {
@@ -348,6 +359,13 @@ export const LogTraceExtension: React.FC = () => {
             >
               <span>📋</span>
               <span>Copy Element</span>
+            </button>
+            <button
+              onClick={() => handleQuickAction('odysseus', currentElement)}
+              className="flex items-center space-x-2 px-3 py-2 text-sm text-cyan-400 hover:bg-cyan-500/10 rounded"
+            >
+              <span>📨</span>
+              <span>Send to Odysseus</span>
             </button>
             <button
               onClick={() => handleQuickAction('details', currentElement)}
