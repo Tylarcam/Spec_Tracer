@@ -26,3 +26,15 @@ Payload built by `public/odysseus-export.js`:
 **CORS:** requests go out from the extension's service worker and options page, which have `host_permissions` for `http://127.0.0.1:7000/*` and `http://localhost:7000/*`, so Chrome skips CORS for them. Odysseus needs no `chrome-extension://` origin allowance. To use a different host or port, add it to `host_permissions`.
 
 **Test:** `ODYSSEUS_API_TOKEN=... node scripts/test-send-to-odysseus.mjs` posts a `SpecTracer test` note and reads it back.
+
+
+**Element annotations (selector + note)**
+The in-page inspector posts the picked element's CSS selector, DOM path, text, size, position, and key attributes (`data-*`, `aria-*`, role, type, name, href, etc.) in the note's Spec section, plus your typed annotation in the Selection section. Web Dev can read these in Odysseus Notes (label `spectracer`).
+
+On `http://localhost:7000`, `http://127.0.0.1:7000`, or `https://odysseus.tail42ce2d.ts.net`:
+1. Look for the compact **ST** button at the bottom-right (or press **Ctrl+S**) to start tracing.
+2. Hover an element, then right-click it and choose **Send to Odysseus**.
+3. Type a short annotation and click **Send note**.
+
+**Alt+Shift+O** and the page context menu still send the current text selection (or the page) without a picked-element spec. Use the in-page flow when you want a selector and DOM details.
+
