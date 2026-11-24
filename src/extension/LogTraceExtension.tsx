@@ -3,6 +3,7 @@ import ExtensionMouseOverlay from './components/ExtensionMouseOverlay';
 import PinnedDetails from './components/PinnedDetails';
 import ExtensionTerminalWrapper from './components/ExtensionTerminalWrapper';
 import { usePinnedDetails } from '@/shared/hooks/usePinnedDetails';
+import { useElementDetection } from '@/shared/hooks/useElementDetection';
 import { ElementInfo, LogEvent, ExtendedActionType } from '@/shared/types';
 import ExtensionAuthModal from './components/ExtensionAuthModal';
 import { useExtensionAuth } from './hooks/useExtensionAuth';
@@ -11,7 +12,7 @@ import { Settings, Terminal } from 'lucide-react';
 import SettingsDrawer from '@/components/LogTrace/SettingsDrawer';
 import ElementInspector from '@/components/LogTrace/ElementInspector';
 import { sendCaptureToOdysseus } from './odysseusExport';
-import { formatElementDataForCopy } from '@/utils/elementDataFormatter';
+import { formatElementDataForCopy, formatElementDataAsSelector } from '@/utils/elementDataFormatter';
 
 export const LogTraceExtension: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -35,6 +36,26 @@ export const LogTraceExtension: React.FC = () => {
   const [pausedPosition, setPausedPosition] = useState<{ x: number; y: number } | null>(null);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [quickActionsPosition, setQuickActionsPosition] = useState({ x: 0, y: 0 });
+  const [annotationText, setAnnotationText] = useState('');
+  const [showAnnotation, setShowAnnotation] = useState(false);
+  const { extractElementDetails } = useElementDetection();
+
+  // Track the element under the cursor when tracing is on.
+  useEffect(() => {
+    if (!isActive || isHoverPaused) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const pos = { x: e.clientX, y: e.clientY };
+      setMousePosition(pos);
+      const target = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+      if (!target) return;
+      if (target.id === 'logtrace-extension-root' || target.closest('#logtrace-extension-root')) return;
+      setCurrentElement(extractElementDetails(target));
+    };
+
+    document.addEventListener('mousemove', handleMouseMove, true);
+    return () => document.removeEventListener('mousemove', handleMouseMove, true);
+  }, [isActive, isHoverPaused, extractElementDetails]);
 
   const {
     pinnedDetails,
@@ -94,6 +115,8 @@ export const LogTraceExtension: React.FC = () => {
     
     // Show quick actions at cursor position
     setQuickActionsPosition({ x: e.clientX, y: e.clientY });
+    setShowAnnotation(false);
+    setAnnotationText('');
     setShowQuickActions(true);
   }, [pauseHoverOverlay]);
 
@@ -117,12 +140,27 @@ export const LogTraceExtension: React.FC = () => {
   ) => {
     const timestamp = new Date().toISOString();
 
+    // Open the annotation box without closing the menu.
+    if (action === 'odysseus') {
+      setShowAnnotation(true);
+      return;
+    }
+
     // Close quick actions
     setShowQuickActions(false);
+    setShowAnnotation(false);
 
     // Send to Odysseus (falls back to the clipboard on failure)
-    if (action === 'odysseus' && element) {
-      const result = await sendCaptureToOdysseus({ spec: formatElementDataForCopy(element, mousePosition) });
+    if (action === 'odysseus-send' && element) {
+      const selector = formatElementDataAsSelector(element);
+      const spec = [selector ? `Selector: ${selector}` : '', formatElementDataForCopy(element, mousePosition)]
+        .filter(Boolean)
+        .join('\n');
+      const result = await sendCaptureToOdysseus({
+        selection: annotationText.trim(),
+        spec,
+      });
+      setAnnotationText('');
       setLocalToast(result.ok
         ? { title: 'Sent to Odysseus', description: result.id ? `Note ${result.id}` : 'Capture saved in Odysseus Notes', variant: 'success' }
         : { title: 'Odysseus send failed', description: `${result.error}${result.copied ? ' (copied to clipboard instead)' : ''}`, variant: 'destructive' });
@@ -272,6 +310,8 @@ export const LogTraceExtension: React.FC = () => {
       if (e.key === 'Escape') {
         if (showQuickActions) {
           setShowQuickActions(false);
+          setShowAnnotation(false);
+          setAnnotationText('');
           resumeHoverOverlay();
         } else {
           setShowElementInspector(false);
@@ -322,25 +362,37 @@ export const LogTraceExtension: React.FC = () => {
         </div>
       )}
       
-      {/* Settings Button - top right corner */}
+      {/* Always-on compact toggle so Odysseus isn't covered until tracing starts. */}
       <button
-        onClick={() => setShowSettingsDrawer(true)}
-        className="fixed top-4 right-4 z-[2147483650] bg-slate-900/80 border border-cyan-500/40 rounded-full p-2 shadow-lg hover:bg-cyan-900 transition-colors"
-        title="Settings"
+        onClick={() => setIsActive((v) => !v)}
+        className="fixed bottom-4 right-4 z-[2147483650] bg-slate-900/90 border border-cyan-500/50 rounded-full px-2.5 py-1.5 shadow-lg hover:bg-cyan-900 transition-colors text-xs font-mono text-cyan-300"
+        title={isActive ? 'Stop SpecTracer (Ctrl+S)' : 'Start SpecTracer (Ctrl+S)'}
         style={{ pointerEvents: 'auto' }}
       >
-        <Settings className="h-5 w-5 text-cyan-400" />
+        ST
       </button>
 
-      {/* Terminal Toggle Button - bottom left corner */}
-      <button
-        onClick={() => setShowTerminal(!showTerminal)}
-        className="fixed bottom-4 left-4 z-[2147483650] bg-slate-900/80 border border-green-500/40 rounded-full p-2 shadow-lg hover:bg-green-900 transition-colors"
-        title="Toggle Terminal (Ctrl+Shift+T)"
-        style={{ pointerEvents: 'auto' }}
-      >
-        <Terminal className="h-5 w-5 text-green-400" />
-      </button>
+      {isActive && (
+        <button
+          onClick={() => setShowSettingsDrawer(true)}
+          className="fixed top-4 right-4 z-[2147483650] bg-slate-900/80 border border-cyan-500/40 rounded-full p-2 shadow-lg hover:bg-cyan-900 transition-colors"
+          title="Settings"
+          style={{ pointerEvents: 'auto' }}
+        >
+          <Settings className="h-5 w-5 text-cyan-400" />
+        </button>
+      )}
+
+      {isActive && (
+        <button
+          onClick={() => setShowTerminal(!showTerminal)}
+          className="fixed bottom-4 left-4 z-[2147483650] bg-slate-900/80 border border-green-500/40 rounded-full p-2 shadow-lg hover:bg-green-900 transition-colors"
+          title="Toggle Terminal (Ctrl+Shift+T)"
+          style={{ pointerEvents: 'auto' }}
+        >
+          <Terminal className="h-5 w-5 text-green-400" />
+        </button>
+      )}
 
       {/* Quick Actions Menu */}
       {showQuickActions && (
@@ -367,6 +419,24 @@ export const LogTraceExtension: React.FC = () => {
               <span>📨</span>
               <span>Send to Odysseus</span>
             </button>
+            {showAnnotation && (
+              <div className="px-2 pb-2 space-y-2">
+                <textarea
+                  value={annotationText}
+                  onChange={(e) => setAnnotationText(e.target.value)}
+                  placeholder="Quick annotation about this change"
+                  rows={3}
+                  className="w-full text-xs bg-slate-800 text-slate-100 border border-cyan-500/40 rounded p-2 resize-y"
+                  style={{ pointerEvents: 'auto' }}
+                />
+                <button
+                  onClick={() => handleQuickAction('odysseus-send', currentElement)}
+                  className="w-full px-3 py-2 text-sm text-slate-900 bg-cyan-400 hover:bg-cyan-300 rounded font-medium"
+                >
+                  Send note
+                </button>
+              </div>
+            )}
             <button
               onClick={() => handleQuickAction('details', currentElement)}
               className="flex items-center space-x-2 px-3 py-2 text-sm text-cyan-400 hover:bg-cyan-500/10 rounded"
@@ -398,6 +468,8 @@ export const LogTraceExtension: React.FC = () => {
             <button
               onClick={() => {
                 setShowQuickActions(false);
+                setShowAnnotation(false);
+                setAnnotationText('');
                 resumeHoverOverlay();
               }}
               className="flex items-center space-x-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded border-t border-gray-600 mt-1"

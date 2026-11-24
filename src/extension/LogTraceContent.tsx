@@ -1,20 +1,41 @@
-
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { LogTraceExtension } from './LogTraceExtension';
-import '../index.css'; // Import Tailwind/global styles
+import css from '../index.css?inline';
 
-// Create a container for the extension UI
-const container = document.createElement('div');
-container.id = 'logtrace-extension-root';
-container.style.position = 'fixed';
-container.style.top = '0';
-container.style.left = '0';
-container.style.width = '100vw';
-container.style.height = '100vh';
-container.style.zIndex = '2147483647';
-container.style.pointerEvents = 'none';
-document.body.appendChild(container);
+function mount() {
+  if (document.getElementById('logtrace-extension-root')) return;
 
-const root = createRoot(container);
-root.render(<LogTraceExtension />);
+  const host = document.createElement('div');
+  host.id = 'logtrace-extension-root';
+  host.style.position = 'fixed';
+  host.style.top = '0';
+  host.style.left = '0';
+  host.style.width = '100vw';
+  host.style.height = '100vh';
+  host.style.zIndex = '2147483647';
+  host.style.pointerEvents = 'none';
+
+  const parent = document.body || document.documentElement;
+  parent.appendChild(host);
+
+  // Keep Tailwind/preflight inside a shadow root so Odysseus page styles stay intact.
+  const shadow = host.attachShadow({ mode: 'open' });
+  const style = document.createElement('style');
+  style.textContent = css;
+  shadow.appendChild(style);
+
+  const container = document.createElement('div');
+  container.style.width = '100%';
+  container.style.height = '100%';
+  container.style.pointerEvents = 'none';
+  shadow.appendChild(container);
+
+  createRoot(container).render(<LogTraceExtension />);
+}
+
+if (document.body) {
+  mount();
+} else {
+  document.addEventListener('DOMContentLoaded', mount, { once: true });
+}
